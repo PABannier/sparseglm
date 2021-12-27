@@ -12,7 +12,7 @@ mod tests;
 
 pub trait Estimator<T: Float> {
     fn new(alpha: T) -> Self;
-    fn fit(&self, X: ArrayView2<T>, y: ArrayView1<T>) -> &Array1<T>;
+    fn fit(&self, X: ArrayView2<T>, y: ArrayView1<T>) -> Array1<T>;
 }
 
 pub struct SolverParams<T> {
@@ -44,7 +44,6 @@ impl<T: Float> Default for SolverParams<T> {
 ///
 
 pub struct Lasso<T: Float> {
-    alpha: T,
     datafit: Quadratic<T>,
     penalty: L1<T>,
     params: SolverParams<T>,
@@ -54,14 +53,13 @@ impl<T: Float + 'static> Estimator<T> for Lasso<T> {
     /// Create new instance
     fn new(alpha: T) -> Self {
         Lasso {
-            alpha,
             datafit: Quadratic::default(),
             penalty: L1::new(alpha),
             params: SolverParams::default(),
         }
     }
     /// Fits an instance of Estimator
-    fn fit(&self, X: ArrayView2<T>, y: ArrayView1<T>) -> &Array1<T> {
+    fn fit(&self, X: ArrayView2<T>, y: ArrayView1<T>) -> Array1<T> {
         let n_features = X.shape()[1];
 
         let mut w = Array1::<T>::zeros(n_features);
@@ -70,8 +68,8 @@ impl<T: Float + 'static> Estimator<T> for Lasso<T> {
         solver(
             X.view(),
             y.view(),
-            self.datafit,
-            self.penalty,
+            &self.datafit,
+            &self.penalty,
             &mut w,
             &mut Xw,
             self.params.max_iter,
@@ -81,6 +79,6 @@ impl<T: Float + 'static> Estimator<T> for Lasso<T> {
             self.params.verbose,
         );
 
-        &w
+        w
     }
 }
