@@ -5,6 +5,7 @@ use crate::datafits::Datafit;
 use crate::penalties::Penalty;
 use ndarray::{s, Array1, ArrayView1, ArrayView2};
 use num::Float;
+use std::fmt::Debug;
 
 pub fn soft_thresholding<T: Float>(x: T, threshold: T) -> T {
     if x > threshold {
@@ -26,14 +27,29 @@ pub fn get_max_arr<T: Float>(arr: ArrayView1<T>) -> T {
     max_val
 }
 
+#[rustfmt::skip]
+pub fn construct_ws_from_kkt<T: Float>(kkt: &mut Array1<T>, w: ArrayView1<T>,
+                                       p0:usize) -> (Array1<usize>, usize) {
+    let mut non_zero_features = 0;
+    let n_features = kkt.len();
+    for j in 0..n_features {
+        if w[j] != T::zero() {
+            non_zero_features += 1;
+            kkt[j] = T::infinity();
+        }
+    }
+
+    let ws_size = usize::max(p0, usize::min(n_features, 2 * non_zero_features));
+    let ws = Array1::<usize>::zeros(ws_size);
+    // Argsort....
+
+    (ws, ws_size)
+}
+
+#[rustfmt::skip]
 pub fn construct_grad<T: 'static + Float, D: Datafit<T>>(
-    X: ArrayView2<T>,
-    y: ArrayView1<T>,
-    w: ArrayView1<T>,
-    Xw: ArrayView1<T>,
-    ws: ArrayView1<usize>,
-    datafit: &D,
-) -> Array1<T> {
+    X: ArrayView2<T>, y: ArrayView1<T>, w: ArrayView1<T>, Xw: ArrayView1<T>,
+    ws: ArrayView1<usize>, datafit: &D) -> Array1<T> {
     let ws_size = ws.len();
     let mut grad = Array1::<T>::zeros(ws_size);
     for (idx, &j) in ws.iter().enumerate() {
@@ -42,15 +58,10 @@ pub fn construct_grad<T: 'static + Float, D: Datafit<T>>(
     grad
 }
 
+#[rustfmt::skip]
 pub fn cd_epoch<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
-    X: ArrayView2<T>,
-    y: ArrayView1<T>,
-    w: &mut Array1<T>,
-    Xw: &mut Array1<T>,
-    datafit: &D,
-    penalty: &P,
-    ws: ArrayView1<usize>,
-) {
+    X: ArrayView2<T>, y: ArrayView1<T>, w: &mut Array1<T>, Xw: &mut Array1<T>,
+    datafit: &D, penalty: &P, ws: ArrayView1<usize>,) {
     let n_samples = X.shape()[0];
     let lipschitz = datafit.get_lipschitz();
 
@@ -70,19 +81,11 @@ pub fn cd_epoch<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
     }
 }
 
-pub fn solver<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
-    X: ArrayView2<T>,
-    y: ArrayView1<T>,
-    datafit: &mut D,
-    penalty: &P,
-    w: &mut Array1<T>,
-    Xw: &mut Array1<T>,
-    max_iter: usize,
-    max_epochs: usize,
-    p0: usize,
-    tol: T,
-    verbose: bool,
-) {
+#[rustfmt::skip]
+pub fn solver<T: 'static + Float + Debug, D: Datafit<T>, P: Penalty<T>>(
+    X: ArrayView2<T>, y: ArrayView1<T>, datafit: &mut D, penalty: &P,
+    w: &mut Array1<T>, Xw: &mut Array1<T>, max_iter: usize, max_epochs: usize,
+    p0: usize, tol: T, verbose: bool) {
     let n_features = X.shape()[1];
 
     let mut kkt_max: T;
@@ -101,19 +104,10 @@ pub fn solver<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
             break;
         }
 
-        let mut non_zero_features = 0;
-        for j in 0..n_features {
-            if w[j] != T::zero() {
-                non_zero_features += 1;
-                kkt[j] = T::infinity();
-            }
-        }
-
-        let ws_size = usize::max(p0, usize::min(n_features, 2 * non_zero_features));
-        let ws: Array1<usize> = get_ws_from_kkt(kkt.view(), ws_size); // TODO: check
+        let (ws, ws_size) = construct_ws_from_kkt(&mut kkt, w.view(), p0);
 
         if verbose {
-            println!("Iteration {}, {} feats in subproblem.", iter + 1, ws_size);
+            println!("Iteration {} :: {} feats in subproblem.", iter + 1, ws_size);
         }
 
         for epoch in 0..max_epochs {
@@ -125,9 +119,12 @@ pub fn solver<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
                 #[rustfmt::skip]
                 let grad_ws = construct_grad(
                     X.view(), y.view(), w.view(), Xw.view(), ws.view(), datafit);
-                let subdiff_dist_ws = penalty.subdiff_distance(w.view(), grad_ws.view(), ws.view());
-                let kkt_ws_max = get_max_arr(subdiff_dist_ws.view());
-                // println!("epoch: {} :: kkt: {:#?}", epoch, kkt_ws_max);
+                let kkt_ws = penalty.subdiff_distance(w.view(), grad_ws.view(), ws.view());
+                let kkt_ws_max = get_max_arr(kkt_ws.view());
+
+                if verbose {
+                    println!("Epoch {} :: KKT {:#?}", epoch, kkt_ws_max);
+                }
                 if ws_size == n_features {
                     if kkt_ws_max < tol {
                         break;

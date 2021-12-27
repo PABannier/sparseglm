@@ -6,6 +6,7 @@ use crate::penalties::L1;
 use crate::solver::solver;
 use ndarray::{Array1, ArrayView1, ArrayView2};
 use num::Float;
+use std::fmt::Debug;
 
 #[cfg(test)]
 mod tests;
@@ -49,7 +50,7 @@ pub struct Lasso<T: Float> {
     params: SolverParams<T>,
 }
 
-impl<T: Float + 'static> Estimator<T> for Lasso<T> {
+impl<T: 'static + Float + Debug> Estimator<T> for Lasso<T> {
     /// Create new instance
     fn new(alpha: T) -> Self {
         Lasso {
@@ -65,19 +66,11 @@ impl<T: Float + 'static> Estimator<T> for Lasso<T> {
         let mut w = Array1::<T>::zeros(n_features);
         let mut Xw = X.dot(&w);
 
+        #[rustfmt::skip]
         solver(
-            X.view(),
-            y.view(),
-            &mut self.datafit,
-            &self.penalty,
-            &mut w,
-            &mut Xw,
-            self.params.max_iter,
-            self.params.max_epochs,
-            self.params.p0,
-            self.params.tol,
-            self.params.verbose,
-        );
+            X.view(), y.view(), &mut self.datafit, &self.penalty, &mut w,
+            &mut Xw, self.params.max_iter, self.params.max_epochs, 
+            self.params.p0, self.params.tol, self.params.verbose);
 
         w
     }
