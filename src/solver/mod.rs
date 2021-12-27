@@ -73,7 +73,7 @@ pub fn cd_epoch<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
 pub fn solver<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
     X: ArrayView2<T>,
     y: ArrayView1<T>,
-    datafit: &D,
+    datafit: &mut D,
     penalty: &P,
     w: &mut Array1<T>,
     Xw: &mut Array1<T>,
@@ -85,6 +85,8 @@ pub fn solver<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
 ) {
     let n_features = X.shape()[1];
     let all_feats = Array1::from_shape_vec(n_features, (0..n_features).collect()).unwrap();
+
+    datafit.initialize(X.view(), y.view());
 
     for epoch in 0..max_epochs {
         cd_epoch(

@@ -7,12 +7,12 @@ use crate::solver::solver;
 use ndarray::{Array1, ArrayView1, ArrayView2};
 use num::Float;
 
-#[cfg(tests)]
+#[cfg(test)]
 mod tests;
 
 pub trait Estimator<T: Float> {
     fn new(alpha: T) -> Self;
-    fn fit(&self, X: ArrayView2<T>, y: ArrayView1<T>) -> Array1<T>;
+    fn fit(&mut self, X: ArrayView2<T>, y: ArrayView1<T>) -> Array1<T>;
 }
 
 pub struct SolverParams<T> {
@@ -59,7 +59,7 @@ impl<T: Float + 'static> Estimator<T> for Lasso<T> {
         }
     }
     /// Fits an instance of Estimator
-    fn fit(&self, X: ArrayView2<T>, y: ArrayView1<T>) -> Array1<T> {
+    fn fit(&mut self, X: ArrayView2<T>, y: ArrayView1<T>) -> Array1<T> {
         let n_features = X.shape()[1];
 
         let mut w = Array1::<T>::zeros(n_features);
@@ -68,7 +68,7 @@ impl<T: Float + 'static> Estimator<T> for Lasso<T> {
         solver(
             X.view(),
             y.view(),
-            &self.datafit,
+            &mut self.datafit,
             &self.penalty,
             &mut w,
             &mut Xw,
