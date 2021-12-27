@@ -9,6 +9,7 @@ use num::Float;
 mod tests;
 
 pub trait Penalty<T: Float> {
+    fn new(alpha: T) -> Self;
     fn value(&self, w: ArrayView1<T>) -> T;
     fn prox_op(&self, value: T, step_size: T, j: usize) -> T;
     fn subdiff_distance(
@@ -27,6 +28,10 @@ pub struct L1<T> {
 }
 
 impl<T: Float> Penalty<T> for L1<T> {
+    // Creates a new instance
+    fn new(alpha: T) -> Self {
+        L1 { alpha }
+    }
     /// Gets the current value of the penalty
     fn value(&self, w: ArrayView1<T>) -> T {
         self.alpha * w.map(|x| T::abs(*x)).sum()

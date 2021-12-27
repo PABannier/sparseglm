@@ -1,7 +1,8 @@
 extern crate ndarray;
 extern crate num;
 
-use crate::penalties::{Penalty, L1};
+use crate::datafits::Quadratic;
+use crate::penalties::L1;
 use ndarray::{Array1, ArrayView1, ArrayView2};
 use num::Float;
 
@@ -9,6 +10,7 @@ use num::Float;
 mod tests;
 
 pub trait Estimator<T: Float> {
+    fn new(alpha: T) -> Self;
     fn fit(&self, X: ArrayView2<T>, y: ArrayView1<T>) -> Array1<T>;
 }
 
@@ -40,21 +42,26 @@ impl<T: Float> Default for SolverParams<T> {
 /// Lasso
 ///
 
-pub struct LassoParams<T: Float> {
+pub struct Lasso<T: Float> {
     alpha: T,
-    datafit: Array1<T>,
-    penalty: Penalty<T>,
+    datafit: Quadratic<T>,
+    penalty: L1<T>,
     params: SolverParams<T>,
 }
 
-impl<T: Float> Default for LassoParams<T> {
+impl<T: Float> Estimator<T> for Lasso<T> {
     /// Create new instance
-    fn default(alpha: T) -> LassoParams<T> {
-        LassoParams {
+    fn new(alpha: T) -> Self {
+        Lasso {
             alpha,
-            datafit: Quadratic(),
-            penalty: L1(),
+            datafit: Quadratic::default(),
+            penalty: L1::new(alpha),
             params: SolverParams::default(),
         }
+    }
+    /// Fits an instance of Estimator
+    fn fit(&self, X: ArrayView2<T>, y: ArrayView1<T>) -> Array1<T> {
+        let coef = Array1::zeros(3);
+        coef
     }
 }
