@@ -4,7 +4,6 @@ use crate::datafits::*;
 
 use ndarray::{Array1, Array2};
 
-#[macro_export]
 macro_rules! assert_delta {
     ($x:expr, $y:expr, $d:expr) => {
         if !($x - $y < $d || $y - $x < $d) {
@@ -13,7 +12,6 @@ macro_rules! assert_delta {
     };
 }
 
-#[macro_export]
 macro_rules! assert_delta_arr {
     ($x:expr, $y: expr, $d: expr) => {
         assert_eq!($x.len(), $y.len());
