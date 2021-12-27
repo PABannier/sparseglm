@@ -9,7 +9,7 @@ fn test_value_l1() {
     let a = Array1::from_shape_vec(5, vec![3.4, 2.1, -2.3, -0.3, 4.5]).unwrap();
     let pen = L1Penalty { alpha: 3.2 };
     let val = pen.value(a.view());
-    assert_eq!(val, 12.6);
+    assert_eq!(val, 40.32);
 }
 
 #[test]
