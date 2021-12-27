@@ -23,9 +23,18 @@ pub trait Datafit<T: Float> {
 /// Quadratic datafit
 ///
 
-pub struct Quadratic<T> {
+pub struct Quadratic<T: Float> {
     lipschitz: Array1<T>,
     Xty: Array1<T>,
+}
+
+impl<T: Float> Default for Quadratic<T> {
+    fn default() -> Quadratic<T> {
+        Quadratic {
+            lipschitz: Array1::zeros(1),
+            Xty: Array1::zeros(1),
+        }
+    }
 }
 
 impl<'a, T: 'static + Float> Datafit<T> for Quadratic<T> {
