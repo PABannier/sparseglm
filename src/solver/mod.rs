@@ -32,13 +32,11 @@ pub fn construct_grad<T: 'static + Float, D: Datafit<T>>(
     w: ArrayView1<T>,
     Xw: ArrayView1<T>,
     ws: ArrayView1<usize>,
-    datafit: D,
+    datafit: &D,
 ) -> Array1<T> {
-    let n_samples = X.shape()[0];
     let ws_size = ws.len();
     let mut grad = Array1::<T>::zeros(ws_size);
     for (idx, &j) in ws.iter().enumerate() {
-        let Xj: ArrayView1<T> = X.slice(s![.., j]);
         grad[idx] = datafit.gradient_scalar(X.view(), y.view(), w.view(), Xw.view(), j);
     }
     grad
@@ -49,8 +47,8 @@ pub fn cd_epoch<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
     y: ArrayView1<T>,
     w: &mut Array1<T>,
     Xw: &mut Array1<T>,
-    datafit: D,
-    penalty: P,
+    datafit: &D,
+    penalty: &P,
     ws: ArrayView1<usize>,
 ) {
     let n_samples = X.shape()[0];
@@ -75,8 +73,8 @@ pub fn cd_epoch<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
 pub fn solver<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
     X: ArrayView2<T>,
     y: ArrayView1<T>,
-    datafit: D,
-    penalty: P,
+    datafit: &D,
+    penalty: &P,
     w: &mut Array1<T>,
     Xw: &mut Array1<T>,
     max_iter: usize,
@@ -85,17 +83,15 @@ pub fn solver<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
     tol: T,
     verbose: bool,
 ) {
-    let n_samples = X.shape()[0];
     let n_features = X.shape()[1];
-
     let all_feats = Array1::from_shape_vec(n_features, (0..n_features).collect()).unwrap();
 
     for epoch in 0..max_epochs {
         cd_epoch(
             X.view(),
             y.view(),
-            &mut w,
-            &mut Xw,
+            w,
+            Xw,
             datafit,
             penalty,
             all_feats.view(),
