@@ -26,6 +26,24 @@ pub mod helpers {
 
         (X, y)
     }
+
+    pub fn get_max_arr<T: Float>(arr: ArrayView1<T>) -> T {
+        let mut max_val = T::neg_infinity();
+        for j in 0..arr.len() {
+            if arr[j] > max_val {
+                max_val = arr[j];
+            }
+        }
+        max_val
+    }
+
+    pub fn compute_alpha_max<T: Float>(X: ArrayView2<T>, y: ArrayView1<T>) -> T {
+        let n_samples = T::from(X.shape()[0]).unwrap();
+        let Xty = X.t().dot(&y);
+        let Xty = Xty.map(|x| x.abs());
+        let alpha_max = get_max_arr(Xty.view());
+        alpha_max / n_samples
+    }
 }
 
 #[test]
