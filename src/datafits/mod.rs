@@ -31,7 +31,7 @@ pub struct Quadratic<'a, T> {
 impl<'a, T: 'static + Float> Datafit<T> for Quadratic<'a, T> {
     /// Initializes the datafit by pre-computing useful quantities
     fn initialize(&self, X: ArrayView2<T>, y: ArrayView1<T>) {
-        self.Xty = X.dot(&y);
+        self.Xty = X.t().dot(&y);
         let n_samples = T::from(X.shape()[0]).unwrap();
         let lc = X.map_axis(Axis(0), |Xj| Xj.dot(&Xj) / n_samples);
         self.lipschitz = lc;
@@ -52,9 +52,8 @@ impl<'a, T: 'static + Float> Datafit<T> for Quadratic<'a, T> {
         Xw: ArrayView1<T>,
         j: usize,
     ) -> T {
-        // return (X[:, j] @ Xw - self.Xty[j]) / len(Xw)
         let n_samples = T::from(Xw.len()).unwrap();
-        let Xj = X.slice(s![..; j]);
+        let Xj = X.slice(s![..;j]);
         (Xj.dot(&Xw) - self.Xty[j]) / n_samples
     }
 }
