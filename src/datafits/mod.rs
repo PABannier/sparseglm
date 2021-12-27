@@ -18,6 +18,9 @@ pub trait Datafit<T: Float> {
         Xw: ArrayView1<T>,
         j: usize,
     ) -> T;
+
+    fn get_lipschitz(&self) -> ArrayView1<T>;
+    fn get_Xty(&self) -> ArrayView1<T>;
 }
 
 /// Quadratic datafit
@@ -64,5 +67,13 @@ impl<'a, T: 'static + Float> Datafit<T> for Quadratic<T> {
         let n_samples = T::from(Xw.len()).unwrap();
         let Xj: ArrayView1<T> = X.slice(s![.., j]);
         (Xj.dot(&Xw) - self.Xty[j]) / n_samples
+    }
+    // Getter for Lipschitz
+    fn get_lipschitz(&self) -> ArrayView1<T> {
+        self.lipschitz.view()
+    }
+    // Getter for Xty
+    fn get_Xty(&self) -> ArrayView1<T> {
+        self.Xty.view()
     }
 }
