@@ -84,37 +84,62 @@ pub fn solver<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
     verbose: bool,
 ) {
     let n_features = X.shape()[1];
+
+    let mut kkt_max: T;
     let all_feats = Array1::from_shape_vec(n_features, (0..n_features).collect()).unwrap();
 
     datafit.initialize(X.view(), y.view());
 
-    for epoch in 0..max_epochs {
-        cd_epoch(
-            X.view(),
-            y.view(),
-            w,
-            Xw,
-            datafit,
-            penalty,
-            all_feats.view(),
-        );
+    for iter in 0..max_iter {
+        #[rustfmt::skip]
+        let grad = construct_grad(
+            X.view(), y.view(), w.view(), Xw.view(), all_feats.view(), datafit);
+        let mut kkt = penalty.subdiff_distance(w.view(), grad.view(), all_feats.view());
+        kkt_max = get_max_arr(kkt.view());
 
-        // KKT violation check
-        if epoch % 10 == 0 {
-            let grad_ws = construct_grad(
-                X.view(),
-                y.view(),
-                w.view(),
-                Xw.view(),
-                all_feats.view(),
-                datafit,
-            );
-            let subdiff_dist_ws =
-                penalty.subdiff_distance(w.view(), grad_ws.view(), all_feats.view());
-            let kkt_ws_max = get_max_arr(subdiff_dist_ws.view());
-            // println!("epoch: {} :: kkt: {:#?}", epoch, kkt_ws_max);
-            if kkt_ws_max < tol {
-                break;
+        if kkt_max <= tol {
+            break;
+        }
+
+        let mut non_zero_features = 0;
+        for j in 0..n_features {
+            if w[j] != T::zero() {
+                non_zero_features += 1;
+                kkt[j] = T::infinity();
+            }
+        }
+
+        let ws_size = usize::max(p0, usize::min(n_features, 2 * non_zero_features));
+        let ws: Array1<usize> = get_ws_from_kkt(kkt.view(), ws_size); // TODO: check
+
+        if verbose {
+            println!("Iteration {}, {} feats in subproblem.", iter + 1, ws_size);
+        }
+
+        for epoch in 0..max_epochs {
+            #[rustfmt::skip]
+            cd_epoch(
+                X.view(), y.view(), w, Xw, datafit, penalty, ws.view());
+            // KKT violation check
+            if epoch % 10 == 0 {
+                #[rustfmt::skip]
+                let grad_ws = construct_grad(
+                    X.view(), y.view(), w.view(), Xw.view(), ws.view(), datafit);
+                let subdiff_dist_ws = penalty.subdiff_distance(w.view(), grad_ws.view(), ws.view());
+                let kkt_ws_max = get_max_arr(subdiff_dist_ws.view());
+                // println!("epoch: {} :: kkt: {:#?}", epoch, kkt_ws_max);
+                if ws_size == n_features {
+                    if kkt_ws_max < tol {
+                        break;
+                    }
+                } else {
+                    if kkt_ws_max < T::from(0.3).unwrap() * kkt_max {
+                        if verbose {
+                            println!("Early exit");
+                        }
+                        break;
+                    }
+                }
             }
         }
     }
