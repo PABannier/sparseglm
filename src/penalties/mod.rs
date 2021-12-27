@@ -1,10 +1,14 @@
+extern crate approx;
 extern crate ndarray;
 extern crate num;
 
 use crate::solver::soft_thresholding;
 use approx::abs_diff_eq;
-use ndarray::{Array1, ArrayView1, ArrayView2};
+use ndarray::{Array1, ArrayView1};
 use num::Float;
+
+#[cfg(test)]
+mod tests;
 
 pub trait Penalty<T: Float> {
     fn value(self, w: ArrayView1<T>) -> T;
