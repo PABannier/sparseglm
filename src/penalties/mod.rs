@@ -22,11 +22,11 @@ pub trait Penalty<T: Float> {
 /// L1 penalty
 ///
 
-pub struct L1Penalty<T> {
+pub struct L1<T> {
     alpha: T,
 }
 
-impl<T: Float> Penalty<T> for L1Penalty<T> {
+impl<T: Float> Penalty<T> for L1<T> {
     /// Gets the current value of the penalty
     fn value(&self, w: ArrayView1<T>) -> T {
         self.alpha * w.map(|x| T::abs(*x)).sum()
