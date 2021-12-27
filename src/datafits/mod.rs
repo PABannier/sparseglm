@@ -23,12 +23,12 @@ pub trait Datafit<T: Float> {
 /// Quadratic datafit
 ///
 
-pub struct Quadratic<'a, T> {
+pub struct Quadratic<T> {
     lipschitz: Array1<T>,
-    Xty: ArrayView1<'a, T>,
+    Xty: Array1<T>,
 }
 
-impl<'a, T: 'static + Float> Datafit<T> for Quadratic<'a, T> {
+impl<'a, T: 'static + Float> Datafit<T> for Quadratic<T> {
     /// Initializes the datafit by pre-computing useful quantities
     fn initialize(&self, X: ArrayView2<T>, y: ArrayView1<T>) {
         self.Xty = X.t().dot(&y);
@@ -53,7 +53,7 @@ impl<'a, T: 'static + Float> Datafit<T> for Quadratic<'a, T> {
         j: usize,
     ) -> T {
         let n_samples = T::from(Xw.len()).unwrap();
-        let Xj = X.slice(s![..;j]);
+        let Xj: ArrayView1<T> = X.slice(s![..;j]);
         (Xj.dot(&Xw) - self.Xty[j]) / n_samples
     }
 }
