@@ -31,9 +31,8 @@ macro_rules! kkt_check_tests {
 }
 
 kkt_check_tests! {
-    fib_small: (10, 30),
-    fib_medium: (100, 300),
-    fib_large: (1000, 3000),
+    kkt_check_small: (10, 30),
+    kkt_check_medium: (100, 300),
 }
 
 #[test]
