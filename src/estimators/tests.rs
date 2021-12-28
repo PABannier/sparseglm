@@ -15,7 +15,7 @@ macro_rules! kkt_check_tests {
                 let (n_samples, n_features) = $value;
                 let (X, y) = generate_random_data(n_samples, n_features);
                 let alpha_max = compute_alpha_max(X.view(), y.view());
-                let alpha = alpha_max * 0.1;
+                let alpha = alpha_max * 0.5;
 
                 let mut clf = Lasso::new(alpha);
                 let w = clf.fit(X.view(), y.view());
@@ -23,8 +23,10 @@ macro_rules! kkt_check_tests {
                 let r = y - X.dot(&w);
                 let xr = X.t().dot(&r) / (n_samples as f64);
 
-                #[rustfmt::skip]
-                assert_array_all_close(xr.view(), Array1::<f64>::zeros(n_features).view(), alpha + 1e-8);
+                assert_array_all_close(
+                    xr.view(),
+                    Array1::<f64>::zeros(n_features).view(),
+                    alpha + 1e-8);
             }
         )*
     }
@@ -33,6 +35,7 @@ macro_rules! kkt_check_tests {
 kkt_check_tests! {
     kkt_check_small: (10, 30),
     kkt_check_medium: (100, 300),
+    kkt_check_large: (1000, 3000),
 }
 
 #[test]
