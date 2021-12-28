@@ -9,11 +9,6 @@ pub mod helpers {
     use ndarray_stats::QuantileExt;
     use num::Float;
 
-    pub fn argsort_arr<T: Float>(arr: ArrayView1<T>) -> Vec<usize> {
-        let indices = vec![0; 5];
-        indices
-    }
-
     pub fn compute_alpha_max<T: 'static + Float>(X: ArrayView2<T>, y: ArrayView1<T>) -> T {
         let n_samples = T::from(X.shape()[0]).unwrap();
         let Xty = X.t().dot(&y);
