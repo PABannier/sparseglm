@@ -18,10 +18,10 @@ fn test_kkt_check() {
     let w = clf.fit(X.view(), y.view());
 
     let r = y - X.dot(&w);
-    let xr = X.t().dot(&r);
+    let xr = X.t().dot(&r) / (n_samples as f64);
 
     #[rustfmt::skip]
-    assert_array_all_close(xr.view(), Array1::<f64>::zeros(n_features).view(), alpha + 1e-12);
+    assert_array_all_close(xr.view(), Array1::<f64>::zeros(n_features).view(), alpha + 1e-8);
 }
 
 #[test]
@@ -74,7 +74,7 @@ fn test_sklearn() {
     let w = clf.fit(X.view(), y.view());
 
     #[rustfmt::skip]
-    let w_sk = Array1::from_shape_vec(10, vec![-201.16940406, -0., -0., -0., -0., -19.73507289, 0., -0., 953.71688552, -0.]).unwrap();
+    let w_sk = Array1::from_shape_vec(10, vec![-76.29867715, 0., 357.82870175, 59.71203719, 0., 0., -365.70131103, -233.14123887, 1513.75506467, -2679.42257746]).unwrap();
 
-    assert_array_all_close(w.view(), w_sk.view(), 1e-9);
+    assert_array_all_close(w.view(), w_sk.view(), 1e-6);
 }
