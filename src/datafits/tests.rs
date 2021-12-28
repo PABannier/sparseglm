@@ -2,19 +2,9 @@ extern crate ndarray;
 extern crate num;
 
 use crate::datafits::*;
+use crate::helpers::test_helpers::*;
 
 use ndarray::{Array1, Array2};
-use num::Float;
-use std::fmt::Display;
-
-fn assert_array_all_close<T: Float + Display>(x: ArrayView1<T>, y: ArrayView1<T>, delta: T) {
-    assert_eq!(x.len(), y.len());
-    for i in 0..x.len() {
-        if !(T::abs(x[i] - y[i]) < delta) {
-            panic!("x: {}, y: {} ; with precision level {}", x[i], y[i], delta);
-        }
-    }
-}
 
 #[test]
 fn test_initialization_quadratic() {

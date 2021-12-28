@@ -2,10 +2,14 @@ extern crate ndarray;
 extern crate num;
 
 use crate::datafits::Datafit;
+use crate::helpers::helpers::get_max_arr;
 use crate::penalties::Penalty;
 use ndarray::{s, Array1, ArrayView1, ArrayView2};
 use num::Float;
 use std::fmt::Debug;
+
+#[cfg(test)]
+mod tests;
 
 pub fn soft_thresholding<T: Float>(x: T, threshold: T) -> T {
     if x > threshold {
@@ -15,16 +19,6 @@ pub fn soft_thresholding<T: Float>(x: T, threshold: T) -> T {
     } else {
         T::zero()
     }
-}
-
-pub fn get_max_arr<T: Float>(arr: ArrayView1<T>) -> T {
-    let mut max_val = T::neg_infinity();
-    for j in 0..arr.len() {
-        if arr[j] > max_val {
-            max_val = arr[j];
-        }
-    }
-    max_val
 }
 
 #[rustfmt::skip]
@@ -107,6 +101,5 @@ pub fn solver<T: 'static + Float + Debug, D: Datafit<T>, P: Penalty<T>>(
             }
         }
     }
-
     w
 }

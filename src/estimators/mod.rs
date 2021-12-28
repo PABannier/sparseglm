@@ -61,8 +61,6 @@ impl<T: 'static + Float + Debug> Estimator<T> for Lasso<T> {
     }
     /// Fits an instance of Estimator
     fn fit(&mut self, X: ArrayView2<T>, y: ArrayView1<T>) -> Array1<T> {
-        let n_features = X.shape()[1];
-
         let w = solver(
             X.view(),
             y.view(),
