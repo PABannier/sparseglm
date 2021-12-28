@@ -49,6 +49,3 @@ fn test_kkt_violation() {
 
     assert_array_all_close(kkt.view(), true_kkt.view(), 1e-8);
 }
-
-#[test]
-fn test_solver() {}
