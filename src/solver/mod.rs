@@ -73,33 +73,68 @@ pub fn solver<T: 'static + Float + Debug, D: Datafit<T>, P: Penalty<T>>(
     let n_samples = X.shape()[0];
     let n_features = X.shape()[1];
     let all_feats: Vec<usize> = (0..n_features).collect();
+    let mut kkt_max = T::infinity();
+
+    datafit.initialize(X.view(), y.view());
 
     let mut w = Array1::<T>::zeros(n_features);
     let mut Xw = Array1::<T>::zeros(n_samples);
 
-    datafit.initialize(X.view(), y.view());
+    for t in 0..max_iter {
+        let kkt = kkt_violation(X.view(), y.view(), w.view(), Xw.view(), &all_feats, datafit, penalty);
+        kkt_max = get_max_arr(kkt.view());
 
-    for epoch in 0..max_epochs {
-        #[rustfmt::skip]
-        cd_epoch(
-            X.view(), y.view(), &mut w, &mut Xw, datafit, penalty, &all_feats);
+        if verbose {
+            println!("KKT max violation: {:#?}", kkt_max);
+        }
+        if kkt_max <= tol {
+            break;
+        }
 
-        // KKT violation check
-        if epoch % 10 == 0 {
-            let p_obj = datafit.value(y.view(), w.view(), Xw.view()) + penalty.value(w.view());
+        let (ws, ws_size) = build_ws_from_kkt(kkt.view(), w.view(), p0);
+        if verbose{
+            println!("Iteration {}, {} features in subproblem.", t+1, ws_size);
+        }
+
+        for epoch in 0..max_epochs {
             #[rustfmt::skip]
-            let kkt_ws = kkt_violation(
-                X.view(), y.view(), w.view(), Xw.view(), &all_feats, datafit,
-                penalty);
-            let kkt_ws_max = get_max_arr(kkt_ws.view());
-            println!(
-                "epoch: {} :: obj: {:#?} :: kkt: {:#?}",
-                epoch, p_obj, kkt_ws_max
-            );
-            if kkt_ws_max < tol {
-                break;
+            cd_epoch(
+                X.view(), y.view(), &mut w, &mut Xw, datafit, penalty, &ws);
+    
+            // KKT violation check
+            if epoch % 10 == 0 {
+                let p_obj = datafit.value(y.view(), w.view(), Xw.view()) + penalty.value(w.view());
+                #[rustfmt::skip]
+                let kkt_ws = kkt_violation(
+                    X.view(), y.view(), w.view(), Xw.view(), &ws, datafit,
+                    penalty);
+                let kkt_ws_max = get_max_arr(kkt_ws.view());
+
+                if verbose {
+                    println!(
+                        "epoch: {} :: obj: {:#?} :: kkt: {:#?}",
+                        epoch, p_obj, kkt_ws_max
+                    );
+                }
+
+                if ws_size == n_features {
+                    if kkt_ws_max <= tol {
+                        break;
+                    }
+                } else {
+                    if kkt_ws_max < T::from(0.3).unwrap() * kkt_max {
+                        if verbose {
+                            println!("Early exit.")
+                        }
+                        break;
+                    }
+                }
+                
+                
             }
         }
+
     }
+
     w
 }
