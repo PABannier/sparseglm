@@ -35,8 +35,8 @@ fn test_kkt_violation() {
     let y = Array1::from_shape_vec(2, vec![1.4, -0.2]).unwrap();
     let ws: Vec<usize> = (0..3).collect();
 
-    let mut w = Array1::from_shape_vec(3, vec![0.2, -0.3, 1.5]).unwrap();
-    let mut Xw = X.dot(&w);
+    let w = Array1::from_shape_vec(3, vec![0.2, -0.3, 1.5]).unwrap();
+    let Xw = X.dot(&w);
 
     let mut datafit = Quadratic::default();
     datafit.initialize(X.view(), y.view());
