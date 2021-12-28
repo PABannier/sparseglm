@@ -37,10 +37,10 @@ pub fn construct_grad<T: 'static + Float, D: Datafit<T>>(
 #[rustfmt::skip]
 pub fn kkt_violation<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
     X: ArrayView2<T>, y: ArrayView1<T>, w: ArrayView1<T>, Xw: ArrayView1<T>,
-    ws: &[usize], datafit: &D, penalty: &P) -> Vec<T> {
+    ws: &[usize], datafit: &D, penalty: &P) -> (Vec<T>, T) {
     let grad_ws = construct_grad(X.view(), y.view(), w.view(), Xw.view(), &ws, datafit);
-    let subdiff_dist_ws = penalty.subdiff_distance(w.view(), grad_ws.view(), &ws);
-    subdiff_dist_ws
+    let (kkt_ws, kkt_ws_max) = penalty.subdiff_distance(w.view(), grad_ws.view(), &ws);
+    (kkt_ws, kkt_ws_max)
 }
 
 #[rustfmt::skip]
@@ -57,7 +57,7 @@ pub fn construct_ws_from_kkt<T: 'static + Float>(kkt: &mut Vec<T>, w: ArrayView1
     // TODO: Correction for p0 (handling the case p0 > n_features)
     // let p0 = usize::min(p0, usize::max(nnz_features, 1));
     let ws_size = usize::max(p0, usize::min(2 * nnz_features, n_features));
-    
+
     let kkt_with_indices: Vec<(usize, T)> = kkt
         .iter()
         .copied()

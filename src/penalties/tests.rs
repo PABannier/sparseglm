@@ -32,7 +32,8 @@ fn test_subdiff_dist_l1() {
     let grad = Array1::from_shape_vec(3, vec![0.4, 3.2, -3.4]).unwrap();
     let ws: Vec<usize> = (0..3).collect();
     let pen = L1 { alpha: 1. };
-    let subdiff_dist = pen.subdiff_distance(w.view(), grad.view(), &ws);
+    let (subdiff_dist, max_dist) = pen.subdiff_distance(w.view(), grad.view(), &ws);
     let res = Array1::from_shape_vec(3, vec![0.6, 4.2, 2.4]).unwrap();
     assert_eq!(subdiff_dist, res);
+    assert_eq!(max_dist, 4.2);
 }
