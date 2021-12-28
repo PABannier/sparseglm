@@ -3,22 +3,15 @@ extern crate rand;
 
 use crate::estimators::*;
 use ndarray::{Array1, Array2};
+use std::fmt::Display;
 
-macro_rules! assert_delta {
-    ($x:expr, $y:expr, $d:expr) => {
-        if !($x - $y < $d || $y - $x < $d) {
-            panic!();
+fn assert_array_all_close<T: Float + Display>(x: ArrayView1<T>, y: ArrayView1<T>, delta: T) {
+    assert_eq!(x.len(), y.len());
+    for i in 0..x.len() {
+        if !(T::abs(x[i] - y[i]) < delta) {
+            panic!("x: {}, y: {} ; with precision level {}", x[i], y[i], delta);
         }
-    };
-}
-
-macro_rules! assert_delta_arr {
-    ($x:expr, $y: expr, $d: expr) => {
-        assert_eq!($x.len(), $y.len());
-        for i in 0..$x.len() {
-            assert_delta!($x[i], $y[i], $d);
-        }
-    };
+    }
 }
 
 pub mod helpers {
@@ -78,7 +71,7 @@ fn test_kkt_check() {
     let r = y - X.dot(&w);
     let xr = X.t().dot(&r);
 
-    assert_delta_arr!(xr, Array1::<f64>::zeros(30), alpha + 1e-12);
+    assert_array_all_close(xr.view(), Array1::<f64>::zeros(30).view(), alpha + 1e-12);
 }
 
 #[test]
@@ -89,7 +82,7 @@ fn test_null_weight() {
     let mut clf = Lasso::new(alpha_max);
     let w = clf.fit(X.view(), y.view());
 
-    assert_delta_arr!(w, Array1::<f64>::zeros(w.len()), 1e-9);
+    assert_array_all_close(w.view(), Array1::<f64>::zeros(w.len()).view(), 1e-9);
 }
 
 #[test]
@@ -131,5 +124,5 @@ fn test_sklearn() {
     #[rustfmt::skip]
     let w_sk = Array1::from_shape_vec(10, vec![-201.16940406, -0., -0., -0., -0., -19.73507289, 0., -0., 953.71688552, -0.]).unwrap();
 
-    assert_delta_arr!(w, w_sk, 1e-9);
+    assert_array_all_close(w.view(), w_sk.view(), 1e-9);
 }

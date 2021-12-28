@@ -5,6 +5,7 @@ use crate::datafits::Datafit;
 use crate::penalties::Penalty;
 use ndarray::{s, Array1, ArrayView1, ArrayView2};
 use num::Float;
+use std::fmt::Debug;
 
 pub fn soft_thresholding<T: Float>(x: T, threshold: T) -> T {
     if x > threshold {
@@ -26,14 +27,10 @@ pub fn get_max_arr<T: Float>(arr: ArrayView1<T>) -> T {
     max_val
 }
 
+#[rustfmt::skip]
 pub fn construct_grad<T: 'static + Float, D: Datafit<T>>(
-    X: ArrayView2<T>,
-    y: ArrayView1<T>,
-    w: ArrayView1<T>,
-    Xw: ArrayView1<T>,
-    ws: ArrayView1<usize>,
-    datafit: &D,
-) -> Array1<T> {
+    X: ArrayView2<T>, y: ArrayView1<T>, w: ArrayView1<T>, Xw: ArrayView1<T>,
+    ws: &[usize], datafit: &D) -> Array1<T> {
     let ws_size = ws.len();
     let mut grad = Array1::<T>::zeros(ws_size);
     for (idx, &j) in ws.iter().enumerate() {
@@ -42,15 +39,19 @@ pub fn construct_grad<T: 'static + Float, D: Datafit<T>>(
     grad
 }
 
+#[rustfmt::skip]
+pub fn kkt_violation<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
+    X: ArrayView2<T>, y: ArrayView1<T>, w: ArrayView1<T>, Xw: ArrayView1<T>,
+    ws: &[usize], datafit: &D, penalty: &P) -> Array1<T> {
+    let grad_ws = construct_grad(X.view(), y.view(), w.view(), Xw.view(), &ws, datafit);
+    let subdiff_dist_ws = penalty.subdiff_distance(w.view(), grad_ws.view(), &ws);
+    subdiff_dist_ws
+}
+
+#[rustfmt::skip]
 pub fn cd_epoch<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
-    X: ArrayView2<T>,
-    y: ArrayView1<T>,
-    w: &mut Array1<T>,
-    Xw: &mut Array1<T>,
-    datafit: &D,
-    penalty: &P,
-    ws: ArrayView1<usize>,
-) {
+    X: ArrayView2<T>, y: ArrayView1<T>, w: &mut Array1<T>, Xw: &mut Array1<T>,
+    datafit: &D, penalty: &P, ws: &[usize]) {
     let n_samples = X.shape()[0];
     let lipschitz = datafit.get_lipschitz();
 
@@ -70,52 +71,42 @@ pub fn cd_epoch<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
     }
 }
 
-pub fn solver<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
-    X: ArrayView2<T>,
-    y: ArrayView1<T>,
-    datafit: &mut D,
-    penalty: &P,
-    w: &mut Array1<T>,
-    Xw: &mut Array1<T>,
-    max_iter: usize,
-    max_epochs: usize,
-    p0: usize,
-    tol: T,
-    verbose: bool,
-) {
+#[rustfmt::skip]
+pub fn solver<T: 'static + Float + Debug, D: Datafit<T>, P: Penalty<T>>(
+    X: ArrayView2<T>, y: ArrayView1<T>, datafit: &mut D, penalty: &P, 
+    max_iter: usize, max_epochs: usize, p0: usize, tol: T, verbose: bool) 
+    -> Array1<T> {
+    let n_samples = X.shape()[0];
     let n_features = X.shape()[1];
-    let all_feats = Array1::from_shape_vec(n_features, (0..n_features).collect()).unwrap();
+    let all_feats: Vec<usize> = (0..n_features).collect();
+
+    let mut w = Array1::<T>::zeros(n_features);
+    let mut Xw = Array1::<T>::zeros(n_samples);
 
     datafit.initialize(X.view(), y.view());
 
     for epoch in 0..max_epochs {
+        #[rustfmt::skip]
         cd_epoch(
-            X.view(),
-            y.view(),
-            w,
-            Xw,
-            datafit,
-            penalty,
-            all_feats.view(),
-        );
+            X.view(), y.view(), &mut w, &mut Xw, datafit, penalty, &all_feats);
 
         // KKT violation check
         if epoch % 10 == 0 {
-            let grad_ws = construct_grad(
-                X.view(),
-                y.view(),
-                w.view(),
-                Xw.view(),
-                all_feats.view(),
-                datafit,
+            let p_obj = datafit.value(y.view(), w.view(), Xw.view());
+            #[rustfmt::skip]
+            let kkt_ws = kkt_violation(
+                X.view(), y.view(), w.view(), Xw.view(), &all_feats, datafit,
+                penalty);
+            let kkt_ws_max = get_max_arr(kkt_ws.view());
+            println!(
+                "epoch: {} :: obj: {:#?} :: kkt: {:#?}",
+                epoch, p_obj, kkt_ws_max
             );
-            let subdiff_dist_ws =
-                penalty.subdiff_distance(w.view(), grad_ws.view(), all_feats.view());
-            let kkt_ws_max = get_max_arr(subdiff_dist_ws.view());
-            // println!("epoch: {} :: kkt: {:#?}", epoch, kkt_ws_max);
             if kkt_ws_max < tol {
                 break;
             }
         }
     }
+
+    w
 }
