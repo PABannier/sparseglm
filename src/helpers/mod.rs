@@ -1,7 +1,22 @@
 extern crate ndarray;
+extern crate ndarray_stats;
 extern crate num;
 extern crate rand;
 extern crate rand_distr;
+
+pub mod helpers {
+    use ndarray::{ArrayView1, ArrayView2};
+    use ndarray_stats::QuantileExt;
+    use num::Float;
+
+    pub fn compute_alpha_max<T: 'static + Float>(X: ArrayView2<T>, y: ArrayView1<T>) -> T {
+        let n_samples = T::from(X.shape()[0]).unwrap();
+        let Xty = X.t().dot(&y);
+        let Xty = Xty.map(|x| x.abs());
+        let alpha_max = Xty.max().unwrap();
+        *alpha_max / n_samples
+    }
+}
 
 pub mod test_helpers {
     use ndarray::{Array1, Array2, ArrayView1};
@@ -46,28 +61,5 @@ pub mod test_helpers {
         let y = X.dot(&true_w) + noise;
 
         (X, y)
-    }
-}
-
-pub mod helpers {
-    use ndarray::{ArrayView1, ArrayView2};
-    use num::Float;
-
-    pub fn get_max_arr<T: Float>(arr: ArrayView1<T>) -> T {
-        let mut max_val = T::neg_infinity();
-        for j in 0..arr.len() {
-            if arr[j] > max_val {
-                max_val = arr[j];
-            }
-        }
-        max_val
-    }
-
-    pub fn compute_alpha_max<T: 'static + Float>(X: ArrayView2<T>, y: ArrayView1<T>) -> T {
-        let n_samples = T::from(X.shape()[0]).unwrap();
-        let Xty = X.t().dot(&y);
-        let Xty = Xty.map(|x| x.abs());
-        let alpha_max = get_max_arr(Xty.view());
-        alpha_max / n_samples
     }
 }

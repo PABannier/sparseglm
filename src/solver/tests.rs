@@ -1,11 +1,11 @@
 extern crate ndarray;
 
+use ndarray::{Array1, Array2};
+
 use crate::datafits::*;
 use crate::helpers::test_helpers::*;
 use crate::penalties::*;
 use crate::solver::*;
-
-use ndarray::{Array1, Array2};
 
 #[test]
 fn test_cd_epoch() {
@@ -35,17 +35,19 @@ fn test_kkt_violation() {
     let y = Array1::from_shape_vec(2, vec![1.4, -0.2]).unwrap();
     let ws: Vec<usize> = (0..3).collect();
 
-    let mut w = Array1::from_shape_vec(3, vec![0.2, -0.3, 1.5]).unwrap();
-    let mut Xw = X.dot(&w);
+    let w = Array1::from_shape_vec(3, vec![0.2, -0.3, 1.5]).unwrap();
+    let Xw = X.dot(&w);
 
     let mut datafit = Quadratic::default();
     datafit.initialize(X.view(), y.view());
     let penalty = L1::new(0.3);
 
     #[rustfmt::skip]
-    let kkt = kkt_violation(
+    let (kkt, kkt_max) = kkt_violation(
         X.view(), y.view(), w.view(), Xw.view(), &ws, &datafit, &penalty);
+    let kkt = Array1::from_shape_vec(3, kkt).unwrap();
     let true_kkt = Array1::from_shape_vec(3, vec![21.318, 9.044, 5.4395]).unwrap();
 
     assert_array_all_close(kkt.view(), true_kkt.view(), 1e-8);
+    assert_eq!(kkt_max, 21.318);
 }

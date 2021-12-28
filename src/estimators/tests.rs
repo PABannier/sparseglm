@@ -1,27 +1,41 @@
 extern crate ndarray;
 extern crate rand;
 
+use ndarray::{Array1, Array2};
+
 use crate::estimators::*;
 use crate::helpers::helpers::compute_alpha_max;
 use crate::helpers::test_helpers::*;
-use ndarray::{Array1, Array2};
 
-#[test]
-fn test_kkt_check() {
-    let n_samples = 20;
-    let n_features = 30;
-    let (X, y) = generate_random_data(n_samples, n_features);
-    let alpha_max = compute_alpha_max(X.view(), y.view());
-    let alpha = alpha_max * 0.1;
+macro_rules! kkt_check_tests {
+    ($($name:ident: $value:expr,)*) => {
+        $(
+            #[test]
+            fn $name() {
+                let (n_samples, n_features) = $value;
+                let (X, y) = generate_random_data(n_samples, n_features);
+                let alpha_max = compute_alpha_max(X.view(), y.view());
+                let alpha = alpha_max * 0.5;
 
-    let mut clf = Lasso::new(alpha);
-    let w = clf.fit(X.view(), y.view());
+                let mut clf = Lasso::new(alpha);
+                let w = clf.fit(X.view(), y.view());
 
-    let r = y - X.dot(&w);
-    let xr = X.t().dot(&r) / (n_samples as f64);
+                let r = y - X.dot(&w);
+                let xr = X.t().dot(&r) / (n_samples as f64);
 
-    #[rustfmt::skip]
-    assert_array_all_close(xr.view(), Array1::<f64>::zeros(n_features).view(), alpha + 1e-8);
+                assert_array_all_close(
+                    xr.view(),
+                    Array1::<f64>::zeros(n_features).view(),
+                    alpha + 1e-8);
+            }
+        )*
+    }
+}
+
+kkt_check_tests! {
+    kkt_check_small: (10, 30),
+    kkt_check_medium: (100, 300),
+    kkt_check_large: (1000, 3000),
 }
 
 #[test]
