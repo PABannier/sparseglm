@@ -2,7 +2,7 @@ extern crate ndarray;
 extern crate ndarray_stats;
 extern crate num;
 
-use ndarray::{s, Array1, ArrayView1, ArrayView2};
+use ndarray::{s, Array1, Array2, ArrayView1, ArrayView2};
 use num::Float;
 use std::fmt::Debug;
 
@@ -77,6 +77,18 @@ pub fn construct_ws_from_kkt<T: 'static + Float>(
 }
 
 #[rustfmt::skip]
+pub fn anderson_accel<T, D, P>(
+    y: ArrayView1<T>, w: &mut Array1<T>, Xw: &mut Array1<T>, datafit: &D, 
+    penalty: &P, ws: &[usize], last_K_w: &mut Array2<T>, U: &mut Array2<T>)
+where
+    T: 'static + Float,
+    D: Datafit<T>,
+    P: Penalty<T>,
+{
+    
+}
+
+#[rustfmt::skip]
 pub fn cd_epoch<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
     X: ArrayView2<T>, y: ArrayView1<T>, w: &mut Array1<T>, Xw: &mut Array1<T>,
     datafit: &D, penalty: &P, ws: &[usize]) {
@@ -102,7 +114,8 @@ pub fn cd_epoch<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
 #[rustfmt::skip]
 pub fn solver<T: 'static + Float + Debug, D: Datafit<T>, P: Penalty<T>>(
     X: ArrayView2<T>, y: ArrayView1<T>, datafit: &mut D, penalty: &P, 
-    max_iter: usize, max_epochs: usize, p0: usize, tol: T, verbose: bool) 
+    max_iter: usize, max_epochs: usize, p0: usize, tol: T, use_accel: bool,
+    K: usize, verbose: bool) 
     -> Array1<T> {
     let n_samples = X.shape()[0];
     let n_features = X.shape()[1];
@@ -126,6 +139,10 @@ pub fn solver<T: 'static + Float + Debug, D: Datafit<T>, P: Penalty<T>>(
         }
 
         let (ws, ws_size) = construct_ws_from_kkt(&mut kkt, w.view(), p0);
+
+        let mut last_K_w = Array2::<T>::zeros((K + 1, ws_size));
+        let mut U = Array2::<T>::zeros((K, ws_size));
+
         if verbose{
             println!("Iteration {}, {} features in subproblem.", t+1, ws_size);
         }
@@ -134,6 +151,12 @@ pub fn solver<T: 'static + Float + Debug, D: Datafit<T>, P: Penalty<T>>(
             #[rustfmt::skip]
             cd_epoch(
                 X.view(), y.view(), &mut w, &mut Xw, datafit, penalty, &ws);
+
+            // Anderson acceleration
+            if use_accel {
+                anderson_accel(
+                    y.view(), &mut w, &mut Xw, datafit, penalty, &ws, &mut last_K_w, &mut U)
+            }
     
             // KKT violation check
             if epoch % 10 == 0 {
