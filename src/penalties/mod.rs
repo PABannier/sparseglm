@@ -1,9 +1,10 @@
 extern crate ndarray;
 extern crate num;
 
-use crate::solver::soft_thresholding;
 use ndarray::{Array1, ArrayView1};
 use num::Float;
+
+use crate::solver::soft_thresholding;
 
 #[cfg(test)]
 mod tests;

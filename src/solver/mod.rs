@@ -1,12 +1,15 @@
 extern crate ndarray;
+extern crate ndarray_stats;
 extern crate num;
 
-use crate::datafits::Datafit;
-use crate::helpers::helpers::get_max_arr;
-use crate::penalties::Penalty;
 use ndarray::{s, Array1, ArrayView1, ArrayView2};
+use ndarray_stats::QuantileExt;
 use num::Float;
 use std::fmt::Debug;
+
+use crate::datafits::Datafit;
+use crate::helpers::helpers::argsort_arr;
+use crate::penalties::Penalty;
 
 #[cfg(test)]
 mod tests;
@@ -43,7 +46,7 @@ pub fn kkt_violation<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
 }
 
 #[rustfmt::skip]
-pub fn construct_ws_from_kkt<T: 'static + Float>(kkt: &mut Array1<T>, w: ArrayView1<T>, p0: usize) -> (Vec<usize>, usize){
+pub fn construct_ws_from_kkt<T: 'static + Float>(kkt: &mut Array1<T>, w: ArrayView1<T>, p0: usize) -> (&[usize], usize){
     let n_features = w.len();
     let mut nnz_features: usize = 0;
 
@@ -53,12 +56,13 @@ pub fn construct_ws_from_kkt<T: 'static + Float>(kkt: &mut Array1<T>, w: ArrayVi
             kkt[j] = T::infinity();
         }
     }
-
     // TODO: Correction for p0 (handling the case p0 > n_features)
     // let p0 = usize::min(p0, usize::max(nnz_features, 1));
     let ws_size = usize::max(p0, usize::min(2 * nnz_features, n_features));
+    // ws = argsort(kkt)[-ws_size:]
+    let sorted_kkt_indices = argsort_arr(kkt.view());
+    let ws = &sorted_kkt_indices[ws_size..];
 
-    // Argsort of kkt with ws_size
     (ws, ws_size)
 }
 
@@ -102,7 +106,7 @@ pub fn solver<T: 'static + Float + Debug, D: Datafit<T>, P: Penalty<T>>(
 
     for t in 0..max_iter {
         let mut kkt = kkt_violation(X.view(), y.view(), w.view(), Xw.view(), &all_feats, datafit, penalty);
-        kkt_max = get_max_arr(kkt.view());
+        kkt_max = *kkt.max().unwrap();
 
         if verbose {
             println!("KKT max violation: {:#?}", kkt_max);
@@ -128,7 +132,7 @@ pub fn solver<T: 'static + Float + Debug, D: Datafit<T>, P: Penalty<T>>(
                 let kkt_ws = kkt_violation(
                     X.view(), y.view(), w.view(), Xw.view(), &ws, datafit,
                     penalty);
-                let kkt_ws_max = get_max_arr(kkt_ws.view());
+                let kkt_ws_max = *kkt_ws.max().unwrap();
 
                 if verbose {
                     println!(

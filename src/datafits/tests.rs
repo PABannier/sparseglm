@@ -1,10 +1,10 @@
 extern crate ndarray;
 extern crate num;
 
+use ndarray::{Array1, Array2};
+
 use crate::datafits::*;
 use crate::helpers::test_helpers::*;
-
-use ndarray::{Array1, Array2};
 
 #[test]
 fn test_initialization_quadratic() {

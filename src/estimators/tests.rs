@@ -1,10 +1,11 @@
 extern crate ndarray;
 extern crate rand;
 
+use ndarray::{Array1, Array2};
+
 use crate::estimators::*;
 use crate::helpers::helpers::compute_alpha_max;
 use crate::helpers::test_helpers::*;
-use ndarray::{Array1, Array2};
 
 #[test]
 fn test_kkt_check() {

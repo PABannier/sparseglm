@@ -1,12 +1,13 @@
 extern crate ndarray;
 extern crate num;
 
-use crate::datafits::Quadratic;
-use crate::penalties::L1;
-use crate::solver::solver;
 use ndarray::{Array1, ArrayView1, ArrayView2};
 use num::Float;
 use std::fmt::Debug;
+
+use crate::datafits::Quadratic;
+use crate::penalties::L1;
+use crate::solver::solver;
 
 #[cfg(test)]
 mod tests;

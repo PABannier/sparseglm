@@ -1,8 +1,8 @@
 extern crate ndarray;
 
-use crate::penalties::*;
-
 use ndarray::Array1;
+
+use crate::penalties::*;
 
 #[test]
 fn test_value_l1() {
