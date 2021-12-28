@@ -71,6 +71,8 @@ impl<T: 'static + Float + Debug> Estimator<T> for Lasso<T> {
             self.params.max_epochs,
             self.params.p0,
             self.params.tol,
+            self.params.use_accel,
+            self.params.k,
             self.params.verbose,
         );
 
