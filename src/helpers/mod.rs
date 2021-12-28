@@ -1,10 +1,14 @@
 extern crate ndarray;
 extern crate num;
+extern crate rand;
+extern crate rand_distr;
 
 pub mod test_helpers {
     use ndarray::{Array1, Array2, ArrayView1};
     use num::Float;
-    use rand::random;
+    use rand::rngs::StdRng;
+    use rand::SeedableRng;
+    use rand_distr::{Distribution, Normal};
     use std::fmt::Display;
 
     pub fn assert_array_all_close<T: Float + Display>(
@@ -21,9 +25,12 @@ pub mod test_helpers {
     }
 
     pub fn fill_random_vector(capacity: usize) -> Vec<f64> {
+        let mut r = StdRng::seed_from_u64(42);
+        let normal = Normal::new(0., 1.).unwrap();
+
         let mut data_x: Vec<f64> = Vec::with_capacity(capacity);
         for _ in 0..data_x.capacity() {
-            data_x.push(random());
+            data_x.push(normal.sample(&mut r));
         }
         data_x
     }
