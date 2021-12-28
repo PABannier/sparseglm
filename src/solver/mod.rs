@@ -86,7 +86,7 @@ pub fn solver<T: 'static + Float + Debug, D: Datafit<T>, P: Penalty<T>>(
 
         // KKT violation check
         if epoch % 10 == 0 {
-            let p_obj = datafit.value(y.view(), w.view(), Xw.view());
+            let p_obj = datafit.value(y.view(), w.view(), Xw.view()) + penalty.value(w.view());
             #[rustfmt::skip]
             let kkt_ws = kkt_violation(
                 X.view(), y.view(), w.view(), Xw.view(), &all_feats, datafit,
