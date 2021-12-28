@@ -3,8 +3,8 @@ extern crate ndarray_linalg;
 extern crate ndarray_stats;
 extern crate num;
 
+use ndarray::linalg::general_mat_mul;
 use ndarray::{s, Array1, Array2, ArrayView1, ArrayView2};
-use ndarray_linalg::solve;
 use num::Float;
 use std::fmt::Debug;
 
@@ -99,7 +99,9 @@ where
                 last_K_w.slice(s![k+1; ..]) - last_K_w.slice(s![k; ..])
             );
         }
-        let C = U.dot(&U.t());
+
+        let mut C: Array2<T> = Array2::<T>::zeros((K, K)); 
+        general_mat_mul(T::one(), &U, &U.t(), T::one(), &mut C);
 
         match C.solve(&Array1::<T>::ones(K)) {
             None    => {
