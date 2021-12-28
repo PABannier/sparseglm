@@ -5,6 +5,7 @@ extern crate num;
 
 use ndarray::linalg::general_mat_mul;
 use ndarray::{s, Array1, Array2, ArrayView1, ArrayView2};
+use ndarray_linalg::solve;
 use num::Float;
 use std::fmt::Debug;
 
@@ -94,7 +95,7 @@ where
     last_K_w.slice_mut(s![epoch % (K+1); ..]).assign(&w.slice(s![ws]));
 
     if epoch % (K + 1) == K {
-        for k in 0..K {
+        for k in 0..K {    
             U.slice_mut(s![k; ..]).assign(
                 last_K_w.slice(s![k+1; ..]) - last_K_w.slice(s![k; ..])
             );
@@ -114,7 +115,10 @@ where
                 
                 let w_acc = Array1::<T>::zeros(w.len());
                 // w_acc[ws] = np.sum(last_K_w[:-1] * c[:, None], axis=0)
-                let Xw_acc = X.slice(s![..; ws]).dot(&w_acc.slice(s![ws]));
+
+                let X_ws: ArrayView2<T> = X.slice(s![..; ws]);
+                let w_acc_ws: ArrayView1<T> = w_acc.slice(s![ws]);
+                let Xw_acc = X_ws.dot(&w_acc_ws);
 
                 let p_obj = datafit.value(y.view(), w.view(), Xw.view()) 
                             + penalty.value(w.view());
