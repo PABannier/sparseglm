@@ -3,12 +3,10 @@ extern crate ndarray_stats;
 extern crate num;
 
 use ndarray::{s, Array1, ArrayView1, ArrayView2};
-use ndarray_stats::QuantileExt;
 use num::Float;
 use std::fmt::Debug;
 
 use crate::datafits::Datafit;
-use crate::helpers::helpers::argsort_arr;
 use crate::penalties::Penalty;
 
 #[cfg(test)]
@@ -39,14 +37,14 @@ pub fn construct_grad<T: 'static + Float, D: Datafit<T>>(
 #[rustfmt::skip]
 pub fn kkt_violation<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
     X: ArrayView2<T>, y: ArrayView1<T>, w: ArrayView1<T>, Xw: ArrayView1<T>,
-    ws: &[usize], datafit: &D, penalty: &P) -> Array1<T> {
+    ws: &[usize], datafit: &D, penalty: &P) -> Vec<T> {
     let grad_ws = construct_grad(X.view(), y.view(), w.view(), Xw.view(), &ws, datafit);
     let subdiff_dist_ws = penalty.subdiff_distance(w.view(), grad_ws.view(), &ws);
     subdiff_dist_ws
 }
 
 #[rustfmt::skip]
-pub fn construct_ws_from_kkt<T: 'static + Float>(kkt: &mut Array1<T>, w: ArrayView1<T>, p0: usize) -> (&[usize], usize){
+pub fn construct_ws_from_kkt<T: 'static + Float>(kkt: &mut Vec<T>, w: ArrayView1<T>, p0: usize) -> (Vec<usize>, usize){
     let n_features = w.len();
     let mut nnz_features: usize = 0;
 
@@ -59,10 +57,21 @@ pub fn construct_ws_from_kkt<T: 'static + Float>(kkt: &mut Array1<T>, w: ArrayVi
     // TODO: Correction for p0 (handling the case p0 > n_features)
     // let p0 = usize::min(p0, usize::max(nnz_features, 1));
     let ws_size = usize::max(p0, usize::min(2 * nnz_features, n_features));
-    // ws = argsort(kkt)[-ws_size:]
-    let sorted_kkt_indices = argsort_arr(kkt.view());
-    let ws = &sorted_kkt_indices[ws_size..];
-
+    
+    let kkt_with_indices: Vec<(usize, T)> = kkt
+        .iter()
+        .copied()
+        .enumerate()
+        .collect();
+    kkt_with_indices.sort_unstable_by(|(_, p), (_, q)| {
+        // Swapped order for sorting in descending order.
+        q.partial_cmp(p).expect("kkt must not be NaN.")
+    });
+    let ws: Vec<usize> = kkt_with_indices
+        .iter()
+        .map(|&(ind, _)| ind)
+        .take(ws_size)
+        .collect();
     (ws, ws_size)
 }
 
@@ -106,7 +115,7 @@ pub fn solver<T: 'static + Float + Debug, D: Datafit<T>, P: Penalty<T>>(
 
     for t in 0..max_iter {
         let mut kkt = kkt_violation(X.view(), y.view(), w.view(), Xw.view(), &all_feats, datafit, penalty);
-        kkt_max = *kkt.max().unwrap();
+        kkt_max = kkt.max();
 
         if verbose {
             println!("KKT max violation: {:#?}", kkt_max);
@@ -132,7 +141,7 @@ pub fn solver<T: 'static + Float + Debug, D: Datafit<T>, P: Penalty<T>>(
                 let kkt_ws = kkt_violation(
                     X.view(), y.view(), w.view(), Xw.view(), &ws, datafit,
                     penalty);
-                let kkt_ws_max = *kkt_ws.max().unwrap();
+                let kkt_ws_max = kkt_ws.max();
 
                 if verbose {
                     println!(
