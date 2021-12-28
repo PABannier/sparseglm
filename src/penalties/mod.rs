@@ -1,7 +1,7 @@
 extern crate ndarray;
 extern crate num;
 
-use ndarray::{Array1, ArrayView1};
+use ndarray::ArrayView1;
 use num::Float;
 
 use crate::solver::soft_thresholding;
@@ -12,7 +12,7 @@ mod tests;
 pub trait Penalty<T: Float> {
     fn value(&self, w: ArrayView1<T>) -> T;
     fn prox_op(&self, value: T, step_size: T, j: usize) -> T;
-    fn subdiff_distance(&self, w: ArrayView1<T>, grad: ArrayView1<T>, ws: &[usize]) -> Array1<T>;
+    fn subdiff_distance(&self, w: ArrayView1<T>, grad: ArrayView1<T>, ws: &[usize]) -> Vec<T>;
 }
 
 /// L1 penalty
@@ -39,9 +39,9 @@ impl<T: Float> Penalty<T> for L1<T> {
         soft_thresholding(value, self.alpha * stepsize)
     }
     /// Computes the distance of the gradient to the subdifferential
-    fn subdiff_distance(&self, w: ArrayView1<T>, grad: ArrayView1<T>, ws: &[usize]) -> Array1<T> {
+    fn subdiff_distance(&self, w: ArrayView1<T>, grad: ArrayView1<T>, ws: &[usize]) -> Vec<T> {
         let ws_size = ws.len();
-        let mut subdiff_dist = Array1::<T>::zeros(ws_size);
+        let mut subdiff_dist: Vec<T> = vec![T::zero(); ws_size];
         for (idx, &j) in ws.iter().enumerate() {
             if w[j] == T::zero() {
                 subdiff_dist[idx] = T::max(T::zero(), T::abs(grad[idx]) - self.alpha);
