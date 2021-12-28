@@ -44,7 +44,8 @@ pub fn kkt_violation<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
 }
 
 #[rustfmt::skip]
-pub fn construct_ws_from_kkt<T: 'static + Float>(kkt: &mut Vec<T>, w: ArrayView1<T>, p0: usize) -> (Vec<usize>, usize){
+pub fn construct_ws_from_kkt<T: 'static + Float>(
+    kkt: &mut Vec<T>, w: ArrayView1<T>, p0: usize) -> (Vec<usize>, usize){
     let n_features = w.len();
     let mut nnz_features: usize = 0;
 
@@ -58,7 +59,7 @@ pub fn construct_ws_from_kkt<T: 'static + Float>(kkt: &mut Vec<T>, w: ArrayView1
     // let p0 = usize::min(p0, usize::max(nnz_features, 1));
     let ws_size = usize::max(p0, usize::min(2 * nnz_features, n_features));
 
-    let kkt_with_indices: Vec<(usize, T)> = kkt
+    let mut kkt_with_indices: Vec<(usize, T)> = kkt
         .iter()
         .copied()
         .enumerate()
@@ -106,7 +107,6 @@ pub fn solver<T: 'static + Float + Debug, D: Datafit<T>, P: Penalty<T>>(
     let n_samples = X.shape()[0];
     let n_features = X.shape()[1];
     let all_feats: Vec<usize> = (0..n_features).collect();
-    let mut kkt_max = T::infinity();    
 
     datafit.initialize(X.view(), y.view());
 
@@ -114,8 +114,9 @@ pub fn solver<T: 'static + Float + Debug, D: Datafit<T>, P: Penalty<T>>(
     let mut Xw = Array1::<T>::zeros(n_samples);
 
     for t in 0..max_iter {
-        let mut kkt = kkt_violation(X.view(), y.view(), w.view(), Xw.view(), &all_feats, datafit, penalty);
-        kkt_max = kkt.max();
+        #[rustfmt::skip]
+        let (mut kkt, kkt_max) = kkt_violation(
+            X.view(), y.view(), w.view(), Xw.view(), &all_feats, datafit, penalty);
 
         if verbose {
             println!("KKT max violation: {:#?}", kkt_max);
@@ -138,10 +139,9 @@ pub fn solver<T: 'static + Float + Debug, D: Datafit<T>, P: Penalty<T>>(
             if epoch % 10 == 0 {
                 let p_obj = datafit.value(y.view(), w.view(), Xw.view()) + penalty.value(w.view());
                 #[rustfmt::skip]
-                let kkt_ws = kkt_violation(
+                let (_, kkt_ws_max) = kkt_violation(
                     X.view(), y.view(), w.view(), Xw.view(), &ws, datafit,
                     penalty);
-                let kkt_ws_max = kkt_ws.max();
 
                 if verbose {
                     println!(
