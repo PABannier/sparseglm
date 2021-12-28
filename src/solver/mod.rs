@@ -43,6 +43,26 @@ pub fn kkt_violation<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
 }
 
 #[rustfmt::skip]
+pub fn construct_ws_from_kkt<T: 'static + Float>(kkt: &mut Array1<T>, w: ArrayView1<T>, p0: usize) -> (Vec<usize>, usize){
+    let n_features = w.len();
+    let mut nnz_features: usize = 0;
+
+    for j in 0..n_features {
+        if w[j] != T::zero() {
+            nnz_features += 1;
+            kkt[j] = T::infinity();
+        }
+    }
+
+    // TODO: Correction for p0 (handling the case p0 > n_features)
+    // let p0 = usize::min(p0, usize::max(nnz_features, 1));
+    let ws_size = usize::max(p0, usize::min(2 * nnz_features, n_features));
+
+    // Argsort of kkt with ws_size
+    (ws, ws_size)
+}
+
+#[rustfmt::skip]
 pub fn cd_epoch<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
     X: ArrayView2<T>, y: ArrayView1<T>, w: &mut Array1<T>, Xw: &mut Array1<T>,
     datafit: &D, penalty: &P, ws: &[usize]) {
@@ -73,7 +93,7 @@ pub fn solver<T: 'static + Float + Debug, D: Datafit<T>, P: Penalty<T>>(
     let n_samples = X.shape()[0];
     let n_features = X.shape()[1];
     let all_feats: Vec<usize> = (0..n_features).collect();
-    let mut kkt_max = T::infinity();
+    let mut kkt_max = T::infinity();    
 
     datafit.initialize(X.view(), y.view());
 
@@ -81,7 +101,7 @@ pub fn solver<T: 'static + Float + Debug, D: Datafit<T>, P: Penalty<T>>(
     let mut Xw = Array1::<T>::zeros(n_samples);
 
     for t in 0..max_iter {
-        let kkt = kkt_violation(X.view(), y.view(), w.view(), Xw.view(), &all_feats, datafit, penalty);
+        let mut kkt = kkt_violation(X.view(), y.view(), w.view(), Xw.view(), &all_feats, datafit, penalty);
         kkt_max = get_max_arr(kkt.view());
 
         if verbose {
@@ -91,7 +111,7 @@ pub fn solver<T: 'static + Float + Debug, D: Datafit<T>, P: Penalty<T>>(
             break;
         }
 
-        let (ws, ws_size) = build_ws_from_kkt(kkt.view(), w.view(), p0);
+        let (ws, ws_size) = construct_ws_from_kkt(&mut kkt, w.view(), p0);
         if verbose{
             println!("Iteration {}, {} features in subproblem.", t+1, ws_size);
         }
