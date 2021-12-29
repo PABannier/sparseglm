@@ -1,11 +1,10 @@
 extern crate ndarray;
 extern crate ndarray_linalg;
-extern crate ndarray_stats;
 extern crate num;
 
 use ndarray::linalg::general_mat_mul;
 use ndarray::{s, Array1, Array2, ArrayView1, ArrayView2};
-use ndarray_linalg::solve;
+use ndarray_linalg::*;
 use num::Float;
 use std::fmt::Debug;
 
@@ -96,25 +95,28 @@ where
 
     if epoch % (K + 1) == K {
         for k in 0..K {    
-            U.slice_mut(s![k; ..]).assign(
-                last_K_w.slice(s![k+1; ..]) - last_K_w.slice(s![k; ..])
-            );
+            let a: Array1<T> = last_K_w.slice(s![k+1; ..]).to_owned();
+            let b: Array1<T> = last_K_w.slice(s![k; ..]).to_owned();
+            let c = a - b;
+            U.slice_mut(s![k; ..]).assign(&c);
         }
 
-        let mut C: Array2<T> = Array2::<T>::zeros((K, K)); 
+        let mut C: Array2<T> = Array2::zeros((K, K)); 
+        let one: Array1<T> = Array1::ones(K);
+
         general_mat_mul(T::one(), &U, &U.t(), T::one(), &mut C);
 
-        match C.solve(&Array1::<T>::ones(K)) {
-            None    => {
-                if verbose {
-                    println!("----LinAlg error");
-                }
-            },
-            Some(z) => {
+        let _res = C.solve(&one);
+
+        match _res {
+            Ok(z) => {
                 let c = z / z.sum();
                 
                 let w_acc = Array1::<T>::zeros(w.len());
+                // Deal with the fact that c is f64
                 // w_acc[ws] = np.sum(last_K_w[:-1] * c[:, None], axis=0)
+
+                let extrapol_points = last_K_w.slice(s![..K; ..]) * c;
 
                 let X_ws: ArrayView2<T> = X.slice(s![..; ws]);
                 let w_acc_ws: ArrayView1<T> = w_acc.slice(s![ws]);
@@ -131,6 +133,11 @@ where
                     Xw.assign(&Xw_acc);
                 }
 
+            },
+            Err(_)    => {
+                if verbose {
+                    println!("----LinAlg error");
+                }
             }
         }
 
