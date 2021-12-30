@@ -113,10 +113,13 @@ where
                 let c = z / z.sum();
                 
                 let w_acc = Array1::<T>::zeros(w.len());
-                // Deal with the fact that c is f64
-                // w_acc[ws] = np.sum(last_K_w[:-1] * c[:, None], axis=0)
 
-                let extrapol_points = last_K_w.slice(s![..K; ..]) * c;
+                // Extrapolation
+                for (idx, &j) in ws.iter().enumerate() {
+                    for k in 0..K {
+                        w_acc[j] = w_acc[j] + last_K_w[[k, idx]] * c[k];
+                    }
+                }
 
                 let X_ws: ArrayView2<T> = X.slice(s![..; ws]);
                 let w_acc_ws: ArrayView1<T> = w_acc.slice(s![ws]);
@@ -219,7 +222,7 @@ pub fn solver<T: 'static + Float + Debug, D: Datafit<T>, P: Penalty<T>>(
             }
     
             // KKT violation check
-            if epoch % 10 == 0 {
+            if epoch > 0 && epoch % 10 == 0 {
                 let p_obj = datafit.value(y.view(), w.view(), Xw.view()) 
                              + penalty.value(w.view());
                 #[rustfmt::skip]
