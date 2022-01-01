@@ -31,7 +31,7 @@ pub fn construct_grad<T: 'static + Float, D: Datafit<T>>(
     let ws_size = ws.len();
     let mut grad = Array1::<T>::zeros(ws_size);
     for (idx, &j) in ws.iter().enumerate() {
-        grad[idx] = datafit.gradient_scalar(X.view(), y.view(), w.view(), 
+        grad[idx] = datafit.gradient_scalar(X.view(), y.view(), w.view(),
                                             Xw.view(), j);
     }
     grad
@@ -41,9 +41,9 @@ pub fn construct_grad<T: 'static + Float, D: Datafit<T>>(
 pub fn kkt_violation<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
     X: ArrayView2<T>, y: ArrayView1<T>, w: ArrayView1<T>, Xw: ArrayView1<T>,
     ws: &[usize], datafit: &D, penalty: &P) -> (Vec<T>, T) {
-    let grad_ws = construct_grad(X.view(), y.view(), w.view(), Xw.view(), &ws, 
+    let grad_ws = construct_grad(X.view(), y.view(), w.view(), Xw.view(), &ws,
                                  datafit);
-    let (kkt_ws, kkt_ws_max) = penalty.subdiff_distance(w.view(), 
+    let (kkt_ws, kkt_ws_max) = penalty.subdiff_distance(w.view(),
                                                         grad_ws.view(), &ws);
     (kkt_ws, kkt_ws_max)
 }
@@ -83,8 +83,8 @@ pub fn construct_ws_from_kkt<T: 'static + Float>(
 
 #[rustfmt::skip]
 pub fn anderson_accel<T, D, P>(
-    y: ArrayView1<T>, X: ArrayView2<T>, w: &mut Array1<T>, Xw: &mut Array1<T>, 
-    datafit: &D, penalty: &P, ws: &[usize], last_K_w: &mut Array2<T>, 
+    y: ArrayView1<T>, X: ArrayView2<T>, w: &mut Array1<T>, Xw: &mut Array1<T>,
+    datafit: &D, penalty: &P, ws: &[usize], last_K_w: &mut Array2<T>,
     U: &mut Array2<T>, epoch: usize, K: usize, verbose: bool)
 where
     T: 'static + Float,
@@ -94,24 +94,22 @@ where
     last_K_w.slice_mut(s![epoch % (K+1); ..]).assign(&w.slice(s![ws]));
 
     if epoch % (K + 1) == K {
-        for k in 0..K {    
-            let a: Array1<T> = last_K_w.slice(s![k+1; ..]).to_owned();
-            let b: Array1<T> = last_K_w.slice(s![k; ..]).to_owned();
-            let c = a - b;
-            U.slice_mut(s![k; ..]).assign(&c);
+        for k in 0..K {
+            for j in 0..ws.len() {
+                U[[k, j]] = last_K_w[[k+1, j]] - last_K_w[[k, j]];
+            }
         }
 
-        let mut C: Array2<T> = Array2::zeros((K, K)); 
-        let one: Array1<T> = Array1::ones(K);
+        let mut C: Array2<T> = Array2::zeros((K, K));
 
         general_mat_mul(T::one(), &U, &U.t(), T::one(), &mut C);
 
-        let _res = C.solve(&one);
+        let _res = C.solve(&Array1::<T>::ones(K));
 
         match _res {
             Ok(z) => {
                 let c = z / z.sum();
-                
+
                 let w_acc = Array1::<T>::zeros(w.len());
 
                 // Extrapolation
@@ -125,10 +123,10 @@ where
                 let w_acc_ws: ArrayView1<T> = w_acc.slice(s![ws]);
                 let Xw_acc = X_ws.dot(&w_acc_ws);
 
-                let p_obj = datafit.value(y.view(), w.view(), Xw.view()) 
+                let p_obj = datafit.value(y.view(), w.view(), Xw.view())
                             + penalty.value(w.view());
                 let p_obj_acc = datafit.value(
-                    y.view(), w_acc.view(), Xw_acc.view()) 
+                    y.view(), w_acc.view(), Xw_acc.view())
                     + penalty.value(w_acc.view());
 
                 if p_obj_acc < p_obj {
@@ -137,7 +135,7 @@ where
                 }
 
             },
-            Err(_)    => {
+            Err(_) => {
                 if verbose {
                     println!("----LinAlg error");
                 }
@@ -160,9 +158,9 @@ pub fn cd_epoch<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
         }
         let Xj: ArrayView1<T> = X.slice(s![.., j]);
         let old_w_j = w[j];
-        let grad_j = datafit.gradient_scalar(X.view(), y.view(), w.view(), 
+        let grad_j = datafit.gradient_scalar(X.view(), y.view(), w.view(),
                                              Xw.view(), j);
-        w[j] = penalty.prox_op(old_w_j - grad_j / lipschitz[j], 
+        w[j] = penalty.prox_op(old_w_j - grad_j / lipschitz[j],
                                T::one() / lipschitz[j], j);
         if w[j] != old_w_j {
             for i in 0..n_samples {
@@ -174,9 +172,9 @@ pub fn cd_epoch<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
 
 #[rustfmt::skip]
 pub fn solver<T: 'static + Float + Debug, D: Datafit<T>, P: Penalty<T>>(
-    X: ArrayView2<T>, y: ArrayView1<T>, datafit: &mut D, penalty: &P, 
+    X: ArrayView2<T>, y: ArrayView1<T>, datafit: &mut D, penalty: &P,
     max_iter: usize, max_epochs: usize, p0: usize, tol: T, use_accel: bool,
-    K: usize, verbose: bool) 
+    K: usize, verbose: bool)
     -> Array1<T> {
     let n_samples = X.shape()[0];
     let n_features = X.shape()[1];
@@ -190,7 +188,7 @@ pub fn solver<T: 'static + Float + Debug, D: Datafit<T>, P: Penalty<T>>(
     for t in 0..max_iter {
         #[rustfmt::skip]
         let (mut kkt, kkt_max) = kkt_violation(
-            X.view(), y.view(), w.view(), Xw.view(), &all_feats, datafit, 
+            X.view(), y.view(), w.view(), Xw.view(), &all_feats, datafit,
             penalty);
 
         if verbose {
@@ -217,13 +215,13 @@ pub fn solver<T: 'static + Float + Debug, D: Datafit<T>, P: Penalty<T>>(
             // Anderson acceleration
             if use_accel {
                 anderson_accel(
-                    y.view(), X.view(), &mut w, &mut Xw, datafit, penalty, &ws, 
+                    y.view(), X.view(), &mut w, &mut Xw, datafit, penalty, &ws,
                     &mut last_K_w, &mut U, epoch, K, verbose);
             }
-    
+
             // KKT violation check
             if epoch > 0 && epoch % 10 == 0 {
-                let p_obj = datafit.value(y.view(), w.view(), Xw.view()) 
+                let p_obj = datafit.value(y.view(), w.view(), Xw.view())
                              + penalty.value(w.view());
                 #[rustfmt::skip]
                 let (_, kkt_ws_max) = kkt_violation(
@@ -249,8 +247,8 @@ pub fn solver<T: 'static + Float + Debug, D: Datafit<T>, P: Penalty<T>>(
                         break;
                     }
                 }
-                
-                
+
+
             }
         }
 
