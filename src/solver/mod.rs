@@ -9,6 +9,7 @@ use std::fmt::Debug;
 use crate::datafits::Datafit;
 use crate::helpers::helpers::solve_lin_sys;
 use crate::penalties::Penalty;
+use crate::sparse::CSRArray;
 
 #[cfg(test)]
 mod tests;
@@ -37,6 +38,18 @@ pub fn construct_grad<T: 'static + Float, D: Datafit<T>>(
 }
 
 #[rustfmt::skip]
+pub fn construct_grad_sparse<T: 'static + Float, D: Datafit<T>>(
+    X: &CSRArray<T>, y: ArrayView1<T>, w: ArrayView1<T>, Xw: ArrayView1<T>,
+    ws: &[usize], datafit: &D) -> Array1<T> {
+    let ws_size = ws.len();
+    let mut grad = Array1::<T>::zeros(ws_size);
+    for (idx, &j) in ws.iter().enumerate() {
+        grad[idx] = datafit.gradient_scalar_sparse(&X, y.view(), Xw.view(), j);
+    }
+    grad
+}
+
+#[rustfmt::skip]
 pub fn kkt_violation<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
     X: ArrayView2<T>, y: ArrayView1<T>, w: ArrayView1<T>, Xw: ArrayView1<T>,
     ws: &[usize], datafit: &D, penalty: &P) -> (Vec<T>, T) {
@@ -44,6 +57,17 @@ pub fn kkt_violation<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
                                  datafit);
     let (kkt_ws, kkt_ws_max) = penalty.subdiff_distance(w.view(),
                                                         grad_ws.view(), &ws);
+    (kkt_ws, kkt_ws_max)
+}
+
+#[rustfmt::skip]
+pub fn kkt_violation_sparse<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
+    X: &CSRArray<T>, y: ArrayView1<T>, w: ArrayView1<T>, Xw: ArrayView1<T>,
+    ws: &[usize], datafit: &D, penalty: &P) -> (Vec<T>, T) {
+    let grad_ws = construct_grad_sparse(&X, y.view(), w.view(), Xw.view(), &ws,
+                                        datafit);
+    let (kkt_ws, kkt_ws_max) = penalty.subdiff_distance(w.view(), grad_ws.view(), 
+                                                        &ws);
     (kkt_ws, kkt_ws_max)
 }
 
@@ -181,25 +205,61 @@ pub fn cd_epoch<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
 }
 
 #[rustfmt::skip]
+pub fn cd_epoch_sparse<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
+    X: &CSRArray<T>, y: ArrayView1<T>, w: &mut Array1<T>, Xw: &mut Array1<T>,
+    datafit: &D, penalty: &P, ws: &[usize]) {
+    let lipschitz = datafit.get_lipschitz();
+
+    for &j in ws {
+        if lipschitz[j] == T::zero() {
+            continue;
+        }
+        let old_w_j = w[j];
+        let grad_j = datafit.gradient_scalar_sparse(&X, y.view(), Xw.view(), j);
+        w[j] = penalty.prox_op(old_w_j - grad_j / lipschitz[j], 
+                               T::one() / lipschitz[j], j);
+        let diff = w[j] - old_w_j;
+        if diff != T::zero() {
+            for i in X.indptr[j]..X.indptr[j+1] {
+                Xw[X.indices[i]] = Xw[X.indices[i]] + diff * X.data[i]; 
+            }
+        }
+    }
+}
+
+#[rustfmt::skip]
 pub fn solver<T: 'static + Float + Debug, D: Datafit<T>, P: Penalty<T>>(
     X: ArrayView2<T>, y: ArrayView1<T>, datafit: &mut D, penalty: &P,
-    max_iter: usize, max_epochs: usize, p0: usize, tol: T, use_accel: bool,
-    K: usize, verbose: bool)
-    -> Array1<T> {
+    is_sparse: bool, max_iter: usize, max_epochs: usize, p0: usize, tol: T, 
+    use_accel: bool, K: usize, verbose: bool) -> Array1<T> {
     let n_samples = X.shape()[0];
     let n_features = X.shape()[1];
     let all_feats: Vec<usize> = (0..n_features).collect();
-
-    datafit.initialize(X.view(), y.view());
+    
+    if is_sparse {
+        datafit.initialize_sparse(&X, y.view());
+    } else {
+        datafit.initialize(X.view(), y.view());
+    }
 
     let mut w = Array1::<T>::zeros(n_features);
     let mut Xw = Array1::<T>::zeros(n_samples);
 
     for t in 0..max_iter {
-        #[rustfmt::skip]
-        let (mut kkt, kkt_max) = kkt_violation(
-            X.view(), y.view(), w.view(), Xw.view(), &all_feats, datafit,
-            penalty);
+        let mut kkt: Vec<T> = vec![T::zero(); n_features];
+        let mut kkt_max = T::zero();
+        if is_sparse {
+            let (a, b) = kkt_violation_sparse(&X, y.view(), w.view(), Xw.view(), 
+                                              &all_feats, datafit, penalty);
+            kkt = a;
+            kkt_max = b;
+        } else {
+            let (a, b) = kkt_violation(
+                X.view(), y.view(), w.view(), Xw.view(), &all_feats, datafit,
+                penalty);
+            kkt = a;
+            kkt_max = b;
+        }
 
         if verbose {
             println!("KKT max violation: {:#?}", kkt_max);
@@ -218,10 +278,16 @@ pub fn solver<T: 'static + Float + Debug, D: Datafit<T>, P: Penalty<T>>(
         }
 
         for epoch in 0..max_epochs {
-            #[rustfmt::skip]
-            cd_epoch(
-                X.view(), y.view(), &mut w, &mut Xw, datafit, penalty, &ws);
-
+            if is_sparse {
+                #[rustfmt::skip]
+                cd_epoch_sparse(
+                    &X, y.view(), &mut w, &mut Xw, datafit, penalty, &ws);
+            } else {
+                #[rustfmt::skip]
+                cd_epoch(
+                    X.view(), y.view(), &mut w, &mut Xw, datafit, penalty, &ws);
+            }
+        
             // Anderson acceleration
             if use_accel {
                 anderson_accel(
@@ -233,11 +299,22 @@ pub fn solver<T: 'static + Float + Debug, D: Datafit<T>, P: Penalty<T>>(
             if epoch > 0 && epoch % 10 == 0 {
                 let p_obj = datafit.value(y.view(), w.view(), Xw.view())
                              + penalty.value(w.view());
-                #[rustfmt::skip]
-                let (_, kkt_ws_max) = kkt_violation(
-                    X.view(), y.view(), w.view(), Xw.view(), &ws, datafit,
-                    penalty);
+                
+                let kkt_ws_max;
 
+                if is_sparse {
+                    #[rustfmt::skip]
+                    let (_, a) = kkt_violation_sparse(
+                        &X, y.view(), w.view(), Xw.view(), &ws, datafit, 
+                        penalty);
+                } else {
+                    #[rustfmt::skip]
+                    let (_, a) = kkt_violation(
+                        X.view(), y.view(), w.view(), Xw.view(), &ws, datafit,
+                        penalty);
+                    kkt_ws_max = a;
+                }
+                
                 if verbose {
                     println!(
                         "epoch: {} :: obj: {:#?} :: kkt: {:#?}",
