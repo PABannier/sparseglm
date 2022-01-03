@@ -1,6 +1,10 @@
+extern crate num;
+
+use num::Float;
+
 #[derive(Debug)]
 pub struct CSRArray<T: Float> {
-    data: Vec<T>,
-    indices: Vec<usize>,
-    indptr: Vec<usize>,
+    pub data: Vec<T>,
+    pub indices: Vec<usize>,
+    pub indptr: Vec<usize>,
 }

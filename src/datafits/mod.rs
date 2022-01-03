@@ -60,16 +60,17 @@ impl<'a, T: 'static + Float> Datafit<T> for Quadratic<T> {
         self.Xty = Array1::<T>::zeros(n_features);
         self.lipschitz = Array1::<T>::zeros(n_features);
         for j in 0..n_features {
-            let nrm2 = 0.;
-            let xty = 0;
+            let mut nrm2 = T::zero();
+            let mut xty = T::zero();
             for idx in X.indptr[j]..X.indptr[j + 1] {
-                nrm2 += X.data[idx].pow(2);
-                xty += X.data[idx] * y[X.indices[idx]];
+                nrm2 = nrm2 + X.data[idx] * X.data[idx];
+                xty = xty + X.data[idx] * y[X.indices[idx]];
             }
-            self.lipschitz[j] = nrm2 / y.len();
+            self.lipschitz[j] = nrm2 / T::from(y.len()).unwrap();
             self.Xty[j] = xty;
         }
     }
+
     /// Computes the value of the datafit
     fn value(&self, y: ArrayView1<T>, _w: ArrayView1<T>, Xw: ArrayView1<T>) -> T {
         let r = &y - &Xw;
@@ -77,6 +78,7 @@ impl<'a, T: 'static + Float> Datafit<T> for Quadratic<T> {
         let val = r.dot(&r) / denom;
         val
     }
+
     /// Computes the value of the gradient at some point w for coordinate j
     #[rustfmt::skip]
     fn gradient_scalar(
@@ -86,17 +88,19 @@ impl<'a, T: 'static + Float> Datafit<T> for Quadratic<T> {
         let Xj: ArrayView1<T> = X.slice(s![.., j]);
         (Xj.dot(&Xw) - self.Xty[j]) / n_samples
     }
+
     /// Computes the value of the gradient at some point w for coordinate j using sparse matrices
     #[rustfmt::skip]
     fn gradient_scalar_sparse(
-        &self, X: &CSRArray<T>, y: ArrayView1<T>, Xw: ArrayView1<T>, j: usize
+        &self, X: &mut CSRArray<T>, _y: ArrayView1<T>, Xw: ArrayView1<T>, j: usize
     ) -> T {
-        let XjTXw = 0.;
+        let mut XjTXw = T::zero();
         for i in X.indptr[j]..X.indptr[j + 1] {
-            XjTXw += X.data[i] * Xw[X.indices[i]];
+            XjTXw = XjTXw + X.data[i] * Xw[X.indices[i]];
         }
-        return (XjTXw - self.Xty[j]) / Xw.len();
+        return (XjTXw - self.Xty[j]) / T::from(Xw.len()).unwrap();
     }
+
     /// Computes the gradient at some point w using sparse matrices
     #[rustfmt::skip]
     fn full_grad_sparse(
@@ -106,18 +110,20 @@ impl<'a, T: 'static + Float> Datafit<T> for Quadratic<T> {
         let n_samples = y.len();
         let mut grad = Array1::<T>::zeros(n_features);
         for j in 0..n_features {
-            let XjTXw = 0.;
+            let mut XjTXw = T::zero();
             for i in X.indptr[j]..X.indptr[j + 1] {
-                XjTXw += X.data[i] * Xw[X.indices[i]];
+                XjTXw = XjTXw + X.data[i] * Xw[X.indices[i]];
             }
-            grad[j] = (XjTXw - self.Xty[j]) / n_samples;
+            grad[j] = (XjTXw - self.Xty[j]) / T::from(n_samples).unwrap();
         }
         grad
     }
+
     // Getter for Lipschitz
     fn get_lipschitz(&self) -> ArrayView1<T> {
         self.lipschitz.view()
     }
+
     // Getter for Xty
     fn get_Xty(&self) -> ArrayView1<T> {
         self.Xty.view()
