@@ -106,12 +106,11 @@ where
 
         general_mat_mul(T::one(), &U, &U.t(), T::one(), &mut C);
 
-        let _res: Result<Array1<T>, ()> = solve_lin_sys(C.view(), Array1::<T>::ones(K).view());
+        let _res = solve_lin_sys(C.view(), Array1::<T>::ones(K).view());
 
         match _res {
             Ok(z) => {
-                let denom = z.sum();
-                let c = z / denom;
+                let c = z.map(|&x| x / z.sum());
 
                 let mut w_acc = Array1::<T>::zeros(w.len());
 
