@@ -23,13 +23,13 @@ pub mod helpers {
     pub fn solve_lin_sys<T: 'static + Float>(
         A: ArrayView2<T>,
         b: ArrayView1<T>,
-    ) -> Result<Array1<T>, String> {
+    ) -> Result<Array1<T>, &'static str> {
         // Concatenation
         let size = b.len();
         let mut system = Array2::<T>::zeros((size, size + 1));
         for i in 0..size {
             for j in 0..(size + 1) {
-                system[[i, j]] = if j == size { A[[i, j]] } else { b[i] };
+                system[[i, j]] = if j == size { b[i] } else { A[[i, j]] };
             }
         }
 
@@ -64,10 +64,7 @@ pub mod helpers {
         let mut x = Array1::<T>::zeros(size);
         for i in 0..size {
             if system[[i, i]] == T::zero() {
-                // Err(LinAlgError {
-                //     message: "Infinitely many solutions",
-                // })
-                println!("Infinitely many solutions.");
+                return Err("Infinitely many solutions or singular matrix");
             } else {
                 system[[i, size]] = system[[i, size]] / system[[i, i]];
                 system[[i, i]] = T::one();

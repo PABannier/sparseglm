@@ -11,7 +11,7 @@ fn test_singular_matrix() {
 
     match x {
         Ok(_) => panic!("Should return that the matrix is singular"),
-        Err(e) => assert_eq!(e, "Singular matrix"),
+        Err(e) => assert_eq!(e, "Infinitely many solutions or singular matrix"),
     }
 }
 
@@ -23,7 +23,7 @@ fn test_infinitely_many_solution() {
 
     match x {
         Ok(_) => panic!("Should return that there are infinitely many solutions"),
-        Err(e) => assert_eq!(e, "Infinitely many solutions"),
+        Err(e) => assert_eq!(e, "Infinitely many solutions or singular matrix"),
     }
 }
 
