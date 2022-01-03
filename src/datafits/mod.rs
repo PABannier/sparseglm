@@ -11,7 +11,7 @@ mod tests;
 
 pub trait Datafit<T: Float> {
     fn initialize(&mut self, X: ArrayView2<T>, y: ArrayView1<T>);
-    fn initialize_sparse(&mut self, X: &mut CSRArray<T>, y: ArrayView1<T>);
+    fn initialize_sparse(&mut self, X: &CSRArray<T>, y: ArrayView1<T>);
     fn value(&self, y: ArrayView1<T>, w: ArrayView1<T>, Xw: ArrayView1<T>) -> T;
     #[rustfmt::skip]
     fn gradient_scalar(
@@ -19,11 +19,11 @@ pub trait Datafit<T: Float> {
         Xw: ArrayView1<T>, j: usize) -> T;
     #[rustfmt::skip]
     fn gradient_scalar_sparse(
-        &self, X: &mut CSRArray<T>, y: ArrayView1<T>, Xw: ArrayView1<T>,
+        &self, X: &CSRArray<T>, y: ArrayView1<T>, Xw: ArrayView1<T>,
         j: usize) -> T;
     #[rustfmt::skip]
     fn full_grad_sparse(
-        &self, X: &mut CSRArray<T>, y: ArrayView1<T>, Xw: ArrayView1<T>
+        &self, X: &CSRArray<T>, y: ArrayView1<T>, Xw: ArrayView1<T>
         ) -> Array1<T>;
     fn get_lipschitz(&self) -> ArrayView1<T>;
     fn get_Xty(&self) -> ArrayView1<T>;
@@ -55,7 +55,7 @@ impl<'a, T: 'static + Float> Datafit<T> for Quadratic<T> {
         self.lipschitz = lc;
     }
     /// Initializes the datafit by pre-computing useful quantites with sparse matrices
-    fn initialize_sparse(&mut self, X: &mut CSRArray<T>, y: ArrayView1<T>) {
+    fn initialize_sparse(&mut self, X: &CSRArray<T>, y: ArrayView1<T>) {
         let n_features = X.indptr.len() - 1;
         self.Xty = Array1::<T>::zeros(n_features);
         self.lipschitz = Array1::<T>::zeros(n_features);
@@ -92,7 +92,7 @@ impl<'a, T: 'static + Float> Datafit<T> for Quadratic<T> {
     /// Computes the value of the gradient at some point w for coordinate j using sparse matrices
     #[rustfmt::skip]
     fn gradient_scalar_sparse(
-        &self, X: &mut CSRArray<T>, _y: ArrayView1<T>, Xw: ArrayView1<T>, j: usize
+        &self, X: &CSRArray<T>, _y: ArrayView1<T>, Xw: ArrayView1<T>, j: usize
     ) -> T {
         let mut XjTXw = T::zero();
         for i in X.indptr[j]..X.indptr[j + 1] {
@@ -104,7 +104,7 @@ impl<'a, T: 'static + Float> Datafit<T> for Quadratic<T> {
     /// Computes the gradient at some point w using sparse matrices
     #[rustfmt::skip]
     fn full_grad_sparse(
-        &self, X: &mut CSRArray<T>, y: ArrayView1<T>, Xw: ArrayView1<T>,
+        &self, X: &CSRArray<T>, y: ArrayView1<T>, Xw: ArrayView1<T>,
     ) -> Array1<T> {
         let n_features = X.indptr.len() - 1;
         let n_samples = y.len();
