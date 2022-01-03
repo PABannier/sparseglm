@@ -4,8 +4,11 @@ extern crate num;
 extern crate rand;
 extern crate rand_distr;
 
+#[cfg(test)]
+mod tests;
+
 pub mod helpers {
-    use ndarray::{ArrayView1, ArrayView2};
+    use ndarray::{Array1, Array2, ArrayView1, ArrayView2};
     use ndarray_stats::QuantileExt;
     use num::Float;
 
@@ -15,6 +18,61 @@ pub mod helpers {
         let Xty = Xty.map(|x| x.abs());
         let alpha_max = Xty.max().unwrap();
         *alpha_max / n_samples
+    }
+
+    pub fn solve_lin_sys<T: 'static + Float>(
+        A: ArrayView2<T>,
+        b: ArrayView1<T>,
+    ) -> Result<Array1<T>, &'static str> {
+        // Concatenation
+        let size = b.len();
+        let mut system = Array2::<T>::zeros((size, size + 1));
+        for i in 0..size {
+            for j in 0..(size + 1) {
+                system[[i, j]] = if j == size { b[i] } else { A[[i, j]] };
+            }
+        }
+
+        // Echelon form
+        for i in 0..size - 1 {
+            for j in i..size - 1 {
+                if system[[i, i]] == T::zero() {
+                    continue;
+                } else {
+                    let factor = system[[j + 1, i]] / system[[i, i]];
+                    for k in i..size + 1 {
+                        system[[j + 1, k]] = system[[j + 1, k]] - factor * system[[i, k]];
+                    }
+                }
+            }
+        }
+
+        // Gaussian eliminated
+        for i in (1..size).rev() {
+            if system[[i, i]] == T::zero() {
+                continue;
+            } else {
+                for j in (1..i + 1).rev() {
+                    let factor = system[[j - 1, i]] / system[[i, i]];
+                    for k in (0..size + 1).rev() {
+                        system[[j - 1, k]] = system[[j - 1, k]] - factor * system[[i, k]];
+                    }
+                }
+            }
+        }
+
+        let mut x = Array1::<T>::zeros(size);
+        for i in 0..size {
+            if system[[i, i]] == T::zero() {
+                return Err("Infinitely many solutions or singular matrix");
+            } else {
+                system[[i, size]] = system[[i, size]] / system[[i, i]];
+                system[[i, i]] = T::one();
+                x[i] = system[[i, size]];
+            }
+        }
+
+        Ok(x)
     }
 }
 
