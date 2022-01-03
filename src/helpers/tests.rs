@@ -10,8 +10,20 @@ fn test_singular_matrix() {
     let x = helpers::solve_lin_sys(A.view(), b.view());
 
     match x {
-        Ok(_) => panic!("Unsolvable system."),
-        Err(e) => assert_eq!(e, "LinAlg error"),
+        Ok(_) => panic!("Should return that the matrix is singular"),
+        Err(e) => assert_eq!(e, "Singular matrix"),
+    }
+}
+
+#[test]
+fn test_infinitely_many_solution() {
+    let A = Array2::from_shape_vec((2, 2), vec![22., 11., 14., 7.]).unwrap();
+    let b = Array1::from_shape_vec(2, vec![44., 28.]).unwrap();
+    let x = helpers::solve_lin_sys(A.view(), b.view());
+
+    match x {
+        Ok(_) => panic!("Should return that there are infinitely many solutions"),
+        Err(e) => assert_eq!(e, "Infinitely many solutions"),
     }
 }
 
