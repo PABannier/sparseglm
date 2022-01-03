@@ -110,7 +110,8 @@ where
 
         match _res {
             Ok(z) => {
-                let c = z.map(|&x| x / z.sum());
+                let denom = z.sum();
+                let c = z.map(|&x| x / denom);
 
                 let mut w_acc = Array1::<T>::zeros(w.len());
 
@@ -137,6 +138,10 @@ where
                 if p_obj_acc < p_obj {
                     w.assign(&w_acc);
                     Xw.assign(&Xw_acc);
+
+                    if verbose {
+                        println!("[ACCEL] p_obj {:#?} :: p_obj_acc {:#?}", p_obj, p_obj_acc);
+                    }
                 }
 
             },
