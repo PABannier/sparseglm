@@ -23,7 +23,7 @@ pub struct SolverParams<T> {
     max_iter: usize,
     p0: usize,
     use_accel: bool,
-    k: usize,
+    K: usize,
     verbose: bool,
 }
 
@@ -36,7 +36,7 @@ impl<T: Float> Default for SolverParams<T> {
             max_iter: 50,
             p0: 10,
             use_accel: true,
-            k: 5,
+            K: 5,
             verbose: true,
         }
     }
@@ -72,7 +72,7 @@ impl<T: 'static + Float + Debug> Estimator<T> for Lasso<T> {
             self.params.p0,
             self.params.tol,
             self.params.use_accel,
-            self.params.k,
+            self.params.K,
             self.params.verbose,
         );
 
