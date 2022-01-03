@@ -4,8 +4,11 @@ extern crate num;
 extern crate rand;
 extern crate rand_distr;
 
+#[cfg(test)]
+mod tests;
+
 pub mod helpers {
-    use ndarray::{ArrayView1, ArrayView2};
+    use ndarray::{Array1, ArrayView1, ArrayView2};
     use ndarray_stats::QuantileExt;
     use num::Float;
 
@@ -15,6 +18,12 @@ pub mod helpers {
         let Xty = Xty.map(|x| x.abs());
         let alpha_max = Xty.max().unwrap();
         *alpha_max / n_samples
+    }
+
+    pub fn solve_lin_sys<T: 'static + Float>(
+        A: ArrayView2<T>,
+        b: ArrayView1<T>,
+    ) -> Result<Array1<T>, &'static str> {
     }
 }
 
