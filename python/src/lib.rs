@@ -1,8 +1,10 @@
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        let result = 2 + 2;
-        assert_eq!(result, 4);
-    }
+use pyo3::prelude::*;
+
+mod estimators;
+
+#[pymodule]
+fn _lib(_py: Python, m: &PyModule) -> PyResult<()> {
+    m.add_class::<estimators::BaseEstimator>()?;
+    m.add_class::<estimators::Lasso>()?;
+    Ok(())
 }
