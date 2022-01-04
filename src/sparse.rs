@@ -8,3 +8,13 @@ pub struct CSRArray<T: Float> {
     pub indices: Vec<usize>,
     pub indptr: Vec<usize>,
 }
+
+impl<T: Float> CSRArray<T> {
+    pub fn new(data: Vec<T>, indices: Vec<usize>, indptr: Vec<usize>) -> CSRArray<T> {
+        CSRArray {
+            data,
+            indices,
+            indptr,
+        }
+    }
+}
