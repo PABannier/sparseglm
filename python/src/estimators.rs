@@ -1,9 +1,12 @@
-use numpy::ndarray::{PyArray1, PyArray2};
+use numpy::{PyArray1, PyArray2};
 use pyo3::prelude::*;
+use pyo3::PyFloat;
 
 use rustylasso::estimators::*;
 
-#[pyclass(module = "RustyLasso.estimators")]
+// type PyCSRArray = (Py<PyArray1<f64>>, Py<PyArray1<i32>>, Py<PyArray1<i32>>);
+
+#[pyclass(module = "rustylasso.estimators")]
 pub struct BaseEstimator {}
 
 #[pymethods]
@@ -17,16 +20,16 @@ impl BaseEstimator {
 /// __init__(self)
 ///
 /// Lasso estimator
-#[pyclass(extends=BaseEstimator, module="RustyLasso.estimators")]
+#[pyclass(extends=BaseEstimator, module="rustylasso.estimators")]
 pub struct Lasso {
-    inner: RustyLasso::estimators::Lasso,
+    inner: rustylasso::estimators::Lasso<f64>,
 }
 
 #[pymethods]
 impl Lasso {
     #[new]
     fn new(alpha: &PyFloat) -> PyResult<(Self, BaseEstimator)> {
-        let estimator = RustyLasso::estimators::Lasso::new(alpha);
+        let estimator = rustylasso::estimators::Lasso::new(alpha);
 
         Ok((Lasso { inner: estimator }, BaseEstimator::new()))
     }
@@ -41,7 +44,12 @@ impl Lasso {
     ///    The design matrix
     /// y:  PyArray1
     ///    Measurement vector
-    fn fit<'py>(&self, py: Python<'py>, X: PyArray2<f64>, y: PyArray1<f64>) -> PyResult<PyArray1> {
+    fn fit<'py>(
+        &self,
+        py: Python<'py>,
+        X: PyArray2<f64>,
+        y: PyArray1<f64>,
+    ) -> PyResult<PyArray1<f64>> {
         Ok(self.inner.fit(X, y))
     }
 
@@ -55,23 +63,13 @@ impl Lasso {
     ///     The sparse design matrix
     /// y: PyArray1
     ///     Measurement vector
-    fn fit_sparse<'py>(
-        &self,
-        py: Python<'py>,
-        X: PyCSRArray<f64>,
-        y: PyArray1<f64>,
-    ) -> PyResult<PyArray1> {
-        Ok(self.inner.fit_sparse(X, y))
-    }
-
-    /// get_params(self)
-    /// Get parameters for this estimator.
-    ///
-    /// Returns
-    /// -------
-    /// params : mapping of string to any
-    ///          Parameter names mapped to their values.
-    fn get_params(&self) -> PyResult<SolverParams> {
-        Ok(self.inner.params.clone())
-    }
+    // fn fit_sparse<'py>(
+    //     &self,
+    //     py: Python<'py>,
+    //     X: PyCSRArray<f64>,
+    //     y: PyArray1<f64>,
+    // ) -> PyResult<PyArray1> {
+    //     let arr = CSRArray::new(X.1, X.2, X.3);
+    //     Ok(self.inner.fit_sparse(X, y))
+    // }
 }
