@@ -44,12 +44,7 @@ impl Lasso {
     ///    The design matrix
     /// y:  PyArray1
     ///    Measurement vector
-    fn fit<'py>(
-        &self,
-        py: Python<'py>,
-        X: PyArray2<f64>,
-        y: PyArray1<f64>,
-    ) -> PyResult<PyArray1<f64>> {
+    fn fit<'py>(&self, py: Python<'py>, X: PyArray2<f64>, y: PyArray1<f64>) -> PyResult<PyArray1<f64>> {
         Ok(self.inner.fit(X, y))
     }
 
