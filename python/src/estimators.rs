@@ -1,7 +1,7 @@
 use numpy::{PyArray, PyArray1, PyArray2};
 use pyo3::prelude::*;
-use pyo3::types::PyFloat;
 use rustylasso;
+use rustylasso::estimators::Estimator;
 
 #[pyclass(module = "rustylasso.estimators")]
 pub struct BaseEstimator {}
@@ -25,7 +25,7 @@ pub struct Lasso {
 #[pymethods]
 impl Lasso {
     #[new]
-    fn new(alpha: PyFloat) -> PyResult<(Self, BaseEstimator)> {
+    fn new(alpha: f32) -> PyResult<(Self, BaseEstimator)> {
         let estimator = rustylasso::estimators::Lasso::new(alpha);
         Ok((Lasso { inner: estimator }, BaseEstimator::new()))
     }
@@ -41,14 +41,16 @@ impl Lasso {
     /// y:  PyArray1
     ///    Measurement vector
     fn fit<'py>(
-        &self,
+        &mut self,
         py: Python<'py>,
-        X: PyArray2<f32>,
-        y: PyArray1<f32>,
-    ) -> PyResult<&PyArray1<f32>> {
+        X: Py<PyArray2<f32>>,
+        y: Py<PyArray1<f32>>,
+    ) -> PyResult<&'py PyArray1<f32>> {
         Ok(PyArray::from_array(
             py,
-            self.inner.fit(X.as_array(), y.as_array()),
+            &self
+                .inner
+                .fit(X.as_ref(py).as_array(), y.as_ref(py).as_array()),
         ))
     }
 }
