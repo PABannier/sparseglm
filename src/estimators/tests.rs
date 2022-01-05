@@ -106,7 +106,7 @@ fn test_sklearn_sparse() {
     let alpha_max = compute_alpha_max_sparse(&X, y.view());
     assert_eq!(alpha_max, 7.62059070454764);
 
-    let mut clf = Lasso::new(alpha_max * 0.1);
+    let mut clf = Lasso::new(alpha_max * 0.1, None);
     let w = clf.fit_sparse(&X, y.view());
 
     let w_sk = Array1::from_shape_vec(30, vec![0., 0., 0., 0., 0.,
