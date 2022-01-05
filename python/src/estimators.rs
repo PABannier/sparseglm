@@ -40,17 +40,15 @@ impl Lasso {
     ///    The design matrix
     /// y:  PyArray1
     ///    Measurement vector
-    fn fit<'py>(
+    unsafe fn fit<'py>(
         &mut self,
         py: Python<'py>,
-        X: Py<PyArray2<f32>>,
-        y: Py<PyArray1<f32>>,
+        X: &PyArray2<f32>,
+        y: &PyArray1<f32>,
     ) -> PyResult<&'py PyArray1<f32>> {
         Ok(PyArray::from_array(
             py,
-            &self
-                .inner
-                .fit(X.as_ref(py).as_array(), y.as_ref(py).as_array()),
+            &self.inner.fit(X.as_array(), y.as_array()),
         ))
     }
 }
