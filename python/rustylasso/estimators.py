@@ -1,11 +1,8 @@
 from . import _lib
 
-try:
-    from sklearn.base import BaseEstimator
-except ImportError:
-
-    class BaseEstimator:
-        pass
+import scipy.sparse as sp
+from sklearn.base import BaseEstimator
+from sklearn.utils.validation import check_X_y
 
 
 __all__ = ["Lasso"]
@@ -68,13 +65,16 @@ class Lasso(BaseEstimator):
             Measurements.
         """
         self._validate_params()
-
-        # TODO: check if matrix is sparse
-        # TODO: check X and y have the right dimensions and check
+        X, y = check_X_y(X, y, accept_sparse='csr', order="C")
         self._inner = _lib.LassoWrapper(
             alpha=self.alpha, max_iter=self.max_iter, p0=self.p0, K=self.K,
             max_epochs=self.max_epochs, tol=self.tol, verbose=self.verbose)
-        self.coef_ = self._inner.fit(X, y).T
+
+        if sp.issparse(X):
+            raise NotImplementedError("Sparse matrices not yet implemented.")
+        else:
+            coefs = self._inner.fit(X, y)
+        self.coef_ = coefs.T
 
         return self
 
