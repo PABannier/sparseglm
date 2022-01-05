@@ -19,7 +19,7 @@ macro_rules! kkt_check_tests {
                 let alpha = alpha_max * 0.5;
 
                 let mut clf = Lasso::new(alpha, None);
-                let w = clf.fit(X.view(), y.view());
+                let w = clf.fit(MatrixParam::DenseMatrix(X.view()), y.view());
 
                 let r = y - X.dot(&w);
                 let xr = X.t().dot(&r) / (n_samples as f64);
@@ -47,7 +47,7 @@ fn test_null_weight() {
     let alpha_max = compute_alpha_max(X.view(), y.view());
 
     let mut clf = Lasso::new(alpha_max, None);
-    let w = clf.fit(X.view(), y.view());
+    let w = clf.fit(MatrixParam::DenseMatrix(X.view()), y.view());
 
     assert_array_all_close(w.view(), Array1::<f64>::zeros(w.len()).view(), 1e-9);
 }
@@ -85,7 +85,7 @@ fn test_sklearn() {
 
     let alpha_max = compute_alpha_max(X.view(), y.view());
     let mut clf = Lasso::new(alpha_max * 0.1, None);
-    let w = clf.fit(X.view(), y.view());
+    let w = clf.fit(MatrixParam::DenseMatrix(X.view()), y.view());
 
     let w_sk = Array1::from_shape_vec(10, vec![-76.29867715, 0., 357.82870175, 59.71203719, 0., 0., -365.70131103, -233.14123887, 1513.75506467, -2679.42257746]).unwrap();
 
@@ -107,7 +107,7 @@ fn test_sklearn_sparse() {
     assert_eq!(alpha_max, 7.025854668000001);
 
     let mut clf = Lasso::new(alpha_max * 0.1, None);
-    let w = clf.fit_sparse(&X, y.view());
+    let w = clf.fit(MatrixParam::SparseMatrix(&X), y.view());
 
     let w_sk = Array1::from_shape_vec(30, 
 vec![-0.        ,  0.        ,  0.        ,  0.        , 44.4147864 ,

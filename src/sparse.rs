@@ -1,5 +1,7 @@
+extern crate ndarray;
 extern crate num;
 
+use ndarray::ArrayView2;
 use num::Float;
 
 #[derive(Debug)]
@@ -17,4 +19,9 @@ impl<T: Float> CSCArray<T> {
             indptr,
         }
     }
+}
+
+pub enum MatrixParam<'a, T: Float> {
+    DenseMatrix(ArrayView2<'a, T>),
+    SparseMatrix(&'a CSCArray<T>),
 }
