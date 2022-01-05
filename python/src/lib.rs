@@ -1,5 +1,6 @@
 use pyo3::prelude::*;
 
+#[allow(non_snake_case)]
 mod estimators;
 
 #[pymodule]

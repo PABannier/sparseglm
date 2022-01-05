@@ -6,6 +6,7 @@ with open("./requirements.txt", "rt") as infile:
     install_requires = infile.read().splitlines()
 
 setup(
+    name="rustylasso",
     version="0.1.0",
     rust_extensions=[
         RustExtension(
