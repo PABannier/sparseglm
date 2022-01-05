@@ -14,7 +14,7 @@ use crate::sparse::CSRArray;
 mod tests;
 
 pub trait Estimator<T: Float> {
-    fn new(alpha: T) -> Self;
+    fn new(alpha: T, params: Option<SolverParams<T>>) -> Self;
     fn fit(&mut self, X: ArrayView2<T>, y: ArrayView1<T>) -> Array1<T>;
     fn fit_sparse(&mut self, X: &CSRArray<T>, y: ArrayView1<T>) -> Array1<T>;
 }
@@ -30,7 +30,7 @@ pub struct SolverParams<T> {
 }
 
 impl<T: Float> Default for SolverParams<T> {
-    /// Create a new instance
+    /// Create an instance with default parameters
     fn default() -> SolverParams<T> {
         SolverParams {
             tol: T::from(1e-9).unwrap(),
@@ -40,6 +40,29 @@ impl<T: Float> Default for SolverParams<T> {
             use_accel: true,
             K: 5,
             verbose: true,
+        }
+    }
+}
+
+impl<T: Float> SolverParams<T> {
+    /// Create a new instance
+    pub fn new(
+        max_epochs: usize,
+        max_iter: usize,
+        p0: usize,
+        tol: T,
+        K: usize,
+        use_accel: bool,
+        verbose: bool,
+    ) -> Self {
+        SolverParams {
+            max_epochs,
+            max_iter,
+            p0,
+            tol,
+            K,
+            use_accel,
+            verbose,
         }
     }
 }
@@ -55,11 +78,11 @@ pub struct Lasso<T: Float> {
 
 impl<T: 'static + Float + Debug> Estimator<T> for Lasso<T> {
     /// Create new instance
-    fn new(alpha: T) -> Self {
+    fn new(alpha: T, params: Option<SolverParams<T>>) -> Self {
         Lasso {
             datafit: Quadratic::default(),
             penalty: L1::new(alpha),
-            params: SolverParams::default(),
+            params: params.unwrap_or(SolverParams::<T>::default()),
         }
     }
     /// Fits an instance of Estimator

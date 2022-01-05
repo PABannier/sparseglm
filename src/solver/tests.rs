@@ -69,9 +69,15 @@ fn test_kkt_violation() {
     datafit.initialize(X.view(), y.view());
     let penalty = L1::new(0.3);
 
-    #[rustfmt::skip]
     let (kkt, kkt_max) = kkt_violation(
-        X.view(), y.view(), w.view(), Xw.view(), &ws, &datafit, &penalty);
+        X.view(),
+        y.view(),
+        w.view(),
+        Xw.view(),
+        &ws,
+        &datafit,
+        &penalty,
+    );
     let kkt = Array1::from_shape_vec(3, kkt).unwrap();
     let true_kkt = Array1::from_shape_vec(3, vec![21.318, 9.044, 5.4395]).unwrap();
 
