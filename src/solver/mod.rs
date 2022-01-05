@@ -175,7 +175,7 @@ pub fn anderson_accel<T, D, P>(
                             }
                         }
                     }
-                    MatrixParam::SparseMatrix(X_sparse) => {
+                    MatrixParam::SparseMatrix(_) => {
                         // TODO: Implement with sparse matrices
                         // Xw_acc += X_full
                     }
@@ -272,7 +272,7 @@ pub fn solver<T: 'static + Float + Debug, D: Datafit<T>, P: Penalty<T>>(
     verbose: bool,
 ) -> Array1<T> {
     let n_samples = y.len();
-    let n_features: usize = 0;
+    let n_features: usize;
 
     match X {
         MatrixParam::DenseMatrix(X_full) => {
@@ -293,8 +293,8 @@ pub fn solver<T: 'static + Float + Debug, D: Datafit<T>, P: Penalty<T>>(
     let mut Xw = Array1::<T>::zeros(n_samples);
 
     for t in 0..max_iter {
-        let mut kkt: Vec<T> = Vec::new();
-        let mut kkt_max: T = T::zero();
+        let mut kkt: Vec<T>;
+        let kkt_max: T;
 
         match X {
             MatrixParam::DenseMatrix(X_full) => {
