@@ -84,3 +84,31 @@ fn test_kkt_violation() {
     assert_array_all_close(kkt.view(), true_kkt.view(), 1e-8);
     assert_eq!(kkt_max, 21.318);
 }
+
+#[test]
+fn test_kkt_violation_sparse() {
+    let data = vec![0.74272001, 0.95888754, 0.8886366, 0.19782359];
+    let indices = vec![0, 1, 0, 0];
+    let indptr = vec![0, 1, 2, 2, 3, 4];
+
+    let X = CSCArray::new(data, indices, indptr);
+    let y = Array1::from_shape_vec(3, vec![0.3, -2.3, 0.8]).unwrap();
+    let ws: Vec<usize> = (0..5).collect();
+
+    let w = Array1::from_shape_vec(5, vec![0.2, -0.3, 1.3, 3.4, -1.2]).unwrap();
+    let Xw = Array1::from_shape_vec(3, vec![2.93252013, -0.28766626, 0.]).unwrap();
+
+    let mut datafit = Quadratic::default();
+    datafit.initialize_sparse(&X, y.view());
+    let penalty = L1::new(0.3);
+
+    let (kkt, kkt_max) =
+        kkt_violation_sparse(&X, y.view(), w.view(), Xw.view(), &ws, &datafit, &penalty);
+    let kkt = Array1::from_shape_vec(5, kkt).unwrap();
+    let true_kkt =
+        Array1::from_shape_vec(5, vec![0.95174179, 0.34320058, 0.3, 1.07978458, 0.12640847])
+            .unwrap();
+
+    assert_array_all_close(kkt.view(), true_kkt.view(), 1e-8);
+    assert_eq!(kkt_max, 1.0797845792515859);
+}
