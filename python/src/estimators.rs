@@ -18,15 +18,27 @@ impl BaseEstimator {
 ///
 /// Lasso estimator
 #[pyclass(extends=BaseEstimator, module="rustylasso.estimators")]
-pub struct Lasso {
+pub struct LassoWrapper {
     inner: rustylasso::estimators::Lasso<f32>,
 }
 
 #[pymethods]
-impl Lasso {
+impl LassoWrapper {
     #[new]
-    fn new(alpha: f32) -> PyResult<(Self, BaseEstimator)> {
-        let estimator = rustylasso::estimators::Lasso::new(alpha);
+    fn new(
+        alpha: f32,
+        max_iter: usize,
+        max_epochs: usize,
+        tol: f32,
+        p0: usize,
+        use_accel: bool,
+        K: usize,
+        verbose: bool,
+    ) -> PyResult<(Self, BaseEstimator)> {
+        let params = rustylasso::estimators::SolverParams::new(
+            max_epochs, max_iter, p0, tol, K, use_accel, verbose,
+        );
+        let estimator = rustylasso::estimators::Lasso::new(alpha, params);
         Ok((Lasso { inner: estimator }, BaseEstimator::new()))
     }
 
