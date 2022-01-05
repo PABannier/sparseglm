@@ -71,7 +71,7 @@ class Lasso(BaseEstimator):
             max_epochs=self.max_epochs, tol=self.tol, verbose=self.verbose)
 
         if sp.issparse(X):
-            raise NotImplementedError("Sparse matrices not yet implemented.")
+            coefs = self._inner.fit_sparse(X, y)
         else:
             coefs = self._inner.fit(X, y)
         self.coef_ = coefs.T
