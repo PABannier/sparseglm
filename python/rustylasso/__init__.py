@@ -1,4 +1,4 @@
-from . import _lib
+from . import _lib  # noqa
 from . import estimators
 
 __version__ = "0.1.0"

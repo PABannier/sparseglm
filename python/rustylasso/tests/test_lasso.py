@@ -1,5 +1,3 @@
-import pytest
-
 import numpy as np
 from numpy.linalg import norm
 from sklearn.linear_model import Lasso as Lasso_sk
