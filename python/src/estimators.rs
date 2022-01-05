@@ -38,8 +38,8 @@ impl LassoWrapper {
         let params = rustylasso::estimators::SolverParams::new(
             max_epochs, max_iter, p0, tol, K, use_accel, verbose,
         );
-        let estimator = rustylasso::estimators::Lasso::new(alpha, params);
-        Ok((Lasso { inner: estimator }, BaseEstimator::new()))
+        let estimator = rustylasso::estimators::Lasso::new(alpha, Some(params));
+        Ok((LassoWrapper { inner: estimator }, BaseEstimator::new()))
     }
 
     /// fit(self, X, y)
@@ -48,9 +48,9 @@ impl LassoWrapper {
     ///
     /// Parameters
     /// ----------
-    /// X:  PyArray2
+    /// X: &PyArray2
     ///    The design matrix
-    /// y:  PyArray1
+    /// y: &PyArray1
     ///    Measurement vector
     unsafe fn fit<'py>(
         &mut self,

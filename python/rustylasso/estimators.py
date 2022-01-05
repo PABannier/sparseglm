@@ -77,11 +77,11 @@ class Lasso(BaseEstimator):
         self._inner = _lib.LassoWrapper(
             alpha=self.alpha, max_iter=self.max_iter, p0=self.p0, K=self.K,
             max_epochs=self.max_epochs, tol=self.tol, verbose=self.verbose)
-        self.coef_ = self._inner.fit(X, y)
+        self.coef_ = self._inner.fit(X, y).T
 
         return self
 
     def predict(self, X):
         """Predits the test set."""
         # TODO: validation of X
-        return X @ self.coef_
+        return X @ self.coef_.T
