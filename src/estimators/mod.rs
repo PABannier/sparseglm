@@ -87,23 +87,37 @@ impl<T: 'static + Float + Debug> Estimator<T> for Lasso<T> {
     }
     /// Fits an instance of Estimator
     fn fit(&mut self, X: ArrayView2<T>, y: ArrayView1<T>) -> Array1<T> {
-        #[rustfmt::skip]
         let w = solver(
-            X.view(), y.view(), &mut self.datafit, &self.penalty,
-            self.params.max_iter, self.params.max_epochs, self.params.p0,
-            self.params.tol, self.params.use_accel, self.params.K,
-            self.params.verbose);
+            X.view(),
+            y.view(),
+            &mut self.datafit,
+            &self.penalty,
+            self.params.max_iter,
+            self.params.max_epochs,
+            self.params.p0,
+            self.params.tol,
+            self.params.use_accel,
+            self.params.K,
+            self.params.verbose,
+        );
 
         w
     }
     /// Fits an instance of Estimator to sparse data
     fn fit_sparse(&mut self, X: &CSRArray<T>, y: ArrayView1<T>) -> Array1<T> {
-        #[rustfmt::skip]
         let w = solver_sparse(
-            &X, y.view(), &mut self.datafit, &self.penalty,
-            self.params.max_iter, self.params.max_epochs, self.params.p0,
-            self.params.tol, self.params.use_accel, self.params.K,
-            self.params.verbose);
+            &X,
+            y.view(),
+            &mut self.datafit,
+            &self.penalty,
+            self.params.max_iter,
+            self.params.max_epochs,
+            self.params.p0,
+            self.params.tol,
+            self.params.use_accel,
+            self.params.K,
+            self.params.verbose,
+        );
 
         w
     }

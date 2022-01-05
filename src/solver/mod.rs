@@ -40,10 +40,14 @@ pub fn construct_grad<T: 'static + Float, D: Datafit<T>>(
     grad
 }
 
-#[rustfmt::skip]
 pub fn construct_grad_sparse<T: 'static + Float, D: Datafit<T>>(
-    X: &CSRArray<T>, y: ArrayView1<T>, _w: ArrayView1<T>, Xw: ArrayView1<T>,
-    ws: &[usize], datafit: &D) -> Array1<T> {
+    X: &CSRArray<T>,
+    y: ArrayView1<T>,
+    _w: ArrayView1<T>,
+    Xw: ArrayView1<T>,
+    ws: &[usize],
+    datafit: &D,
+) -> Array1<T> {
     let ws_size = ws.len();
     let mut grad = Array1::<T>::zeros(ws_size);
     for (idx, &j) in ws.iter().enumerate() {
@@ -52,7 +56,6 @@ pub fn construct_grad_sparse<T: 'static + Float, D: Datafit<T>>(
     grad
 }
 
-#[rustfmt::skip]
 pub fn kkt_violation<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
     X: ArrayView2<T>,
     y: ArrayView1<T>,
@@ -67,18 +70,20 @@ pub fn kkt_violation<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
     (kkt_ws, kkt_ws_max)
 }
 
-#[rustfmt::skip]
 pub fn kkt_violation_sparse<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
-    X: &CSRArray<T>, y: ArrayView1<T>, w: ArrayView1<T>, Xw: ArrayView1<T>,
-    ws: &[usize], datafit: &D, penalty: &P) -> (Vec<T>, T) {
-    let grad_ws = construct_grad_sparse(&X, y.view(), w.view(), Xw.view(), &ws,
-                                        datafit);
-    let (kkt_ws, kkt_ws_max) = penalty.subdiff_distance(
-        w.view(), grad_ws.view(), &ws);
+    X: &CSRArray<T>,
+    y: ArrayView1<T>,
+    w: ArrayView1<T>,
+    Xw: ArrayView1<T>,
+    ws: &[usize],
+    datafit: &D,
+    penalty: &P,
+) -> (Vec<T>, T) {
+    let grad_ws = construct_grad_sparse(&X, y.view(), w.view(), Xw.view(), &ws, datafit);
+    let (kkt_ws, kkt_ws_max) = penalty.subdiff_distance(w.view(), grad_ws.view(), &ws);
     (kkt_ws, kkt_ws_max)
 }
 
-#[rustfmt::skip]
 pub fn construct_ws_from_kkt<T: 'static + Float>(
     kkt: &mut Vec<T>,
     w: ArrayView1<T>,
@@ -217,10 +222,15 @@ pub fn cd_epoch<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
     }
 }
 
-#[rustfmt::skip]
 pub fn cd_epoch_sparse<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
-    X: &CSRArray<T>, y: ArrayView1<T>, w: &mut Array1<T>, Xw: &mut Array1<T>,
-    datafit: &D, penalty: &P, ws: &[usize]) {
+    X: &CSRArray<T>,
+    y: ArrayView1<T>,
+    w: &mut Array1<T>,
+    Xw: &mut Array1<T>,
+    datafit: &D,
+    penalty: &P,
+    ws: &[usize],
+) {
     let lipschitz = datafit.get_lipschitz();
 
     for &j in ws {
@@ -229,22 +239,29 @@ pub fn cd_epoch_sparse<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
         }
         let old_w_j = w[j];
         let grad_j = datafit.gradient_scalar_sparse(&X, y.view(), Xw.view(), j);
-        w[j] = penalty.prox_op(old_w_j - grad_j / lipschitz[j],
-                               T::one() / lipschitz[j], j);
+        w[j] = penalty.prox_op(old_w_j - grad_j / lipschitz[j], T::one() / lipschitz[j], j);
         let diff = w[j] - old_w_j;
         if diff != T::zero() {
-            for i in X.indptr[j]..X.indptr[j+1] {
+            for i in X.indptr[j]..X.indptr[j + 1] {
                 Xw[X.indices[i]] = Xw[X.indices[i]] + diff * X.data[i];
             }
         }
     }
 }
 
-#[rustfmt::skip]
 pub fn solver<T: 'static + Float + Debug, D: Datafit<T>, P: Penalty<T>>(
-    X: ArrayView2<T>, y: ArrayView1<T>, datafit: &mut D, penalty: &P,
-    max_iter: usize, max_epochs: usize, _p0: usize, tol: T, use_accel: bool,
-    K: usize, verbose: bool) -> Array1<T> {
+    X: ArrayView2<T>,
+    y: ArrayView1<T>,
+    datafit: &mut D,
+    penalty: &P,
+    max_iter: usize,
+    max_epochs: usize,
+    _p0: usize,
+    tol: T,
+    use_accel: bool,
+    K: usize,
+    verbose: bool,
+) -> Array1<T> {
     let n_samples = X.shape()[0];
     let n_features = X.shape()[1];
     let all_feats: Vec<usize> = (0..n_features).collect();
@@ -306,10 +323,8 @@ pub fn solver<T: 'static + Float + Debug, D: Datafit<T>, P: Penalty<T>>(
 
             // KKT violation check
             if epoch > 0 && epoch % 10 == 0 {
-                let p_obj = datafit.value(y.view(), w.view(), Xw.view())
-                             + penalty.value(w.view());
+                let p_obj = datafit.value(y.view(), w.view(), Xw.view()) + penalty.value(w.view());
 
-                #[rustfmt::skip]
                 let (_, kkt_ws_max) = kkt_violation(
                     X.view(),
                     y.view(),
@@ -346,11 +361,19 @@ pub fn solver<T: 'static + Float + Debug, D: Datafit<T>, P: Penalty<T>>(
     w
 }
 
-#[rustfmt::skip]
 pub fn solver_sparse<T: 'static + Float + Debug, D: Datafit<T>, P: Penalty<T>>(
-    X: &CSRArray<T>, y: ArrayView1<T>, datafit: &mut D, penalty: &P,
-    max_iter: usize, max_epochs: usize, _p0: usize, tol: T, _use_accel: bool,
-    _K: usize, verbose: bool) -> Array1<T> {
+    X: &CSRArray<T>,
+    y: ArrayView1<T>,
+    datafit: &mut D,
+    penalty: &P,
+    max_iter: usize,
+    max_epochs: usize,
+    _p0: usize,
+    tol: T,
+    _use_accel: bool,
+    _K: usize,
+    verbose: bool,
+) -> Array1<T> {
     let n_samples = y.len();
     let n_features = X.indptr.len() - 1;
     let all_feats: Vec<usize> = (0..n_features).collect();
@@ -363,9 +386,15 @@ pub fn solver_sparse<T: 'static + Float + Debug, D: Datafit<T>, P: Penalty<T>>(
     let mut Xw = Array1::<T>::zeros(n_samples);
 
     for t in 0..max_iter {
-        #[rustfmt::skip]
         let (mut kkt, kkt_max) = kkt_violation_sparse(
-            &X, y.view(), w.view(), Xw.view(), &all_feats, datafit, penalty);
+            &X,
+            y.view(),
+            w.view(),
+            Xw.view(),
+            &all_feats,
+            datafit,
+            penalty,
+        );
 
         if verbose {
             println!("KKT max violation: {:#?}", kkt_max);
@@ -379,14 +408,12 @@ pub fn solver_sparse<T: 'static + Float + Debug, D: Datafit<T>, P: Penalty<T>>(
         // let mut last_K_w = Array2::<T>::zeros((K + 1, ws_size));
         // let mut U = Array2::<T>::zeros((K, ws_size));
 
-        if verbose{
-            println!("Iteration {}, {} features in subproblem.", t+1, ws_size);
+        if verbose {
+            println!("Iteration {}, {} features in subproblem.", t + 1, ws_size);
         }
 
         for epoch in 0..max_epochs {
-            #[rustfmt::skip]
-            cd_epoch_sparse(
-                &X, y.view(), &mut w, &mut Xw, datafit, penalty, &ws);
+            cd_epoch_sparse(&X, y.view(), &mut w, &mut Xw, datafit, penalty, &ws);
 
             // Anderson acceleration
             // if use_accel {
@@ -397,14 +424,10 @@ pub fn solver_sparse<T: 'static + Float + Debug, D: Datafit<T>, P: Penalty<T>>(
 
             // KKT violation check
             if epoch > 0 && epoch % 10 == 0 {
-                let p_obj = datafit.value(y.view(), w.view(), Xw.view())
-                             + penalty.value(w.view());
+                let p_obj = datafit.value(y.view(), w.view(), Xw.view()) + penalty.value(w.view());
 
-
-                #[rustfmt::skip]
-                let (_, kkt_ws_max) = kkt_violation_sparse(
-                    &X, y.view(), w.view(), Xw.view(), &ws, datafit,
-                    penalty);
+                let (_, kkt_ws_max) =
+                    kkt_violation_sparse(&X, y.view(), w.view(), Xw.view(), &ws, datafit, penalty);
 
                 if verbose {
                     println!(
@@ -425,11 +448,8 @@ pub fn solver_sparse<T: 'static + Float + Debug, D: Datafit<T>, P: Penalty<T>>(
                         break;
                     }
                 }
-
-
             }
         }
-
     }
 
     w
