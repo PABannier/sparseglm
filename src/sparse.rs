@@ -21,6 +21,7 @@ impl<T: Float> CSCArray<T> {
     }
 }
 
+#[derive(Clone, Copy)]
 pub enum MatrixParam<'a, T: Float> {
     DenseMatrix(ArrayView2<'a, T>),
     SparseMatrix(&'a CSCArray<T>),

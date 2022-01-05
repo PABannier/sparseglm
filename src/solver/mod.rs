@@ -381,7 +381,7 @@ pub fn solver<T: 'static + Float + Debug, D: Datafit<T>, P: Penalty<T>>(
             if epoch > 0 && epoch % 10 == 0 {
                 let p_obj = datafit.value(y.view(), w.view(), Xw.view()) + penalty.value(w.view());
 
-                let mut kkt_ws_max = T::zero();
+                let kkt_ws_max: T;
 
                 match X {
                     MatrixParam::DenseMatrix(X_full) => {
