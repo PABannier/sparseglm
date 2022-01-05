@@ -95,26 +95,26 @@ fn test_sklearn() {
 #[test]
 #[rustfmt::skip]
 fn test_sklearn_sparse() {
-    let data = vec![0.66724051, 0.45768401, 0.03140004, 0.64990879, 0.36648028, 0.49584243];
-    let indptr = vec![0, 2, 3, 3, 3, 3, 3, 3, 3, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6];
-    let indices = vec![ 8, 13,  8, 11, 19, 13];
+    let data = vec![0.24192513, 0.34841857, 0.30138454, 0.2489857, 0.54952281, 0.83641127];
+    let indptr = vec![0, 1, 2, 2, 2, 3, 3, 3, 4, 4, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6];
+    let indices = vec![ 5,  0, 13,  0,  4, 19];
     let X = CSCArray::new(data, indices, indptr);
 
     let y = vec![151.0, 75.0, 141.0, 205.0, 135.0, 97.0, 138.0, 63.0, 111.0, 310., 101., 9.2, 134.2, 195., 118., 171., 166., 144., 97., 168.];
     let y = Array1::from_shape_vec(20, y).unwrap();
 
     let alpha_max = compute_alpha_max_sparse(&X, y.view());
-    assert_eq!(alpha_max, 7.62059070454764);
+    assert_eq!(alpha_max, 7.025854668000001);
 
     let mut clf = Lasso::new(alpha_max * 0.1, None);
     let w = clf.fit_sparse(&X, y.view());
 
     let w_sk = Array1::from_shape_vec(30, 
-vec![0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
+vec![-0.        ,  0.        ,  0.        ,  0.        , 44.4147864 ,
         0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
-        0.        , -1.9542126 ,  0.        , 17.03531274,  0.        ,
+        0.        ,  0.        , 19.38016186,  0.        ,  0.        ,
         0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
-       -0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
+        0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
         0.        ,  0.        ,  0.        ,  0.        ,  0.        ]).unwrap();
 
     assert_array_all_close(w.view(), w_sk.view(), 1e-6);
