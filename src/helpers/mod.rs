@@ -22,7 +22,10 @@ pub mod helpers {
         *alpha_max / n_samples
     }
 
-    pub fn compute_alpha_max_sparse<T: 'static + Float>(X: &CSRArray<T>, y: ArrayView1<T>) -> T {
+    pub fn compute_alpha_max_sparse<T: 'static + Float + std::fmt::Debug>(
+        X: &CSCArray<T>,
+        y: ArrayView1<T>,
+    ) -> T {
         let n_samples = T::from(y.len()).unwrap();
         let n_features = X.indptr.len() - 1;
         let mut Xty = Array1::<T>::zeros(n_features);

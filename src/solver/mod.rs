@@ -9,7 +9,7 @@ use std::fmt::Debug;
 use crate::datafits::Datafit;
 use crate::helpers::helpers::solve_lin_sys;
 use crate::penalties::Penalty;
-use crate::sparse::CSRArray;
+use crate::sparse::CSCArray;
 
 #[cfg(test)]
 mod tests;
@@ -41,7 +41,7 @@ pub fn construct_grad<T: 'static + Float, D: Datafit<T>>(
 }
 
 pub fn construct_grad_sparse<T: 'static + Float, D: Datafit<T>>(
-    X: &CSRArray<T>,
+    X: &CSCArray<T>,
     y: ArrayView1<T>,
     _w: ArrayView1<T>,
     Xw: ArrayView1<T>,
@@ -71,7 +71,7 @@ pub fn kkt_violation<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
 }
 
 pub fn kkt_violation_sparse<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
-    X: &CSRArray<T>,
+    X: &CSCArray<T>,
     y: ArrayView1<T>,
     w: ArrayView1<T>,
     Xw: ArrayView1<T>,
@@ -223,7 +223,7 @@ pub fn cd_epoch<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
 }
 
 pub fn cd_epoch_sparse<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
-    X: &CSRArray<T>,
+    X: &CSCArray<T>,
     y: ArrayView1<T>,
     w: &mut Array1<T>,
     Xw: &mut Array1<T>,
@@ -362,7 +362,7 @@ pub fn solver<T: 'static + Float + Debug, D: Datafit<T>, P: Penalty<T>>(
 }
 
 pub fn solver_sparse<T: 'static + Float + Debug, D: Datafit<T>, P: Penalty<T>>(
-    X: &CSRArray<T>,
+    X: &CSCArray<T>,
     y: ArrayView1<T>,
     datafit: &mut D,
     penalty: &P,

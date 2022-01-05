@@ -4,14 +4,14 @@ extern crate num;
 use ndarray::{s, Array1, ArrayView1, ArrayView2, Axis};
 use num::Float;
 
-use crate::sparse::CSRArray;
+use crate::sparse::CSCArray;
 
 #[cfg(test)]
 mod tests;
 
 pub trait Datafit<T: Float> {
     fn initialize(&mut self, X: ArrayView2<T>, y: ArrayView1<T>);
-    fn initialize_sparse(&mut self, X: &CSRArray<T>, y: ArrayView1<T>);
+    fn initialize_sparse(&mut self, X: &CSCArray<T>, y: ArrayView1<T>);
     fn value(&self, y: ArrayView1<T>, w: ArrayView1<T>, Xw: ArrayView1<T>) -> T;
 
     fn gradient_scalar(
@@ -25,13 +25,13 @@ pub trait Datafit<T: Float> {
 
     fn gradient_scalar_sparse(
         &self,
-        X: &CSRArray<T>,
+        X: &CSCArray<T>,
         y: ArrayView1<T>,
         Xw: ArrayView1<T>,
         j: usize,
     ) -> T;
 
-    fn full_grad_sparse(&self, X: &CSRArray<T>, y: ArrayView1<T>, Xw: ArrayView1<T>) -> Array1<T>;
+    fn full_grad_sparse(&self, X: &CSCArray<T>, y: ArrayView1<T>, Xw: ArrayView1<T>) -> Array1<T>;
     fn get_lipschitz(&self) -> ArrayView1<T>;
     fn get_Xty(&self) -> ArrayView1<T>;
 }
@@ -62,7 +62,7 @@ impl<'a, T: 'static + Float> Datafit<T> for Quadratic<T> {
         self.lipschitz = lc;
     }
     /// Initializes the datafit by pre-computing useful quantites with sparse matrices
-    fn initialize_sparse(&mut self, X: &CSRArray<T>, y: ArrayView1<T>) {
+    fn initialize_sparse(&mut self, X: &CSCArray<T>, y: ArrayView1<T>) {
         let n_features = X.indptr.len() - 1;
         self.Xty = Array1::<T>::zeros(n_features);
         self.lipschitz = Array1::<T>::zeros(n_features);
@@ -105,7 +105,7 @@ impl<'a, T: 'static + Float> Datafit<T> for Quadratic<T> {
 
     fn gradient_scalar_sparse(
         &self,
-        X: &CSRArray<T>,
+        X: &CSCArray<T>,
         _y: ArrayView1<T>,
         Xw: ArrayView1<T>,
         j: usize,
@@ -119,7 +119,7 @@ impl<'a, T: 'static + Float> Datafit<T> for Quadratic<T> {
 
     /// Computes the gradient at some point w using sparse matrices
 
-    fn full_grad_sparse(&self, X: &CSRArray<T>, y: ArrayView1<T>, Xw: ArrayView1<T>) -> Array1<T> {
+    fn full_grad_sparse(&self, X: &CSCArray<T>, y: ArrayView1<T>, Xw: ArrayView1<T>) -> Array1<T> {
         let n_features = X.indptr.len() - 1;
         let n_samples = y.len();
         let mut grad = Array1::<T>::zeros(n_features);

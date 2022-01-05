@@ -65,7 +65,7 @@ class Lasso(BaseEstimator):
             Measurements.
         """
         self._validate_params()
-        X, y = check_X_y(X, y, accept_sparse='csr', order="C")
+        X, y = check_X_y(X, y, accept_sparse='csc', order="C")
         self._inner = _lib.LassoWrapper(
             alpha=self.alpha, max_iter=self.max_iter, p0=self.p0, K=self.K,
             max_epochs=self.max_epochs, tol=self.tol, verbose=self.verbose)

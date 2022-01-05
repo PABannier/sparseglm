@@ -97,8 +97,8 @@ fn test_sklearn() {
 fn test_sklearn_sparse() {
     let data = vec![0.66724051, 0.45768401, 0.03140004, 0.64990879, 0.36648028, 0.49584243];
     let indptr = vec![0, 2, 3, 3, 3, 3, 3, 3, 3, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6];
-    let indices = vec![ 8, 13,  8, 11, 20, 13];
-    let X = CSRArray::new(data, indices, indptr);
+    let indices = vec![ 8, 13,  8, 11, 19, 13];
+    let X = CSCArray::new(data, indices, indptr);
 
     let y = vec![151.0, 75.0, 141.0, 205.0, 135.0, 97.0, 138.0, 63.0, 111.0, 310., 101., 9.2, 134.2, 195., 118., 171., 166., 144., 97., 168.];
     let y = Array1::from_shape_vec(20, y).unwrap();
@@ -109,7 +109,8 @@ fn test_sklearn_sparse() {
     let mut clf = Lasso::new(alpha_max * 0.1, None);
     let w = clf.fit_sparse(&X, y.view());
 
-    let w_sk = Array1::from_shape_vec(30, vec![0., 0., 0., 0., 0.,
+    let w_sk = Array1::from_shape_vec(30, 
+vec![0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
         0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
         0.        , -1.9542126 ,  0.        , 17.03531274,  0.        ,
         0.        ,  0.        ,  0.        ,  0.        ,  0.        ,

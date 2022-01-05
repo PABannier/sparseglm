@@ -35,7 +35,7 @@ fn test_cd_epoch_sparse() {
     let indptr = vec![0, 2, 3, 6];
     let indices = vec![0, 2, 2, 0, 1, 2];
     let data = vec![1., 2., 3., 4., 5., 6.];
-    let X = CSRArray::new(data, indices, indptr);
+    let X = CSCArray::new(data, indices, indptr);
     let X_full = Array2::from_shape_vec((3, 3), vec![1., 0., 2., 0., 0., 3., 4., 5., 6.]).unwrap();
     let y = Array1::from_shape_vec(3, vec![1.2, -0.9, 0.1]).unwrap();
     let ws: Vec<usize> = (0..3).collect();

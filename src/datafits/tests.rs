@@ -24,7 +24,7 @@ fn test_initialization_sparse_quadratic() {
     let indptr = vec![0, 2, 3, 6];
     let indices = vec![0, 2, 2, 0, 1, 2];
     let data = vec![1., 2., 3., 4., 5., 6.];
-    let X_sparse = CSRArray::new(data, indices, indptr);
+    let X_sparse = CSCArray::new(data, indices, indptr);
     let X = Array2::from_shape_vec((3, 3), vec![1., 0., 2., 0., 0., 3., 4., 5., 6.]).unwrap();
     let y = Array1::from_shape_vec(3, vec![1., 3., 2.]).unwrap();
 
@@ -70,7 +70,7 @@ fn test_gradient_sparse_quadratic() {
     let indptr = vec![0, 2, 3, 6];
     let indices = vec![0, 2, 2, 0, 1, 2];
     let data = vec![1., 2., 3., 4., 5., 6.];
-    let X_sparse = CSRArray::new(data, indices, indptr);
+    let X_sparse = CSCArray::new(data, indices, indptr);
 
     let X = Array2::from_shape_vec((3, 3), vec![1., 0., 2., 0., 0., 3., 4., 5., 6.]).unwrap();
 
