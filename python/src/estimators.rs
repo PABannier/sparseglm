@@ -2,9 +2,7 @@ use numpy::{PyArray, PyArray1, PyArray2};
 use pyo3::prelude::*;
 use rustylasso;
 use rustylasso::estimators::Estimator;
-use rustylasso::sparse::CSCArray;
-
-type PyCscArray<T> = (Py<PyArray1<T>>, Py<PyArray1<i32>>, Py<PyArray1<i32>>);
+use rustylasso::sparse::{CSCArray, MatrixParam};
 
 #[pyclass(module = "rustylasso.estimators")]
 pub struct BaseEstimator {}
@@ -63,7 +61,9 @@ impl LassoWrapper {
     ) -> PyResult<&'py PyArray1<f32>> {
         Ok(PyArray::from_array(
             py,
-            &self.inner.fit(X.as_array(), y.as_array()),
+            &self
+                .inner
+                .fit(MatrixParam::DenseMatrix(X.as_array()), y.as_array()),
         ))
     }
 
@@ -80,13 +80,17 @@ impl LassoWrapper {
     fn fit_sparse<'py>(
         &mut self,
         py: Python<'py>,
-        X: PyCscArray<f32>,
+        X_data: &PyArray1<f32>,
+        X_indices: &PyArray1<usize>,
+        X_indptr: &PyArray1<usize>,
         y: &PyArray1<f32>,
     ) -> PyResult<&'py PyArray1<f32>> {
-        let X_sparse = CSCArray::new(X.0, X.1, X.2);
+        let X_sparse = CSCArray::new(X_data.to_vec()?, X_indices.to_vec()?, X_indptr.to_vec()?);
         Ok(PyArray::from_array(
             py,
-            &self.inner.fit_sparse(&X_sparse, y.as_array()),
+            &self
+                .inner
+                .fit(MatrixParam::SparseMatrix(&X_sparse), y.as_array()),
         ))
     }
 }

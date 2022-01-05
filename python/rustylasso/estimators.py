@@ -71,7 +71,7 @@ class Lasso(BaseEstimator):
             max_epochs=self.max_epochs, tol=self.tol, verbose=self.verbose)
 
         if sp.issparse(X):
-            coefs = self._inner.fit_sparse(X, y)
+            coefs = self._inner.fit_sparse(X.data, X.indices, X.indptr, y)
         else:
             coefs = self._inner.fit(X, y)
         self.coef_ = coefs.T
