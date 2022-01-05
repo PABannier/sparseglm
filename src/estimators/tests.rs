@@ -17,7 +17,7 @@ macro_rules! kkt_check_tests {
                 let alpha_max = compute_alpha_max(X.view(), y.view());
                 let alpha = alpha_max * 0.5;
 
-                let mut clf = Lasso::new(alpha);
+                let mut clf = Lasso::new(alpha, None);
                 let w = clf.fit(X.view(), y.view());
 
                 let r = y - X.dot(&w);
@@ -45,7 +45,7 @@ fn test_null_weight() {
     let (X, y) = generate_random_data(n_samples, n_features);
     let alpha_max = compute_alpha_max(X.view(), y.view());
 
-    let mut clf = Lasso::new(alpha_max);
+    let mut clf = Lasso::new(alpha_max, None);
     let w = clf.fit(X.view(), y.view());
 
     assert_array_all_close(w.view(), Array1::<f64>::zeros(w.len()).view(), 1e-9);
@@ -83,7 +83,7 @@ fn test_sklearn() {
     let y = Array1::from_shape_vec(20, y).unwrap();
 
     let alpha_max = compute_alpha_max(X.view(), y.view());
-    let mut clf = Lasso::new(alpha_max * 0.1);
+    let mut clf = Lasso::new(alpha_max * 0.1, None);
     let w = clf.fit(X.view(), y.view());
 
     let w_sk = Array1::from_shape_vec(10, vec![-76.29867715, 0., 357.82870175, 59.71203719, 0., 0., -365.70131103, -233.14123887, 1513.75506467, -2679.42257746]).unwrap();
