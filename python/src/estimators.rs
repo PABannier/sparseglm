@@ -50,11 +50,25 @@ impl LassoWrapperF64 {
         &mut self,
         py: Python<'py>,
         X_data: &PyArray1<f64>,
-        X_indices: &PyArray1<usize>,
-        X_indptr: &PyArray1<usize>,
+        X_indices: &PyArray1<i32>,
+        X_indptr: &PyArray1<i32>,
         y: &PyArray1<f64>,
     ) -> PyResult<&'py PyArray1<f64>> {
-        let X_sparse = CSCArray::new(X_data.to_vec()?, X_indices.to_vec()?, X_indptr.to_vec()?);
+        let X_sparse = CSCArray::new(
+            X_data.to_vec()?,
+            X_indices
+                .to_vec()
+                .unwrap()
+                .into_iter()
+                .map(|i| i as usize)
+                .collect(),
+            X_indptr
+                .to_vec()
+                .unwrap()
+                .into_iter()
+                .map(|i| i as usize)
+                .collect(),
+        );
         Ok(PyArray::from_array(
             py,
             &self.inner.fit_sparse(&X_sparse, y.as_array()),
@@ -98,11 +112,25 @@ impl LassoWrapperF32 {
         &mut self,
         py: Python<'py>,
         X_data: &PyArray1<f32>,
-        X_indices: &PyArray1<usize>,
-        X_indptr: &PyArray1<usize>,
+        X_indices: &PyArray1<i32>,
+        X_indptr: &PyArray1<i32>,
         y: &PyArray1<f32>,
     ) -> PyResult<&'py PyArray1<f32>> {
-        let X_sparse = CSCArray::new(X_data.to_vec()?, X_indices.to_vec()?, X_indptr.to_vec()?);
+        let X_sparse = CSCArray::new(
+            X_data.to_vec()?,
+            X_indices
+                .to_vec()
+                .unwrap()
+                .into_iter()
+                .map(|i| i as usize)
+                .collect(),
+            X_indptr
+                .to_vec()
+                .unwrap()
+                .into_iter()
+                .map(|i| i as usize)
+                .collect(),
+        );
         Ok(PyArray::from_array(
             py,
             &self.inner.fit_sparse(&X_sparse, y.as_array()),

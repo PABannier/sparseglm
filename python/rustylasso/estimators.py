@@ -83,13 +83,10 @@ class Lasso(BaseEstimator):
                             .format(X.data.dtype, y.dtype))
 
         if sp.issparse(X):
-            X.indices = X.indices.astype(np.uint64)
-            X.indptr = X.indptr.astype(np.uint64)
-
             coefs = self._inner.fit_sparse(X.data, X.indices, X.indptr, y)
         else:
             coefs = self._inner.fit(X, y)
-        
+
         self.coef_ = coefs.T
         return self
 
