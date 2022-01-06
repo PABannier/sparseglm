@@ -14,11 +14,8 @@ pub trait DatafitMultiTask<T: Float> {
     fn initialize(&mut self, X: ArrayView2<T>, Y: ArrayView2<T>);
     fn initialize_sparse(&mut self, X: &CSCArray<T>, Y: ArrayView2<T>);
     fn value(&self, Y: ArrayView2<T>, XW: ArrayView2<T>) -> T;
-
     fn gradient_j(&self, X: ArrayView2<T>, XW: ArrayView2<T>, j: usize) -> Array1<T>;
-
     fn gradient_j_sparse(&self, X: &CSCArray<T>, XW: ArrayView2<T>, j: usize) -> Array1<T>;
-
     fn full_grad_sparse(&self, X: &CSCArray<T>, Y: ArrayView2<T>, XW: ArrayView2<T>) -> Array2<T>;
     fn get_lipschitz(&self) -> ArrayView1<T>;
     fn get_XtY(&self) -> ArrayView2<T>;

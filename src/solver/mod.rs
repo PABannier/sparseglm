@@ -14,16 +14,6 @@ use crate::sparse::{CSCArray, MatrixParam};
 #[cfg(test)]
 mod tests;
 
-pub fn soft_thresholding<T: Float>(x: T, threshold: T) -> T {
-    if x > threshold {
-        x - threshold
-    } else if x < -threshold {
-        x + threshold
-    } else {
-        T::zero()
-    }
-}
-
 pub fn construct_grad<T: 'static + Float, D: Datafit<T>>(
     X: ArrayView2<T>,
     Xw: ArrayView1<T>,

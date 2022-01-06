@@ -4,7 +4,7 @@ extern crate num;
 use ndarray::ArrayView1;
 use num::Float;
 
-use crate::solver::soft_thresholding;
+use crate::helpers::prox::soft_thresholding;
 
 #[cfg(test)]
 mod tests;

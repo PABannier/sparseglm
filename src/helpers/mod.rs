@@ -7,6 +7,34 @@ extern crate rand_distr;
 #[cfg(test)]
 mod tests;
 
+pub mod prox {
+    use ndarray::{Array1, ArrayView1};
+    use num::Float;
+
+    pub fn soft_thresholding<T: Float>(x: T, threshold: T) -> T {
+        if x > threshold {
+            x - threshold
+        } else if x < -threshold {
+            x + threshold
+        } else {
+            T::zero()
+        }
+    }
+
+    pub fn block_soft_thresholding<T: Float>(x: ArrayView1<T>, threshold: T) -> Array1<T> {
+        let norm_x = x.map(|&i| i * i).sum().sqrt();
+        let mut prox_val = Array1::<T>::zeros(x.len());
+        if norm_x < threshold {
+            return prox_val;
+        }
+        let scale = T::one() - threshold / norm_x;
+        for i in 0..x.len() {
+            prox_val[i] = prox_val[i] * scale;
+        }
+        prox_val
+    }
+}
+
 pub mod helpers {
     use ndarray::{Array1, Array2, ArrayView1, ArrayView2};
     use ndarray_stats::QuantileExt;
