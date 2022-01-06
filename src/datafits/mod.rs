@@ -12,25 +12,9 @@ mod tests;
 pub trait Datafit<T: Float> {
     fn initialize(&mut self, X: ArrayView2<T>, y: ArrayView1<T>);
     fn initialize_sparse(&mut self, X: &CSCArray<T>, y: ArrayView1<T>);
-    fn value(&self, y: ArrayView1<T>, w: ArrayView1<T>, Xw: ArrayView1<T>) -> T;
-
-    fn gradient_scalar(
-        &self,
-        X: ArrayView2<T>,
-        y: ArrayView1<T>,
-        w: ArrayView1<T>,
-        Xw: ArrayView1<T>,
-        j: usize,
-    ) -> T;
-
-    fn gradient_scalar_sparse(
-        &self,
-        X: &CSCArray<T>,
-        y: ArrayView1<T>,
-        Xw: ArrayView1<T>,
-        j: usize,
-    ) -> T;
-
+    fn value(&self, y: ArrayView1<T>, Xw: ArrayView1<T>) -> T;
+    fn gradient_j(&self, X: ArrayView2<T>, Xw: ArrayView1<T>, j: usize) -> T;
+    fn gradient_j_sparse(&self, X: &CSCArray<T>, Xw: ArrayView1<T>, j: usize) -> T;
     fn full_grad_sparse(&self, X: &CSCArray<T>, y: ArrayView1<T>, Xw: ArrayView1<T>) -> Array1<T>;
     fn get_lipschitz(&self) -> ArrayView1<T>;
     fn get_Xty(&self) -> ArrayView1<T>;
@@ -79,7 +63,7 @@ impl<'a, T: 'static + Float> Datafit<T> for Quadratic<T> {
     }
 
     /// Computes the value of the datafit
-    fn value(&self, y: ArrayView1<T>, _w: ArrayView1<T>, Xw: ArrayView1<T>) -> T {
+    fn value(&self, y: ArrayView1<T>, Xw: ArrayView1<T>) -> T {
         let r = &y - &Xw;
         let denom = T::from(2 * y.len()).unwrap();
         let val = r.dot(&r) / denom;
@@ -88,14 +72,7 @@ impl<'a, T: 'static + Float> Datafit<T> for Quadratic<T> {
 
     /// Computes the value of the gradient at some point w for coordinate j
 
-    fn gradient_scalar(
-        &self,
-        X: ArrayView2<T>,
-        _y: ArrayView1<T>,
-        _w: ArrayView1<T>,
-        Xw: ArrayView1<T>,
-        j: usize,
-    ) -> T {
+    fn gradient_j(&self, X: ArrayView2<T>, Xw: ArrayView1<T>, j: usize) -> T {
         let n_samples = T::from(Xw.len()).unwrap();
         let Xj: ArrayView1<T> = X.slice(s![.., j]);
         (Xj.dot(&Xw) - self.Xty[j]) / n_samples
@@ -103,13 +80,7 @@ impl<'a, T: 'static + Float> Datafit<T> for Quadratic<T> {
 
     /// Computes the value of the gradient at some point w for coordinate j using sparse matrices
 
-    fn gradient_scalar_sparse(
-        &self,
-        X: &CSCArray<T>,
-        _y: ArrayView1<T>,
-        Xw: ArrayView1<T>,
-        j: usize,
-    ) -> T {
+    fn gradient_j_sparse(&self, X: &CSCArray<T>, Xw: ArrayView1<T>, j: usize) -> T {
         let mut XjTXw = T::zero();
         for i in X.indptr[j]..X.indptr[j + 1] {
             XjTXw = XjTXw + X.data[i] * Xw[X.indices[i]];

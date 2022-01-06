@@ -26,8 +26,6 @@ pub fn soft_thresholding<T: Float>(x: T, threshold: T) -> T {
 
 pub fn construct_grad<T: 'static + Float, D: Datafit<T>>(
     X: ArrayView2<T>,
-    y: ArrayView1<T>,
-    w: ArrayView1<T>,
     Xw: ArrayView1<T>,
     ws: &[usize],
     datafit: &D,
@@ -35,15 +33,13 @@ pub fn construct_grad<T: 'static + Float, D: Datafit<T>>(
     let ws_size = ws.len();
     let mut grad = Array1::<T>::zeros(ws_size);
     for (idx, &j) in ws.iter().enumerate() {
-        grad[idx] = datafit.gradient_scalar(X.view(), y.view(), w.view(), Xw.view(), j);
+        grad[idx] = datafit.gradient_j(X.view(), Xw.view(), j);
     }
     grad
 }
 
 pub fn construct_grad_sparse<T: 'static + Float, D: Datafit<T>>(
     X: &CSCArray<T>,
-    y: ArrayView1<T>,
-    _w: ArrayView1<T>,
     Xw: ArrayView1<T>,
     ws: &[usize],
     datafit: &D,
@@ -51,35 +47,33 @@ pub fn construct_grad_sparse<T: 'static + Float, D: Datafit<T>>(
     let ws_size = ws.len();
     let mut grad = Array1::<T>::zeros(ws_size);
     for (idx, &j) in ws.iter().enumerate() {
-        grad[idx] = datafit.gradient_scalar_sparse(&X, y.view(), Xw.view(), j);
+        grad[idx] = datafit.gradient_j_sparse(&X, Xw.view(), j);
     }
     grad
 }
 
 pub fn kkt_violation<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
     X: ArrayView2<T>,
-    y: ArrayView1<T>,
     w: ArrayView1<T>,
     Xw: ArrayView1<T>,
     ws: &[usize],
     datafit: &D,
     penalty: &P,
 ) -> (Vec<T>, T) {
-    let grad_ws = construct_grad(X.view(), y.view(), w.view(), Xw.view(), &ws, datafit);
+    let grad_ws = construct_grad(X.view(), Xw.view(), &ws, datafit);
     let (kkt_ws, kkt_ws_max) = penalty.subdiff_distance(w.view(), grad_ws.view(), &ws);
     (kkt_ws, kkt_ws_max)
 }
 
 pub fn kkt_violation_sparse<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
     X: &CSCArray<T>,
-    y: ArrayView1<T>,
     w: ArrayView1<T>,
     Xw: ArrayView1<T>,
     ws: &[usize],
     datafit: &D,
     penalty: &P,
 ) -> (Vec<T>, T) {
-    let grad_ws = construct_grad_sparse(&X, y.view(), w.view(), Xw.view(), &ws, datafit);
+    let grad_ws = construct_grad_sparse(&X, Xw.view(), &ws, datafit);
     let (kkt_ws, kkt_ws_max) = penalty.subdiff_distance(w.view(), grad_ws.view(), &ws);
     (kkt_ws, kkt_ws_max)
 }
@@ -181,9 +175,9 @@ pub fn anderson_accel<T, D, P>(
                     }
                 }
 
-                let p_obj = datafit.value(y.view(), w.view(), Xw.view()) + penalty.value(w.view());
-                let p_obj_acc = datafit.value(y.view(), w_acc.view(), Xw_acc.view())
-                    + penalty.value(w_acc.view());
+                let p_obj = datafit.value(y.view(), Xw.view()) + penalty.value(w.view());
+                let p_obj_acc =
+                    datafit.value(y.view(), Xw_acc.view()) + penalty.value(w_acc.view());
 
                 if p_obj_acc < p_obj {
                     w.assign(&w_acc);
@@ -205,7 +199,6 @@ pub fn anderson_accel<T, D, P>(
 
 pub fn cd_epoch<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
     X: ArrayView2<T>,
-    y: ArrayView1<T>,
     w: &mut Array1<T>,
     Xw: &mut Array1<T>,
     datafit: &D,
@@ -221,7 +214,7 @@ pub fn cd_epoch<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
         }
         let Xj: ArrayView1<T> = X.slice(s![.., j]);
         let old_w_j = w[j];
-        let grad_j = datafit.gradient_scalar(X.view(), y.view(), w.view(), Xw.view(), j);
+        let grad_j = datafit.gradient_j(X.view(), Xw.view(), j);
         w[j] = penalty.prox_op(old_w_j - grad_j / lipschitz[j], T::one() / lipschitz[j], j);
         if w[j] != old_w_j {
             for i in 0..n_samples {
@@ -233,7 +226,6 @@ pub fn cd_epoch<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
 
 pub fn cd_epoch_sparse<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
     X: &CSCArray<T>,
-    y: ArrayView1<T>,
     w: &mut Array1<T>,
     Xw: &mut Array1<T>,
     datafit: &D,
@@ -247,7 +239,7 @@ pub fn cd_epoch_sparse<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
             continue;
         }
         let old_w_j = w[j];
-        let grad_j = datafit.gradient_scalar_sparse(&X, y.view(), Xw.view(), j);
+        let grad_j = datafit.gradient_j_sparse(&X, Xw.view(), j);
         w[j] = penalty.prox_op(old_w_j - grad_j / lipschitz[j], T::one() / lipschitz[j], j);
         let diff = w[j] - old_w_j;
         if diff != T::zero() {
@@ -300,7 +292,6 @@ pub fn solver<T: 'static + Float + Debug, D: Datafit<T>, P: Penalty<T>>(
             MatrixParam::DenseMatrix(X_full) => {
                 let (a, b) = kkt_violation(
                     X_full.view(),
-                    y.view(),
                     w.view(),
                     Xw.view(),
                     &all_feats,
@@ -313,7 +304,6 @@ pub fn solver<T: 'static + Float + Debug, D: Datafit<T>, P: Penalty<T>>(
             MatrixParam::SparseMatrix(X_sparse) => {
                 let (a, b) = kkt_violation_sparse(
                     X_sparse,
-                    y.view(),
                     w.view(),
                     Xw.view(),
                     &all_feats,
@@ -344,18 +334,10 @@ pub fn solver<T: 'static + Float + Debug, D: Datafit<T>, P: Penalty<T>>(
         for epoch in 0..max_epochs {
             match X {
                 MatrixParam::DenseMatrix(X_full) => {
-                    cd_epoch(
-                        X_full.view(),
-                        y.view(),
-                        &mut w,
-                        &mut Xw,
-                        datafit,
-                        penalty,
-                        &ws,
-                    );
+                    cd_epoch(X_full.view(), &mut w, &mut Xw, datafit, penalty, &ws);
                 }
                 MatrixParam::SparseMatrix(X_sparse) => {
-                    cd_epoch_sparse(X_sparse, y.view(), &mut w, &mut Xw, datafit, penalty, &ws);
+                    cd_epoch_sparse(X_sparse, &mut w, &mut Xw, datafit, penalty, &ws);
                 }
             }
 
@@ -379,7 +361,7 @@ pub fn solver<T: 'static + Float + Debug, D: Datafit<T>, P: Penalty<T>>(
 
             // KKT violation check
             if epoch > 0 && epoch % 10 == 0 {
-                let p_obj = datafit.value(y.view(), w.view(), Xw.view()) + penalty.value(w.view());
+                let p_obj = datafit.value(y.view(), Xw.view()) + penalty.value(w.view());
 
                 let kkt_ws_max: T;
 
@@ -387,7 +369,6 @@ pub fn solver<T: 'static + Float + Debug, D: Datafit<T>, P: Penalty<T>>(
                     MatrixParam::DenseMatrix(X_full) => {
                         let (_, b) = kkt_violation(
                             X_full.view(),
-                            y.view(),
                             w.view(),
                             Xw.view(),
                             &ws,
@@ -399,7 +380,6 @@ pub fn solver<T: 'static + Float + Debug, D: Datafit<T>, P: Penalty<T>>(
                     MatrixParam::SparseMatrix(X_sparse) => {
                         let (_, b) = kkt_violation_sparse(
                             X_sparse,
-                            y.view(),
                             w.view(),
                             Xw.view(),
                             &ws,
