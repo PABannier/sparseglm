@@ -73,6 +73,7 @@ class Lasso(BaseEstimator):
             use_accel=self.use_accel)
 
         if sp.issparse(X):
+            # TODO: how to handle when not np.uint64? Should I use Rust generics?
             X.indices = X.indices.astype(np.uint64)
             X.indptr = X.indptr.astype(np.uint64)
             coefs = self._inner.fit_sparse(X.data, X.indices, X.indptr, y)
