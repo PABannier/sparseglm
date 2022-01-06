@@ -29,7 +29,7 @@ pub mod prox {
         }
         let scale = T::one() - threshold / norm_x;
         for i in 0..x.len() {
-            prox_val[i] = prox_val[i] * scale;
+            prox_val[i] = x[i] * scale;
         }
         prox_val
     }

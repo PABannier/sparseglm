@@ -28,9 +28,9 @@ fn test_prox_l21() {
     let true_b = Array1::from_shape_vec(3, vec![0., 0., 0.]).unwrap();
     let true_c = Array1::from_shape_vec(3, vec![-79.37987504, -0.76510723, -37.29897743]).unwrap();
 
-    assert_array_all_close(soft_a.view(), true_a.view(), 1e-8);
-    assert_array_all_close(soft_b.view(), true_b.view(), 1e-8);
-    assert_array_all_close(soft_c.view(), true_c.view(), 1e-8);
+    assert_array_all_close(soft_a.view(), true_a.view(), 1e-6);
+    assert_array_all_close(soft_b.view(), true_b.view(), 1e-6);
+    assert_array_all_close(soft_c.view(), true_c.view(), 1e-6);
 }
 
 #[test]
