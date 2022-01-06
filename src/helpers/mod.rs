@@ -124,7 +124,7 @@ pub mod helpers {
 }
 
 pub mod test_helpers {
-    use ndarray::{Array1, Array2, ArrayView1};
+    use ndarray::{Array1, Array2, ArrayView1, ArrayView2};
     use num::Float;
     use rand::rngs::StdRng;
     use rand::SeedableRng;
@@ -140,6 +140,27 @@ pub mod test_helpers {
         for i in 0..x.len() {
             if !(T::abs(x[i] - y[i]) < delta) {
                 panic!("x: {}, y: {} ; with precision level {}", x[i], y[i], delta);
+            }
+        }
+    }
+
+    pub fn assert_array2d_all_close<T: Float + Display>(
+        x: ArrayView2<T>,
+        y: ArrayView2<T>,
+        delta: T,
+    ) {
+        assert_eq!(x.shape()[0], y.shape()[0]);
+        assert_eq!(x.shape()[1], y.shape()[1]);
+        for i in 0..x.shape()[0] {
+            for j in 0..x.shape()[1] {
+                if !(T::abs(x[[i, j]] - y[[i, j]]) < delta) {
+                    panic!(
+                        "x: {}, y: {} ; with precision level {}",
+                        x[[i, j]],
+                        y[[i, j]],
+                        delta
+                    );
+                }
             }
         }
     }
