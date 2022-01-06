@@ -4,43 +4,32 @@ use rustylasso;
 use rustylasso::estimators::Estimator;
 use rustylasso::sparse::CSCArray;
 
-#[pyclass(module = "rustylasso.estimators")]
-pub struct BaseEstimator {}
-
-#[pymethods]
-impl BaseEstimator {
-    #[new]
-    pub fn new() -> Self {
-        BaseEstimator {}
-    }
-}
-
 /// __init__(self)
 ///
 /// Lasso estimator
-#[pyclass(extends=BaseEstimator, module="rustylasso.estimators")]
+#[pyclass]
 pub struct LassoWrapper {
-    inner: rustylasso::estimators::Lasso<f32>,
+    inner: rustylasso::estimators::Lasso<f64>,
 }
 
 #[pymethods]
 impl LassoWrapper {
     #[new]
     fn new(
-        alpha: f32,
+        alpha: f64,
         max_iter: usize,
         max_epochs: usize,
-        tol: f32,
+        tol: f64,
         p0: usize,
         use_accel: bool,
         K: usize,
         verbose: bool,
-    ) -> PyResult<(Self, BaseEstimator)> {
+    ) -> PyResult<Self> {
         let params = rustylasso::estimators::SolverParams::new(
             max_epochs, max_iter, p0, tol, K, use_accel, verbose,
         );
         let estimator = rustylasso::estimators::Lasso::new(alpha, Some(params));
-        Ok((LassoWrapper { inner: estimator }, BaseEstimator::new()))
+        Ok(LassoWrapper { inner: estimator })
     }
 
     /// fit(self, X, y)
@@ -56,9 +45,9 @@ impl LassoWrapper {
     unsafe fn fit<'py>(
         &mut self,
         py: Python<'py>,
-        X: &PyArray2<f32>,
-        y: &PyArray1<f32>,
-    ) -> PyResult<&'py PyArray1<f32>> {
+        X: &PyArray2<f64>,
+        y: &PyArray1<f64>,
+    ) -> PyResult<&'py PyArray1<f64>> {
         Ok(PyArray::from_array(
             py,
             &self.inner.fit(X.as_array(), y.as_array()),
@@ -78,11 +67,11 @@ impl LassoWrapper {
     unsafe fn fit_sparse<'py>(
         &mut self,
         py: Python<'py>,
-        X_data: &PyArray1<f32>,
+        X_data: &PyArray1<f64>,
         X_indices: &PyArray1<usize>,
         X_indptr: &PyArray1<usize>,
-        y: &PyArray1<f32>,
-    ) -> PyResult<&'py PyArray1<f32>> {
+        y: &PyArray1<f64>,
+    ) -> PyResult<&'py PyArray1<f64>> {
         let X_sparse = CSCArray::new(X_data.to_vec()?, X_indices.to_vec()?, X_indptr.to_vec()?);
         Ok(PyArray::from_array(
             py,

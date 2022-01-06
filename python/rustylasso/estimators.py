@@ -1,4 +1,4 @@
-from . import _lib
+import rustylassopy
 
 import scipy.sparse as sp
 from sklearn.base import BaseEstimator
@@ -66,9 +66,10 @@ class Lasso(BaseEstimator):
         """
         self._validate_params()
         X, y = check_X_y(X, y, accept_sparse='csc', order="C")
-        self._inner = _lib.LassoWrapper(
+        self._inner = rustylassopy.LassoWrapper(
             alpha=self.alpha, max_iter=self.max_iter, p0=self.p0, K=self.K,
-            max_epochs=self.max_epochs, tol=self.tol, verbose=self.verbose)
+            max_epochs=self.max_epochs, tol=self.tol, verbose=self.verbose,
+            use_accel=self.use_accel)
 
         if sp.issparse(X):
             coefs = self._inner.fit_sparse(X.data, X.indices, X.indptr, y)
