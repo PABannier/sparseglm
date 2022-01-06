@@ -1,21 +1,22 @@
 extern crate ndarray;
 extern crate num;
 
-use ndarray::{Array1, ArrayView1};
+use ndarray::{Array1, ArrayView1, ArrayView2};
 use num::Float;
 use std::fmt::Debug;
 
 use crate::datafits::Quadratic;
 use crate::penalties::L1;
 use crate::solver::solver;
-use crate::sparse::MatrixParam;
+use crate::sparse::{CSCArray, MatrixParam};
 
 #[cfg(test)]
 mod tests;
 
 pub trait Estimator<T: Float> {
     fn new(alpha: T, params: Option<SolverParams<T>>) -> Self;
-    fn fit(&mut self, X: MatrixParam<T>, y: ArrayView1<T>) -> Array1<T>;
+    fn fit(&mut self, X: ArrayView2<T>, y: ArrayView1<T>) -> Array1<T>;
+    fn fit_sparse(&mut self, X: &CSCArray<T>, y: ArrayView1<T>) -> Array1<T>;
 }
 
 pub struct SolverParams<T> {
@@ -85,9 +86,27 @@ impl<T: 'static + Float + Debug> Estimator<T> for Lasso<T> {
         }
     }
     /// Fits an instance of Estimator
-    fn fit(&mut self, X: MatrixParam<T>, y: ArrayView1<T>) -> Array1<T> {
+    fn fit(&mut self, X: ArrayView2<T>, y: ArrayView1<T>) -> Array1<T> {
         let w = solver(
-            X,
+            MatrixParam::DenseMatrix(X.view()),
+            y.view(),
+            &mut self.datafit,
+            &self.penalty,
+            self.params.max_iter,
+            self.params.max_epochs,
+            self.params.p0,
+            self.params.tol,
+            self.params.use_accel,
+            self.params.K,
+            self.params.verbose,
+        );
+
+        w
+    }
+
+    fn fit_sparse(&mut self, X: &CSCArray<T>, y: ArrayView1<T>) -> Array1<T> {
+        let w = solver(
+            MatrixParam::SparseMatrix(X),
             y.view(),
             &mut self.datafit,
             &self.penalty,
