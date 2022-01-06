@@ -7,4 +7,5 @@ pub mod helpers;
 pub mod penalties;
 pub mod penalties_multitask;
 pub mod solver;
+pub mod solver_multitask;
 pub mod sparse;
