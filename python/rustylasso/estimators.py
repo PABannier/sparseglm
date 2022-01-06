@@ -1,5 +1,6 @@
 import rustylassopy
 
+import numpy as np
 import scipy.sparse as sp
 from sklearn.base import BaseEstimator
 from sklearn.utils.validation import check_X_y
@@ -72,6 +73,8 @@ class Lasso(BaseEstimator):
             use_accel=self.use_accel)
 
         if sp.issparse(X):
+            X.indices = X.indices.astype(np.uint64)
+            X.indptr = X.indptr.astype(np.uint64)
             coefs = self._inner.fit_sparse(X.data, X.indices, X.indptr, y)
         else:
             coefs = self._inner.fit(X, y)
