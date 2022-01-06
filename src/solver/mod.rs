@@ -215,7 +215,7 @@ pub fn cd_epoch<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
         let Xj: ArrayView1<T> = X.slice(s![.., j]);
         let old_w_j = w[j];
         let grad_j = datafit.gradient_j(X.view(), Xw.view(), j);
-        w[j] = penalty.prox_op(old_w_j - grad_j / lipschitz[j], T::one() / lipschitz[j], j);
+        w[j] = penalty.prox_op(old_w_j - grad_j / lipschitz[j], T::one() / lipschitz[j]);
         if w[j] != old_w_j {
             for i in 0..n_samples {
                 Xw[i] = Xw[i] + (w[j] - old_w_j) * Xj[i];
@@ -240,7 +240,7 @@ pub fn cd_epoch_sparse<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
         }
         let old_w_j = w[j];
         let grad_j = datafit.gradient_j_sparse(&X, Xw.view(), j);
-        w[j] = penalty.prox_op(old_w_j - grad_j / lipschitz[j], T::one() / lipschitz[j], j);
+        w[j] = penalty.prox_op(old_w_j - grad_j / lipschitz[j], T::one() / lipschitz[j]);
         let diff = w[j] - old_w_j;
         if diff != T::zero() {
             for i in X.indptr[j]..X.indptr[j + 1] {
