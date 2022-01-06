@@ -32,7 +32,7 @@ impl<T: Float> L21<T> {
 impl<T: 'static + Float> PenaltyMultiTask<T> for L21<T> {
     /// Gets the current value of the penalty
     fn value(&self, W: ArrayView2<T>) -> T {
-        self.alpha * W.map_axis(Axis(0), |Wj| (Wj.dot(&Wj).sqrt())).sum()
+        self.alpha * W.map_axis(Axis(1), |Wj| (Wj.dot(&Wj).sqrt())).sum()
     }
     /// Computes the value of the proximal operator
     fn prox_op(&self, value: ArrayView1<T>, stepsize: T) -> Array1<T> {
