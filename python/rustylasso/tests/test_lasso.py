@@ -26,12 +26,16 @@ tol = 1e-10
 
 
 @pytest.mark.parametrize('X', [X, X_sparse])
-def test_estimator(X):
+@pytest.mark.parametrize('type', [np.float32, np.float64])
+def test_estimator(X, type):
     clf = Lasso(alpha, tol=tol)
     clf_sk = Lasso_sk(alpha, tol=tol, fit_intercept=False)
 
-    clf_sk.fit(X, y)
-    clf.fit(X, y)
+    X_conv = X.astype(type)
+    y_conv = y.astype(type)
+
+    clf_sk.fit(X_conv, y_conv)
+    clf.fit(X_conv, y_conv)
     coef = clf.coef_
     coef_sk = clf.coef_
 
