@@ -6,7 +6,6 @@ use ndarray::{Array1, Array2};
 use crate::estimators::*;
 use crate::helpers::helpers::*;
 use crate::helpers::test_helpers::*;
-use crate::sparse::*;
 
 macro_rules! kkt_check_tests {
     ($($name:ident: $value:expr,)*) => {
@@ -90,33 +89,4 @@ fn test_sklearn() {
     let w_sk = Array1::from_shape_vec(10, vec![-76.29867715, 0., 357.82870175, 59.71203719, 0., 0., -365.70131103, -233.14123887, 1513.75506467, -2679.42257746]).unwrap();
 
     assert_array_all_close(w.view(), w_sk.view(), 1e-6);
-}
-
-#[test]
-#[rustfmt::skip]
-fn test_sklearn_sparse() {
-    let data = vec![0.24192513, 0.34841857, 0.30138454, 0.2489857, 0.54952281, 0.83641127];
-    let indptr = vec![0, 1, 2, 2, 2, 3, 3, 3, 4, 4, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6];
-    let indices = vec![ 5,  0, 13,  0,  4, 19];
-    let X = CSCArray::new(data, indices, indptr);
-
-    let y = vec![151.0, 75.0, 141.0, 205.0, 135.0, 97.0, 138.0, 63.0, 111.0, 310., 101., 9.2, 134.2, 195., 118., 171., 166., 144., 97., 168.];
-    let y = Array1::from_shape_vec(20, y).unwrap();
-
-    let alpha_max = compute_alpha_max_sparse(&X, y.view());
-    assert_eq!(alpha_max, 7.025854668000001);
-
-    let mut clf = Lasso::new(alpha_max * 0.1, None);
-    let w = clf.fit_sparse(&X, y.view());
-
-    let w_sk = Array1::from_shape_vec(30, 
-vec![-0.        ,  0.        ,  0.        ,  0.        , 44.4147864 ,
-        0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
-        0.        ,  0.        , 19.38016186,  0.        ,  0.        ,
-        0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
-        0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
-        0.        ,  0.        ,  0.        ,  0.        ,  0.        ]).unwrap();
-
-    assert_array_all_close(w.view(), w_sk.view(), 1e-6);
-
 }
