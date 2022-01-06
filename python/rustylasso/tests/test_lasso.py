@@ -28,10 +28,10 @@ tol = 1e-10
 @pytest.mark.parametrize('X', [X, X_sparse])
 def test_estimator(X):
     clf = Lasso(alpha, tol=tol)
-    clf_sk = Lasso_sk(alpha, tol=tol)
+    clf_sk = Lasso_sk(alpha, tol=tol, fit_intercept=False)
 
-    clf.fit(X, y)
     clf_sk.fit(X, y)
+    clf.fit(X, y)
     coef = clf.coef_
     coef_sk = clf.coef_
 
