@@ -4,7 +4,7 @@ extern crate rand;
 use ndarray::{Array1, Array2};
 
 use crate::estimators::*;
-use crate::helpers::helpers::compute_alpha_max;
+use crate::helpers::helpers::*;
 use crate::helpers::test_helpers::*;
 
 macro_rules! kkt_check_tests {
@@ -35,7 +35,7 @@ macro_rules! kkt_check_tests {
 kkt_check_tests! {
     kkt_check_small: (10, 30),
     kkt_check_medium: (100, 300),
-    kkt_check_large: (1000, 3000),
+    kkt_check_large: (500, 1000),
 }
 
 #[test]

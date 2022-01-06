@@ -9,6 +9,7 @@ use std::fmt::Debug;
 use crate::datafits::Datafit;
 use crate::helpers::helpers::solve_lin_sys;
 use crate::penalties::Penalty;
+use crate::sparse::{CSCArray, MatrixParam};
 
 #[cfg(test)]
 mod tests;
@@ -39,6 +40,22 @@ pub fn construct_grad<T: 'static + Float, D: Datafit<T>>(
     grad
 }
 
+pub fn construct_grad_sparse<T: 'static + Float, D: Datafit<T>>(
+    X: &CSCArray<T>,
+    y: ArrayView1<T>,
+    _w: ArrayView1<T>,
+    Xw: ArrayView1<T>,
+    ws: &[usize],
+    datafit: &D,
+) -> Array1<T> {
+    let ws_size = ws.len();
+    let mut grad = Array1::<T>::zeros(ws_size);
+    for (idx, &j) in ws.iter().enumerate() {
+        grad[idx] = datafit.gradient_scalar_sparse(&X, y.view(), Xw.view(), j);
+    }
+    grad
+}
+
 pub fn kkt_violation<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
     X: ArrayView2<T>,
     y: ArrayView1<T>,
@@ -49,6 +66,20 @@ pub fn kkt_violation<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
     penalty: &P,
 ) -> (Vec<T>, T) {
     let grad_ws = construct_grad(X.view(), y.view(), w.view(), Xw.view(), &ws, datafit);
+    let (kkt_ws, kkt_ws_max) = penalty.subdiff_distance(w.view(), grad_ws.view(), &ws);
+    (kkt_ws, kkt_ws_max)
+}
+
+pub fn kkt_violation_sparse<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
+    X: &CSCArray<T>,
+    y: ArrayView1<T>,
+    w: ArrayView1<T>,
+    Xw: ArrayView1<T>,
+    ws: &[usize],
+    datafit: &D,
+    penalty: &P,
+) -> (Vec<T>, T) {
+    let grad_ws = construct_grad_sparse(&X, y.view(), w.view(), Xw.view(), &ws, datafit);
     let (kkt_ws, kkt_ws_max) = penalty.subdiff_distance(w.view(), grad_ws.view(), &ws);
     (kkt_ws, kkt_ws_max)
 }
@@ -86,7 +117,7 @@ pub fn construct_ws_from_kkt<T: 'static + Float>(
 
 pub fn anderson_accel<T, D, P>(
     y: ArrayView1<T>,
-    X: ArrayView2<T>,
+    X: MatrixParam<T>,
     w: &mut Array1<T>,
     Xw: &mut Array1<T>,
     datafit: &D,
@@ -134,10 +165,19 @@ pub fn anderson_accel<T, D, P>(
                     }
                 }
 
-                let mut Xw_acc = Array1::<T>::zeros(X.shape()[0]);
-                for i in 0..Xw_acc.len() {
-                    for &j in ws {
-                        Xw_acc[i] = Xw_acc[i] + X[[i, j]] * w_acc[j];
+                let mut Xw_acc = Array1::<T>::zeros(y.len());
+
+                match X {
+                    MatrixParam::DenseMatrix(X_full) => {
+                        for i in 0..Xw_acc.len() {
+                            for &j in ws {
+                                Xw_acc[i] = Xw_acc[i] + X_full[[i, j]] * w_acc[j];
+                            }
+                        }
+                    }
+                    MatrixParam::SparseMatrix(_) => {
+                        // TODO: Implement with sparse matrices
+                        // Xw_acc += X_full
                     }
                 }
 
@@ -191,38 +231,99 @@ pub fn cd_epoch<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
     }
 }
 
+pub fn cd_epoch_sparse<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
+    X: &CSCArray<T>,
+    y: ArrayView1<T>,
+    w: &mut Array1<T>,
+    Xw: &mut Array1<T>,
+    datafit: &D,
+    penalty: &P,
+    ws: &[usize],
+) {
+    let lipschitz = datafit.get_lipschitz();
+
+    for &j in ws {
+        if lipschitz[j] == T::zero() {
+            continue;
+        }
+        let old_w_j = w[j];
+        let grad_j = datafit.gradient_scalar_sparse(&X, y.view(), Xw.view(), j);
+        w[j] = penalty.prox_op(old_w_j - grad_j / lipschitz[j], T::one() / lipschitz[j], j);
+        let diff = w[j] - old_w_j;
+        if diff != T::zero() {
+            for i in X.indptr[j]..X.indptr[j + 1] {
+                Xw[X.indices[i]] = Xw[X.indices[i]] + diff * X.data[i];
+            }
+        }
+    }
+}
+
 pub fn solver<T: 'static + Float + Debug, D: Datafit<T>, P: Penalty<T>>(
-    X: ArrayView2<T>,
+    X: MatrixParam<T>,
     y: ArrayView1<T>,
     datafit: &mut D,
     penalty: &P,
     max_iter: usize,
     max_epochs: usize,
-    p0: usize,
+    _p0: usize,
     tol: T,
     use_accel: bool,
     K: usize,
     verbose: bool,
 ) -> Array1<T> {
-    let n_samples = X.shape()[0];
-    let n_features = X.shape()[1];
+    let n_samples = y.len();
+    let n_features: usize;
+
+    match X {
+        MatrixParam::DenseMatrix(X_full) => {
+            datafit.initialize(X_full.view(), y.view());
+            n_features = X_full.shape()[1];
+        }
+        MatrixParam::SparseMatrix(X_sparse) => {
+            datafit.initialize_sparse(X_sparse, y.view());
+            n_features = X_sparse.indptr.len() - 1;
+        }
+    }
+
     let all_feats: Vec<usize> = (0..n_features).collect();
 
-    datafit.initialize(X.view(), y.view());
+    let p0 = if _p0 > n_features { n_features } else { _p0 };
 
     let mut w = Array1::<T>::zeros(n_features);
     let mut Xw = Array1::<T>::zeros(n_samples);
 
     for t in 0..max_iter {
-        let (mut kkt, kkt_max) = kkt_violation(
-            X.view(),
-            y.view(),
-            w.view(),
-            Xw.view(),
-            &all_feats,
-            datafit,
-            penalty,
-        );
+        let mut kkt: Vec<T>;
+        let kkt_max: T;
+
+        match X {
+            MatrixParam::DenseMatrix(X_full) => {
+                let (a, b) = kkt_violation(
+                    X_full.view(),
+                    y.view(),
+                    w.view(),
+                    Xw.view(),
+                    &all_feats,
+                    datafit,
+                    penalty,
+                );
+                kkt = a;
+                kkt_max = b;
+            }
+            MatrixParam::SparseMatrix(X_sparse) => {
+                let (a, b) = kkt_violation_sparse(
+                    X_sparse,
+                    y.view(),
+                    w.view(),
+                    Xw.view(),
+                    &all_feats,
+                    datafit,
+                    penalty,
+                );
+                kkt = a;
+                kkt_max = b;
+            }
+        }
 
         if verbose {
             println!("KKT max violation: {:#?}", kkt_max);
@@ -241,13 +342,28 @@ pub fn solver<T: 'static + Float + Debug, D: Datafit<T>, P: Penalty<T>>(
         }
 
         for epoch in 0..max_epochs {
-            cd_epoch(X.view(), y.view(), &mut w, &mut Xw, datafit, penalty, &ws);
+            match X {
+                MatrixParam::DenseMatrix(X_full) => {
+                    cd_epoch(
+                        X_full.view(),
+                        y.view(),
+                        &mut w,
+                        &mut Xw,
+                        datafit,
+                        penalty,
+                        &ws,
+                    );
+                }
+                MatrixParam::SparseMatrix(X_sparse) => {
+                    cd_epoch_sparse(X_sparse, y.view(), &mut w, &mut Xw, datafit, penalty, &ws);
+                }
+            }
 
             // Anderson acceleration
             if use_accel {
                 anderson_accel(
                     y.view(),
-                    X.view(),
+                    X,
                     &mut w,
                     &mut Xw,
                     datafit,
@@ -265,15 +381,34 @@ pub fn solver<T: 'static + Float + Debug, D: Datafit<T>, P: Penalty<T>>(
             if epoch > 0 && epoch % 10 == 0 {
                 let p_obj = datafit.value(y.view(), w.view(), Xw.view()) + penalty.value(w.view());
 
-                let (_, kkt_ws_max) = kkt_violation(
-                    X.view(),
-                    y.view(),
-                    w.view(),
-                    Xw.view(),
-                    &ws,
-                    datafit,
-                    penalty,
-                );
+                let kkt_ws_max: T;
+
+                match X {
+                    MatrixParam::DenseMatrix(X_full) => {
+                        let (_, b) = kkt_violation(
+                            X_full.view(),
+                            y.view(),
+                            w.view(),
+                            Xw.view(),
+                            &ws,
+                            datafit,
+                            penalty,
+                        );
+                        kkt_ws_max = b;
+                    }
+                    MatrixParam::SparseMatrix(X_sparse) => {
+                        let (_, b) = kkt_violation_sparse(
+                            X_sparse,
+                            y.view(),
+                            w.view(),
+                            Xw.view(),
+                            &ws,
+                            datafit,
+                            penalty,
+                        );
+                        kkt_ws_max = b;
+                    }
+                }
 
                 if verbose {
                     println!(

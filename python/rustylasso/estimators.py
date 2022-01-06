@@ -1,5 +1,6 @@
-from . import _lib
+import rustylassopy
 
+import numpy as np
 import scipy.sparse as sp
 from sklearn.base import BaseEstimator
 from sklearn.utils.validation import check_X_y
@@ -65,13 +66,18 @@ class Lasso(BaseEstimator):
             Measurements.
         """
         self._validate_params()
-        X, y = check_X_y(X, y, accept_sparse='csr', order="C")
-        self._inner = _lib.LassoWrapper(
+        X, y = check_X_y(X, y, accept_sparse='csc', order="C")
+        self._inner = rustylassopy.LassoWrapper(
             alpha=self.alpha, max_iter=self.max_iter, p0=self.p0, K=self.K,
-            max_epochs=self.max_epochs, tol=self.tol, verbose=self.verbose)
+            max_epochs=self.max_epochs, tol=self.tol, verbose=self.verbose,
+            use_accel=self.use_accel)
 
         if sp.issparse(X):
-            raise NotImplementedError("Sparse matrices not yet implemented.")
+            # TODO: how to handle when not np.uint64? Should I use Rust
+            # generics?
+            X.indices = X.indices.astype(np.uint64)
+            X.indptr = X.indptr.astype(np.uint64)
+            coefs = self._inner.fit_sparse(X.data, X.indices, X.indptr, y)
         else:
             coefs = self._inner.fit(X, y)
         self.coef_ = coefs.T

@@ -12,9 +12,28 @@ pub mod helpers {
     use ndarray_stats::QuantileExt;
     use num::Float;
 
+    use crate::sparse::*;
+
     pub fn compute_alpha_max<T: 'static + Float>(X: ArrayView2<T>, y: ArrayView1<T>) -> T {
         let n_samples = T::from(X.shape()[0]).unwrap();
         let Xty = X.t().dot(&y);
+        let Xty = Xty.map(|x| x.abs());
+        let alpha_max = Xty.max().unwrap();
+        *alpha_max / n_samples
+    }
+
+    pub fn compute_alpha_max_sparse<T: 'static + Float + std::fmt::Debug>(
+        X: &CSCArray<T>,
+        y: ArrayView1<T>,
+    ) -> T {
+        let n_samples = T::from(y.len()).unwrap();
+        let n_features = X.indptr.len() - 1;
+        let mut Xty = Array1::<T>::zeros(n_features);
+        for j in 0..n_features {
+            for idx in X.indptr[j]..X.indptr[j + 1] {
+                Xty[j] = Xty[j] + X.data[idx] * y[X.indices[idx]];
+            }
+        }
         let Xty = Xty.map(|x| x.abs());
         let alpha_max = Xty.max().unwrap();
         *alpha_max / n_samples
