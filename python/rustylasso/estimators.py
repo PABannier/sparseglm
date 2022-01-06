@@ -67,21 +67,30 @@ class Lasso(BaseEstimator):
         """
         self._validate_params()
         X, y = check_X_y(X, y, accept_sparse='csc', order="C")
-        self._inner = rustylassopy.LassoWrapper(
-            alpha=self.alpha, max_iter=self.max_iter, p0=self.p0, K=self.K,
-            max_epochs=self.max_epochs, tol=self.tol, verbose=self.verbose,
-            use_accel=self.use_accel)
+
+        if y.dtype == np.float32 and X.dtype == np.float32:
+            self._inner = rustylassopy.LassoWrapperF32(
+                alpha=self.alpha, max_iter=self.max_iter, p0=self.p0, K=self.K,
+                max_epochs=self.max_epochs, tol=self.tol, verbose=self.verbose,
+                use_accel=self.use_accel)
+        elif y.dtype == np.float64 and X.dtype == np.float64:
+            self._inner = rustylassopy.LassoWrapperF64(
+                alpha=self.alpha, max_iter=self.max_iter, p0=self.p0, K=self.K,
+                max_epochs=self.max_epochs, tol=self.tol, verbose=self.verbose,
+                use_accel=self.use_accel)
+        else:
+            raise TypeError("X and y must have the same type. Got {} and {}"
+                            .format(X.data.dtype, y.dtype))
 
         if sp.issparse(X):
-            # TODO: how to handle when not np.uint64? Should I use Rust
-            # generics?
             X.indices = X.indices.astype(np.uint64)
             X.indptr = X.indptr.astype(np.uint64)
+
             coefs = self._inner.fit_sparse(X.data, X.indices, X.indptr, y)
         else:
             coefs = self._inner.fit(X, y)
+        
         self.coef_ = coefs.T
-
         return self
 
     def predict(self, X):
