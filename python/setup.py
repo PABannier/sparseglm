@@ -10,7 +10,7 @@ setup(
     version="0.1.0",
     rust_extensions=[
         RustExtension(
-            "rustylasso._lib",
+            "rustylasso.rustylassopy",
             rustc_flags=["--cfg=Py_3"],
             features=["numpy/python3"],
             args=["--no-default-features"],
