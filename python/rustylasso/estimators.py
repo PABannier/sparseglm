@@ -3,7 +3,7 @@ import rustylassopy
 import numpy as np
 import scipy.sparse as sp
 from sklearn.base import BaseEstimator
-from sklearn.utils.validation import check_X_y
+from sklearn.utils import check_array
 
 
 __all__ = ["Lasso"]
@@ -27,7 +27,6 @@ class Lasso(BaseEstimator):
     >>> clf.fit(X, y)
 
     """
-
     def __init__(self, alpha, max_iter=50, max_epochs=1000, tol=1e-9, p0=10,
                  use_accel=True, K=5, verbose=True):
         self.alpha = alpha
@@ -46,13 +45,12 @@ class Lasso(BaseEstimator):
             if not isinstance(var, type) or var < 0:
                 raise ValueError("{}={} must be a positive {}."
                                  .format(var_name, self.alpha, type))
-
+        _check_types(self.K, int, "K")
+        _check_types(self.p0, int, "p0")
+        _check_types(self.tol, float, "tol")
         _check_types(self.alpha, float, "alpha")
         _check_types(self.max_iter, int, "max_iter")
         _check_types(self.max_epochs, int, "max_epochs")
-        _check_types(self.tol, float, "tol")
-        _check_types(self.p0, int, "p0")
-        _check_types(self.K, int, "K")
 
     def fit(self, X, y):
         """Solves the L1-regularized linear regression to the data (X, y).
@@ -66,21 +64,21 @@ class Lasso(BaseEstimator):
             Measurements.
         """
         self._validate_params()
-        X, y = check_X_y(X, y, accept_sparse='csc', order="F")
+        X = check_array(X, 'csc', dtype=[np.float64, np.float32], order='F',
+                        copy=False, accept_large_sparse=False)
+        y = check_array(y, 'csc', dtype=X.dtype.type, order='F', copy=False,
+                        ensure_2d=False)
 
-        if y.dtype == np.float32 and X.dtype == np.float32:
+        if (X.dtype, y.dtype) == (np.float32, np.float32):
             self._inner = rustylassopy.LassoWrapperF32(
                 alpha=self.alpha, max_iter=self.max_iter, p0=self.p0, K=self.K,
                 max_epochs=self.max_epochs, tol=self.tol, verbose=self.verbose,
                 use_accel=self.use_accel)
-        elif y.dtype == np.float64 and X.dtype == np.float64:
+        else:
             self._inner = rustylassopy.LassoWrapperF64(
                 alpha=self.alpha, max_iter=self.max_iter, p0=self.p0, K=self.K,
                 max_epochs=self.max_epochs, tol=self.tol, verbose=self.verbose,
                 use_accel=self.use_accel)
-        else:
-            raise TypeError("X and y must have the same type. Got {} and {}"
-                            .format(X.data.dtype, y.dtype))
 
         if sp.issparse(X):
             coefs = self._inner.fit_sparse(X.data, X.indices, X.indptr, y)
