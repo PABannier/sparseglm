@@ -132,6 +132,8 @@ pub fn anderson_accel<T, D, P>(
     P: Penalty<T>,
 {
     // last_K_w[epoch % (K + 1)] = w[ws]
+    // Note: from my experiments, loops are 4-5x faster than slice
+    // See: https://github.com/rust-ndarray/ndarray/issues/571
     for (idx, &j) in ws.iter().enumerate() {
         last_K_w[[epoch % (K + 1), idx]] = w[j];
     }
@@ -144,7 +146,6 @@ pub fn anderson_accel<T, D, P>(
         }
 
         let mut C: Array2<T> = Array2::zeros((K, K));
-
         general_mat_mul(T::one(), &U, &U.t(), T::one(), &mut C);
 
         let _res = solve_lin_sys(C.view(), Array1::<T>::ones(K).view());
