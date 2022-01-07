@@ -6,7 +6,7 @@ import scipy.sparse as sp
 from sklearn.linear_model import Lasso as Lasso_sk
 from rustylasso.estimators import Lasso
 
-from .utils import make_correlated_data
+from ..utils import make_correlated_data
 
 n_samples = 50
 n_tasks = 1
