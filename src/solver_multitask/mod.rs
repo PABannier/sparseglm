@@ -19,29 +19,29 @@ pub fn construct_grad<T: 'static + Float, D: DatafitMultiTask<T>>(
     XW: ArrayView2<T>,
     ws: &[usize],
     datafit: &D,
-) -> Array1<T> {
+) -> Array2<T> {
     let ws_size = ws.len();
     let n_tasks = XW.shape()[1];
     let mut grad = Array2::<T>::zeros((ws_size, n_tasks));
     for (idx, &j) in ws.iter().enumerate() {
         grad.slice_mut(s![idx, ..])
-            .assign(datafit.gradient_j(X.view(), XW.view(), j));
+            .assign(&datafit.gradient_j(X.view(), XW.view(), j));
     }
     grad
 }
 
 pub fn construct_grad_sparse<T: 'static + Float, D: DatafitMultiTask<T>>(
     X: &CSCArray<T>,
-    XW: ArrayView1<T>,
+    XW: ArrayView2<T>,
     ws: &[usize],
     datafit: &D,
-) -> Array1<T> {
+) -> Array2<T> {
     let ws_size = ws.len();
     let n_tasks = XW.shape()[1];
     let mut grad = Array2::<T>::zeros((ws_size, n_tasks));
     for (idx, &j) in ws.iter().enumerate() {
         grad.slice_mut(s![idx, ..])
-            .assign(datafit.gradient_j_sparse(&X, XW.view(), j));
+            .assign(&datafit.gradient_j_sparse(&X, XW.view(), j));
     }
     grad
 }
@@ -104,7 +104,7 @@ pub fn construct_ws_from_kkt<T: 'static + Float>(
 }
 
 pub fn anderson_accel<T, D, P>(
-    y: ArrayView1<T>,
+    Y: ArrayView2<T>,
     X: MatrixParam<T>,
     W: &mut Array2<T>,
     XW: &mut Array2<T>,
@@ -121,20 +121,24 @@ pub fn anderson_accel<T, D, P>(
     D: DatafitMultiTask<T>,
     P: PenaltyMultiTask<T>,
 {
+    let n_samples = Y.shape()[0];
+    let n_tasks = Y.shape()[1];
+    let n_features = W.shape()[0];
     // last_K_w[epoch % (K + 1)] = w[ws]
     for (idx, &j) in ws.iter().enumerate() {
-        last_K_w[[epoch % (K + 1), idx]] = w[j];
+        for t in 0..n_tasks {
+            last_K_W[[epoch % (K + 1), idx * n_tasks + t]] = W[[j, t]];
+        }
     }
 
     if epoch % (K + 1) == K {
         for k in 0..K {
-            for j in 0..ws.len() {
-                U[[k, j]] = last_K_w[[k + 1, j]] - last_K_w[[k, j]];
+            for j in 0..(ws.len() * n_tasks) {
+                U[[k, j]] = last_K_W[[k + 1, j]] - last_K_W[[k, j]];
             }
         }
 
         let mut C: Array2<T> = Array2::zeros((K, K));
-
         general_mat_mul(T::one(), &U, &U.t(), T::one(), &mut C);
 
         let _res = solve_lin_sys(C.view(), Array1::<T>::ones(K).view());
@@ -144,22 +148,27 @@ pub fn anderson_accel<T, D, P>(
                 let denom = z.sum();
                 let c = z.map(|&x| x / denom);
 
-                let mut w_acc = Array1::<T>::zeros(w.len());
+                let mut W_acc = Array2::<T>::zeros((n_features, n_tasks));
 
                 // Extrapolation
                 for (idx, &j) in ws.iter().enumerate() {
                     for k in 0..K {
-                        w_acc[j] = w_acc[j] + last_K_w[[k, idx]] * c[k];
+                        for t in 0..n_tasks {
+                            W_acc[[j, t]] = W_acc[[j, t]] + last_K_W[[k, idx * n_tasks + t]] * c[k];
+                        }
                     }
                 }
 
-                let mut Xw_acc = Array1::<T>::zeros(y.len());
+                let mut XW_acc = Array2::<T>::zeros((n_samples, n_tasks));
 
                 match X {
                     MatrixParam::DenseMatrix(X_full) => {
-                        for i in 0..Xw_acc.len() {
+                        for i in 0..n_samples {
                             for &j in ws {
-                                Xw_acc[i] = Xw_acc[i] + X_full[[i, j]] * w_acc[j];
+                                for t in 0..n_tasks {
+                                    XW_acc[[i, t]] =
+                                        XW_acc[[i, t]] + X_full[[i, j]] * W_acc[[j, t]];
+                                }
                             }
                         }
                     }
@@ -169,13 +178,13 @@ pub fn anderson_accel<T, D, P>(
                     }
                 }
 
-                let p_obj = datafit.value(y.view(), Xw.view()) + penalty.value(w.view());
+                let p_obj = datafit.value(Y.view(), XW.view()) + penalty.value(W.view());
                 let p_obj_acc =
-                    datafit.value(y.view(), Xw_acc.view()) + penalty.value(w_acc.view());
+                    datafit.value(Y.view(), XW_acc.view()) + penalty.value(W_acc.view());
 
                 if p_obj_acc < p_obj {
-                    w.assign(&w_acc);
-                    Xw.assign(&Xw_acc);
+                    W.assign(&W_acc);
+                    XW.assign(&XW_acc);
 
                     if verbose {
                         println!("[ACCEL] p_obj {:#?} :: p_obj_acc {:#?}", p_obj, p_obj_acc);
@@ -210,8 +219,8 @@ pub fn bcd_epoch<T: 'static + Float, D: DatafitMultiTask<T>, P: PenaltyMultiTask
         let old_W_j = W.slice(s![j, ..]);
         let grad_j = datafit.gradient_j(X.view(), XW.view(), j);
         W.slice_mut(s![j, ..])
-            .assign(penalty.prox_op(old_W_j - grad_j / lipschitz[j], T::one() / lipschitz[j]));
-        let diff = W.slice(s![j, ..]) - old_W_j;
+            .assign(&penalty.prox_op(old_W_j - grad_j / lipschitz[j], T::one() / lipschitz[j]));
+        let diff = &W.slice(s![j, ..]) - &old_W_j;
         if diff.map(|&x| x.abs()).sum() != T::zero() {
             for i in 0..n_samples {
                 for t in 0..n_tasks {
@@ -224,8 +233,8 @@ pub fn bcd_epoch<T: 'static + Float, D: DatafitMultiTask<T>, P: PenaltyMultiTask
 
 pub fn bcd_epoch_sparse<T: 'static + Float, D: DatafitMultiTask<T>, P: PenaltyMultiTask<T>>(
     X: &CSCArray<T>,
-    W: &mut Array1<T>,
-    XW: &mut Array1<T>,
+    W: &mut Array2<T>,
+    XW: &mut Array2<T>,
     datafit: &D,
     penalty: &P,
     ws: &[usize],
@@ -239,8 +248,8 @@ pub fn bcd_epoch_sparse<T: 'static + Float, D: DatafitMultiTask<T>, P: PenaltyMu
         let old_W_j = W.slice(s![j, ..]);
         let grad_j = datafit.gradient_j_sparse(&X, XW.view(), j);
         W.slice_mut(s![j, ..])
-            .assign(penalty.prox_op(old_W_j - grad_j / lipschitz[j], T::one() / lipschitz[j]));
-        let diff = W.slice(s![j, ..]) - old_W_j;
+            .assign(&penalty.prox_op(old_W_j - grad_j / lipschitz[j], T::one() / lipschitz[j]));
+        let diff = &W.slice(s![j, ..]) - &old_W_j;
         if diff.map(|&x| x.abs()).sum() != T::zero() {
             for i in X.indptr[j]..X.indptr[j + 1] {
                 for t in 0..n_tasks {
@@ -267,7 +276,7 @@ pub fn solver_multitask<
     use_accel: bool,
     K: usize,
     verbose: bool,
-) -> Array1<T> {
+) -> Array2<T> {
     let n_samples = Y.shape()[0];
     let n_tasks = Y.shape()[1];
     let n_features: usize;
