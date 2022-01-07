@@ -66,7 +66,7 @@ class Lasso(BaseEstimator):
             Measurements.
         """
         self._validate_params()
-        X, y = check_X_y(X, y, accept_sparse='csc', order="C")
+        X, y = check_X_y(X, y, accept_sparse='csc', order="F")
 
         if y.dtype == np.float32 and X.dtype == np.float32:
             self._inner = rustylassopy.LassoWrapperF32(
