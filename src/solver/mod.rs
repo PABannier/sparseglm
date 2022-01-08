@@ -1,7 +1,7 @@
 extern crate ndarray;
 extern crate num;
 
-use ndarray::{s, Array1, Array2, ArrayView1, ArrayView2};
+use ndarray::{Array1, Array2, ArrayView1, ArrayView2};
 use num::Float;
 use std::fmt::Debug;
 
@@ -213,13 +213,12 @@ pub fn cd_epoch<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
         if lipschitz[j] == T::zero() {
             continue;
         }
-        let Xj: ArrayView1<T> = X.slice(s![.., j]);
         let old_w_j = w[j];
         let grad_j = datafit.gradient_j(X, Xw.view(), j);
         w[j] = penalty.prox_op(old_w_j - grad_j / lipschitz[j], T::one() / lipschitz[j]);
         if w[j] != old_w_j {
             for i in 0..n_samples {
-                Xw[i] = Xw[i] + (w[j] - old_w_j) * Xj[i];
+                Xw[i] = Xw[i] + (w[j] - old_w_j) * X[[i, j]];
             }
         }
     }
