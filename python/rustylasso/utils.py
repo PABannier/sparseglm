@@ -2,6 +2,9 @@ import numpy as np
 from numpy.linalg import norm
 from sklearn.utils import check_random_state
 
+def compute_alpha_max(X, y):
+    return np.abs(X.T @ y).max()
+
 
 def make_correlated_data(
         n_samples=100, n_features=50, n_tasks=1, corr=0.6, snr=3,

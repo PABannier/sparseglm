@@ -157,9 +157,15 @@ pub fn anderson_accel<T, D, P>(
                             }
                         }
                     }
-                    MatrixParam::SparseMatrix(_) => {
-                        // TODO: Implement with sparse matrices
-                        // Xw_acc += X_full
+                    MatrixParam::SparseMatrix(X_sparse) => {
+                        // TODO: check
+                        for i in 0..Xw_acc.len() {
+                            for &j in ws {
+                                for idx in X_sparse.indptr[j]..X_sparse.indptr[j + 1] {
+                                    Xw_acc[i] = Xw_acc[i] + X_sparse.data[idx] * w_acc[j];
+                                }
+                            }
+                        }
                     }
                 }
 

@@ -9,7 +9,7 @@ from sklearn.linear_model import MultiTaskLasso as MultiTaskLasso_sk
 
 from rustylasso.estimators import Lasso, MultiTaskLasso
 
-from .utils import make_correlated_data
+from ..utils import make_correlated_data
 
 
 n_samples = 50
