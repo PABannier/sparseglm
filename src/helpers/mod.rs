@@ -144,6 +144,7 @@ pub mod helpers {
 }
 
 pub mod test_helpers {
+    use ndarray::prelude::*;
     use ndarray::{linalg::general_mat_mul, Array1, Array2, ArrayView1, ArrayView2};
     use num::Float;
     use rand::rngs::StdRng;
@@ -201,7 +202,7 @@ pub mod test_helpers {
         let data_w = fill_random_vector(n_features);
         let data_e = fill_random_vector(n_samples);
 
-        let X = Array2::from_shape_vec((n_samples, n_features), data_x).unwrap();
+        let X = Array2::from_shape_vec((n_samples, n_features).f(), data_x).unwrap();
 
         let true_w = Array1::from_shape_vec(n_features, data_w).unwrap();
         let noise = Array1::from_shape_vec(n_samples, data_e).unwrap();
@@ -219,7 +220,7 @@ pub mod test_helpers {
         let data_w = fill_random_vector(n_features * n_tasks);
         let data_e = fill_random_vector(n_samples * n_tasks);
 
-        let X = Array2::from_shape_vec((n_samples, n_features), data_x).unwrap();
+        let X = Array2::from_shape_vec((n_samples, n_features).f(), data_x).unwrap();
 
         let true_W = Array2::from_shape_vec((n_features, n_tasks), data_w).unwrap();
         let noise = Array2::from_shape_vec((n_samples, n_tasks), data_e).unwrap();
