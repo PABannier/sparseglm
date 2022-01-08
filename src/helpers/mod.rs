@@ -36,7 +36,7 @@ pub mod prox {
 }
 
 pub mod helpers {
-    use ndarray::{Array1, Array2, ArrayView1, ArrayView2};
+    use ndarray::{Array1, Array2, ArrayView1, ArrayView2, Axis};
     use ndarray_stats::QuantileExt;
     use num::Float;
 
@@ -48,6 +48,26 @@ pub mod helpers {
         let Xty = Xty.map(|x| x.abs());
         let alpha_max = Xty.max().unwrap();
         *alpha_max / n_samples
+    }
+
+    pub fn compute_alpha_max_mtl<T: 'static + Float>(X: ArrayView2<T>, Y: ArrayView2<T>) -> T {
+        let n_features = X.shape()[1];
+        let n_tasks = Y.shape()[1];
+        let n_samples = X.shape()[0];
+        let mut XtY = Array2::<T>::zeros((n_features, n_tasks));
+
+        for i in 0..n_features {
+            for j in 0..n_tasks {
+                for l in 0..n_samples {
+                    XtY[[i, j]] = XtY[[i, j]] + X[[l, i]] * Y[[l, j]];
+                }
+            }
+        }
+
+        let norms_XtY = XtY.map_axis(Axis(1), |xtyj| (xtyj.dot(&xtyj).sqrt()));
+        let norms_XtY = norms_XtY.map(|xty| xty.abs());
+        let alpha_max = norms_XtY.max().unwrap();
+        *alpha_max / T::from(n_samples).unwrap()
     }
 
     pub fn compute_alpha_max_sparse<T: 'static + Float + std::fmt::Debug>(
@@ -124,7 +144,7 @@ pub mod helpers {
 }
 
 pub mod test_helpers {
-    use ndarray::{Array1, Array2, ArrayView1, ArrayView2};
+    use ndarray::{linalg::general_mat_mul, Array1, Array2, ArrayView1, ArrayView2};
     use num::Float;
     use rand::rngs::StdRng;
     use rand::SeedableRng;
@@ -182,10 +202,31 @@ pub mod test_helpers {
         let data_e = fill_random_vector(n_samples);
 
         let X = Array2::from_shape_vec((n_samples, n_features), data_x).unwrap();
+
         let true_w = Array1::from_shape_vec(n_features, data_w).unwrap();
         let noise = Array1::from_shape_vec(n_samples, data_e).unwrap();
         let y = X.dot(&true_w) + noise;
 
         (X, y)
+    }
+
+    pub fn generate_random_data_mtl(
+        n_samples: usize,
+        n_features: usize,
+        n_tasks: usize,
+    ) -> (Array2<f64>, Array2<f64>) {
+        let data_x = fill_random_vector(n_samples * n_features);
+        let data_w = fill_random_vector(n_features * n_tasks);
+        let data_e = fill_random_vector(n_samples * n_tasks);
+
+        let X = Array2::from_shape_vec((n_samples, n_features), data_x).unwrap();
+
+        let true_W = Array2::from_shape_vec((n_features, n_tasks), data_w).unwrap();
+        let noise = Array2::from_shape_vec((n_samples, n_tasks), data_e).unwrap();
+        let mut Y = Array2::<f64>::zeros((n_samples, n_tasks));
+        general_mat_mul(1., &X, &true_W, 1., &mut Y);
+        Y = Y + noise;
+
+        (X, Y)
     }
 }
