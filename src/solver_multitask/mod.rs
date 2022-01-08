@@ -225,7 +225,10 @@ pub fn bcd_epoch<T: 'static + Float, D: DatafitMultiTask<T>, P: PenaltyMultiTask
             continue;
         }
         let Xj: ArrayView1<T> = X.slice(s![.., j]);
-        let old_W_j = W.slice(s![j, ..]);
+        let mut old_W_j = Array1::<T>::zeros(n_tasks);
+        for t in 0..n_tasks {
+            old_W_j[t] = W[[j, t]];
+        }
         let grad_j = datafit.gradient_j(X, XW.view(), j);
 
         let mut upd = Array1::<T>::zeros(n_tasks);
@@ -268,7 +271,10 @@ pub fn bcd_epoch_sparse<T: 'static + Float, D: DatafitMultiTask<T>, P: PenaltyMu
         if lipschitz[j] == T::zero() {
             continue;
         }
-        let old_W_j = W.slice(s![j, ..]);
+        let mut old_W_j = Array1::<T>::zeros(n_tasks);
+        for t in 0..n_tasks {
+            old_W_j[t] = W[[j, t]];
+        }
         let grad_j = datafit.gradient_j_sparse(&X, XW.view(), j);
 
         let mut upd = Array1::<T>::zeros(n_tasks);
