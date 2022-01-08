@@ -73,7 +73,6 @@ kkt_check_tests! {
 kkt_check_mtl_tests! {
     kkt_check_mtl_small: (10, 30, 8),
     kkt_check_mtl_medium: (100, 300, 30),
-    kkt_check_mtl_large: (300, 800, 80),
 }
 
 #[test]
