@@ -1,7 +1,7 @@
 extern crate ndarray;
 extern crate num;
 
-use ndarray::{s, Array1, ArrayView1, ArrayView2, Axis};
+use ndarray::{Array1, ArrayView1, ArrayView2, Axis};
 use num::Float;
 
 use crate::sparse::CSCArray;
@@ -74,8 +74,11 @@ impl<'a, T: 'static + Float> Datafit<T> for Quadratic<T> {
 
     fn gradient_j(&self, X: ArrayView2<T>, Xw: ArrayView1<T>, j: usize) -> T {
         let n_samples = T::from(Xw.len()).unwrap();
-        let Xj: ArrayView1<T> = X.slice(s![.., j]);
-        (Xj.dot(&Xw) - self.Xty[j]) / n_samples
+        let mut _res = T::zero();
+        for i in 0..X.shape()[0] {
+            _res = _res + X[[i, j]] * Xw[i];
+        }
+        (_res - self.Xty[j]) / n_samples
     }
 
     /// Computes the value of the gradient at some point w for coordinate j using sparse matrices
