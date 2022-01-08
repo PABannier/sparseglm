@@ -49,7 +49,7 @@ fn test_value_quadratic() {
     let w = Array1::from_shape_vec(3, vec![-3.2, -0.21, 2.3]).unwrap();
     let Xw = X.dot(&w);
     let df = Quadratic::default();
-    let val = df.value(y.view(), w.view(), Xw.view());
+    let val = df.value(y.view(), Xw.view());
     assert_eq!(val, 44.27107624999999);
 }
 
@@ -61,7 +61,7 @@ fn test_gradient_quadratic() {
     let Xw = X.dot(&w);
     let mut df = Quadratic::default();
     df.initialize(X.view(), y.view());
-    let grad = df.gradient_scalar(X.view(), y.view(), w.view(), Xw.view(), 1);
+    let grad = df.gradient_j(X.view(), Xw.view(), 1);
     assert_eq!(grad, 9.583749999999998);
 }
 
@@ -84,7 +84,7 @@ fn test_gradient_sparse_quadratic() {
     df.initialize(X.view(), y.view());
     df_sparse.initialize_sparse(&X_sparse, y.view());
 
-    let grad = df.gradient_scalar(X.view(), y.view(), w.view(), Xw.view(), 1);
-    let grad_sparse = df_sparse.gradient_scalar_sparse(&X_sparse, y.view(), Xw.view(), 1);
+    let grad = df.gradient_j(X.view(), Xw.view(), 1);
+    let grad_sparse = df_sparse.gradient_j_sparse(&X_sparse, Xw.view(), 1);
     assert_eq!(grad, grad_sparse);
 }
