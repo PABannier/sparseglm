@@ -29,6 +29,7 @@ alpha = 0.05 * alpha_max
 
 tol = 1e-10
 
+
 @pytest.mark.parametrize('X', [X, X_sparse])
 @pytest.mark.parametrize('type', [np.float32, np.float64])
 def test_lasso(X, type):
