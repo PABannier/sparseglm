@@ -8,8 +8,8 @@ from rustylasso.estimators import Lasso
 
 from rustylasso.utils import make_correlated_data, compute_alpha_max
 
-n_samples = 3000
-n_features = 10_000
+n_samples = 300
+n_features = 100_000
 
 snr = 2
 corr = 0.6

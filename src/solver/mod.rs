@@ -168,8 +168,9 @@ pub fn anderson_accel<T, D, P>(
                     MatrixParam::SparseMatrix(X_sparse) => {
                         for &j in ws {
                             for idx in X_sparse.indptr[j]..X_sparse.indptr[j + 1] {
-                                Xw_acc[X_sparse.indices[idx]] =
-                                    Xw_acc[X_sparse.indices[idx]] + X_sparse.data[idx] * w_acc[j];
+                                Xw_acc[X_sparse.indices[idx as usize] as usize] = Xw_acc
+                                    [X_sparse.indices[idx as usize] as usize]
+                                    + X_sparse.data[idx as usize] * w_acc[j];
                             }
                         }
                     }
@@ -242,7 +243,8 @@ pub fn cd_epoch_sparse<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
         let diff = w[j] - old_w_j;
         if diff != T::zero() {
             for i in X.indptr[j]..X.indptr[j + 1] {
-                Xw[X.indices[i]] = Xw[X.indices[i]] + diff * X.data[i];
+                Xw[X.indices[i as usize] as usize] =
+                    Xw[X.indices[i as usize] as usize] + diff * X.data[i as usize];
             }
         }
     }

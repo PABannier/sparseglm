@@ -79,7 +79,7 @@ pub mod helpers {
         let mut Xty = Array1::<T>::zeros(n_features);
         for j in 0..n_features {
             for idx in X.indptr[j]..X.indptr[j + 1] {
-                Xty[j] = Xty[j] + X.data[idx] * y[X.indices[idx]];
+                Xty[j] = Xty[j] + X.data[idx as usize] * y[X.indices[idx as usize] as usize];
             }
         }
         let Xty = Xty.map(|x| x.abs());

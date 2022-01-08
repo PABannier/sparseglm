@@ -54,8 +54,8 @@ impl<'a, T: 'static + Float> Datafit<T> for Quadratic<T> {
             let mut nrm2 = T::zero();
             let mut xty = T::zero();
             for idx in X.indptr[j]..X.indptr[j + 1] {
-                nrm2 = nrm2 + X.data[idx] * X.data[idx];
-                xty = xty + X.data[idx] * y[X.indices[idx]];
+                nrm2 = nrm2 + X.data[idx as usize] * X.data[idx as usize];
+                xty = xty + X.data[idx as usize] * y[X.indices[idx as usize] as usize];
             }
             self.lipschitz[j] = nrm2 / T::from(y.len()).unwrap();
             self.Xty[j] = xty;
@@ -86,7 +86,7 @@ impl<'a, T: 'static + Float> Datafit<T> for Quadratic<T> {
     fn gradient_j_sparse(&self, X: &CSCArray<T>, Xw: ArrayView1<T>, j: usize) -> T {
         let mut XjTXw = T::zero();
         for i in X.indptr[j]..X.indptr[j + 1] {
-            XjTXw = XjTXw + X.data[i] * Xw[X.indices[i]];
+            XjTXw = XjTXw + X.data[i as usize] * Xw[X.indices[i as usize] as usize];
         }
         return (XjTXw - self.Xty[j]) / T::from(Xw.len()).unwrap();
     }
@@ -100,7 +100,7 @@ impl<'a, T: 'static + Float> Datafit<T> for Quadratic<T> {
         for j in 0..n_features {
             let mut XjTXw = T::zero();
             for i in X.indptr[j]..X.indptr[j + 1] {
-                XjTXw = XjTXw + X.data[i] * Xw[X.indices[i]];
+                XjTXw = XjTXw + X.data[i as usize] * Xw[X.indices[i as usize] as usize];
             }
             grad[j] = (XjTXw - self.Xty[j]) / T::from(n_samples).unwrap();
         }

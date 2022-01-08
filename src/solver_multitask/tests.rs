@@ -44,10 +44,10 @@ fn test_bcd_epoch() {
 
 #[test]
 fn test_bcd_epoch_sparse() {
-    let indptr = vec![0, 2, 3, 6];
-    let indices = vec![0, 2, 2, 0, 1, 2];
-    let data = vec![1., 2., 3., 4., 5., 6.];
-    let X = CSCArray::new(data, indices, indptr);
+    let indptr = Array1::from_shape_vec(4, vec![0, 2, 3, 6]).unwrap();
+    let indices = Array1::from_shape_vec(6, vec![0, 2, 2, 0, 1, 2]).unwrap();
+    let data = Array1::from_shape_vec(6, vec![1., 2., 3., 4., 5., 6.]).unwrap();
+    let X = CSCArray::new(data.view(), indices.view(), indptr.view());
     let Y = Array2::from_shape_vec((3, 2), vec![1.2, -0.9, 0.1, 1.2, -1., 3.2]).unwrap();
     let ws: Vec<usize> = (0..3).collect();
 
@@ -114,11 +114,12 @@ fn test_kkt_violation() {
 
 #[test]
 fn test_kkt_violation_sparse() {
-    let data = vec![0.74272001, 0.95888754, 0.8886366, 0.19782359];
-    let indices = vec![0, 1, 0, 0];
-    let indptr = vec![0, 1, 2, 2, 3, 4];
+    let data =
+        Array1::from_shape_vec(4, vec![0.74272001, 0.95888754, 0.8886366, 0.19782359]).unwrap();
+    let indices = Array1::from_shape_vec(4, vec![0, 1, 0, 0]).unwrap();
+    let indptr = Array1::from_shape_vec(6, vec![0, 1, 2, 2, 3, 4]).unwrap();
 
-    let X = CSCArray::new(data, indices, indptr);
+    let X = CSCArray::new(data.view(), indices.view(), indptr.view());
     let Y = Array2::from_shape_vec((2, 3), vec![0.3, -2.3, 0.8, 1.2, -3.2, 0.1]).unwrap();
     let ws: Vec<usize> = (0..5).collect();
 

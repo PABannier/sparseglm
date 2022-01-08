@@ -54,21 +54,7 @@ impl MultiTaskLassoWrapperF64 {
         X_indptr: &PyArray1<i32>,
         Y: &PyArray2<f64>,
     ) -> PyResult<&'py PyArray2<f64>> {
-        let X_sparse = CSCArray::new(
-            X_data.to_vec()?,
-            X_indices
-                .to_vec()
-                .unwrap()
-                .into_iter()
-                .map(|i| i as usize)
-                .collect(),
-            X_indptr
-                .to_vec()
-                .unwrap()
-                .into_iter()
-                .map(|i| i as usize)
-                .collect(),
-        );
+        let X_sparse = CSCArray::new(X_data.as_array(), X_indices.as_array(), X_indptr.as_array());
         Ok(PyArray::from_array(
             py,
             &self.inner.fit_sparse(&X_sparse, Y.as_array()),
@@ -116,21 +102,7 @@ impl MultiTaskLassoWrapperF32 {
         X_indptr: &PyArray1<i32>,
         Y: &PyArray2<f32>,
     ) -> PyResult<&'py PyArray2<f32>> {
-        let X_sparse = CSCArray::new(
-            X_data.to_vec()?,
-            X_indices
-                .to_vec()
-                .unwrap()
-                .into_iter()
-                .map(|i| i as usize)
-                .collect(),
-            X_indptr
-                .to_vec()
-                .unwrap()
-                .into_iter()
-                .map(|i| i as usize)
-                .collect(),
-        );
+        let X_sparse = CSCArray::new(X_data.as_array(), X_indices.as_array(), X_indptr.as_array());
         Ok(PyArray::from_array(
             py,
             &self.inner.fit_sparse(&X_sparse, Y.as_array()),

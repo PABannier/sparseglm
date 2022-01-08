@@ -23,10 +23,10 @@ fn test_initialization_quadratic_mtl() {
 
 #[test]
 fn test_initialization_sparse_quadratic_mtl() {
-    let indptr = vec![0, 2, 3, 6];
-    let indices = vec![0, 2, 2, 0, 1, 2];
-    let data = vec![1., 2., 3., 4., 5., 6.];
-    let X_sparse = CSCArray::new(data, indices, indptr);
+    let indptr = Array1::from_shape_vec(4, vec![0, 2, 3, 6]).unwrap();
+    let indices = Array1::from_shape_vec(6, vec![0, 2, 2, 0, 1, 2]).unwrap();
+    let data = Array1::from_shape_vec(6, vec![1., 2., 3., 4., 5., 6.]).unwrap();
+    let X_sparse = CSCArray::new(data.view(), indices.view(), indptr.view());
     let X = Array2::from_shape_vec((3, 3), vec![1., 0., 4., 0., 0., 5., 2., 3., 6.]).unwrap();
     let Y = Array2::from_shape_vec((3, 2), vec![1., 3., 2., 2., 4., 1.]).unwrap();
 
@@ -73,10 +73,10 @@ fn test_gradient_quadratic() {
 
 #[test]
 fn test_gradient_sparse_quadratic() {
-    let indptr = vec![0, 2, 3, 6];
-    let indices = vec![0, 2, 2, 0, 1, 2];
-    let data = vec![1., 2., 3., 4., 5., 6.];
-    let X_sparse = CSCArray::new(data, indices, indptr);
+    let indptr = Array1::from_shape_vec(4, vec![0, 2, 3, 6]).unwrap();
+    let indices = Array1::from_shape_vec(6, vec![0, 2, 2, 0, 1, 2]).unwrap();
+    let data = Array1::from_shape_vec(6, vec![1., 2., 3., 4., 5., 6.]).unwrap();
+    let X_sparse = CSCArray::new(data.view(), indices.view(), indptr.view());
 
     let X = Array2::from_shape_vec((3, 3), vec![1., 0., 4., 0., 0., 5., 2., 3., 6.]).unwrap();
     let Y = Array2::from_shape_vec((3, 2), vec![1., 3., 2., -2., 3., -1.]).unwrap();
