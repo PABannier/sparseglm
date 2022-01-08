@@ -1,7 +1,6 @@
 extern crate ndarray;
 extern crate num;
 
-use ndarray::linalg::general_mat_mul;
 use ndarray::{s, Array1, Array2, ArrayView1, ArrayView2};
 use num::Float;
 use std::fmt::Debug;
@@ -142,7 +141,15 @@ pub fn anderson_accel<T, D, P>(
         }
 
         let mut C: Array2<T> = Array2::zeros((K, K));
-        general_mat_mul(T::one(), &U, &U.t(), T::one(), &mut C);
+        // general_mat_mul is 20x slower than using plain for loops
+        // Complexity relatively low o(K^2 * ws_size) considering K usually is 5
+        for i in 0..K {
+            for j in 0..K {
+                for l in 0..ws.len() {
+                    C[[i, j]] = C[[i, j]] + U[[i, l]] * U[[j, l]];
+                }
+            }
+        }
 
         let _res = solve_lin_sys(C.view(), Array1::<T>::ones(K).view());
 
