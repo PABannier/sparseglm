@@ -4,14 +4,14 @@ extern crate num;
 use ndarray::ArrayView1;
 use num::Float;
 
-use crate::solver::soft_thresholding;
+use crate::helpers::prox::soft_thresholding;
 
 #[cfg(test)]
 mod tests;
 
 pub trait Penalty<T: Float> {
     fn value(&self, w: ArrayView1<T>) -> T;
-    fn prox_op(&self, value: T, step_size: T, j: usize) -> T;
+    fn prox_op(&self, value: T, step_size: T) -> T;
     fn subdiff_distance(&self, w: ArrayView1<T>, grad: ArrayView1<T>, ws: &[usize]) -> (Vec<T>, T);
 }
 
@@ -35,7 +35,7 @@ impl<T: Float> Penalty<T> for L1<T> {
         self.alpha * w.map(|x| T::abs(*x)).sum()
     }
     /// Computes the value of the proximal operator
-    fn prox_op(&self, value: T, stepsize: T, _j: usize) -> T {
+    fn prox_op(&self, value: T, stepsize: T) -> T {
         soft_thresholding(value, self.alpha * stepsize)
     }
     /// Computes the distance of the gradient to the subdifferential

@@ -2,6 +2,7 @@ import numpy as np
 from numpy.linalg import norm
 from sklearn.utils import check_random_state
 
+
 def compute_alpha_max(X, y):
     return np.abs(X.T @ y).max()
 

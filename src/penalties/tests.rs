@@ -18,9 +18,9 @@ fn test_prox_l1() {
     let b = 12.4;
     let c = -49.2;
     let pen = L1 { alpha: 2. };
-    let soft_a = pen.prox_op(a, 1. / 0.5, 0);
-    let soft_b = pen.prox_op(b, 1. / 0.5, 0);
-    let soft_c = pen.prox_op(c, 1. / 0.5, 0);
+    let soft_a = pen.prox_op(a, 1. / 0.5);
+    let soft_b = pen.prox_op(b, 1. / 0.5);
+    let soft_c = pen.prox_op(c, 1. / 0.5);
     assert_eq!(soft_a, 0.0);
     assert_eq!(soft_b, 8.4);
     assert_eq!(soft_c, -45.2);

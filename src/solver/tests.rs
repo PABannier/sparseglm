@@ -21,7 +21,7 @@ fn test_cd_epoch() {
     datafit.initialize(X.view(), y.view());
     let penalty = L1::new(0.3);
 
-    cd_epoch(X.view(), y.view(), &mut w, &mut Xw, &datafit, &penalty, &ws);
+    cd_epoch(X.view(), &mut w, &mut Xw, &datafit, &penalty, &ws);
 
     let true_w = Array1::from_shape_vec(3, vec![-0.51752788, -1.24688448, 0.48867352]).unwrap();
     let true_Xw = Array1::from_shape_vec(2, vec![0.86061567, -1.80291985]).unwrap();
@@ -47,7 +47,7 @@ fn test_cd_epoch_sparse() {
     datafit.initialize_sparse(&X, y.view());
     let penalty = L1::new(0.7);
 
-    cd_epoch_sparse(&X, y.view(), &mut w, &mut Xw, &datafit, &penalty, &ws);
+    cd_epoch_sparse(&X, &mut w, &mut Xw, &datafit, &penalty, &ws);
 
     let true_w = Array1::from_shape_vec(3, vec![-8.7, -1.53333333, 2.75844156]).unwrap();
     let true_Xw = Array1::from_shape_vec(3, vec![-4.46623377, 6.99220779, -3.04935065]).unwrap();
@@ -69,15 +69,7 @@ fn test_kkt_violation() {
     datafit.initialize(X.view(), y.view());
     let penalty = L1::new(0.3);
 
-    let (kkt, kkt_max) = kkt_violation(
-        X.view(),
-        y.view(),
-        w.view(),
-        Xw.view(),
-        &ws,
-        &datafit,
-        &penalty,
-    );
+    let (kkt, kkt_max) = kkt_violation(X.view(), w.view(), Xw.view(), &ws, &datafit, &penalty);
     let kkt = Array1::from_shape_vec(3, kkt).unwrap();
     let true_kkt = Array1::from_shape_vec(3, vec![21.318, 9.044, 5.4395]).unwrap();
 
@@ -102,8 +94,7 @@ fn test_kkt_violation_sparse() {
     datafit.initialize_sparse(&X, y.view());
     let penalty = L1::new(0.3);
 
-    let (kkt, kkt_max) =
-        kkt_violation_sparse(&X, y.view(), w.view(), Xw.view(), &ws, &datafit, &penalty);
+    let (kkt, kkt_max) = kkt_violation_sparse(&X, w.view(), Xw.view(), &ws, &datafit, &penalty);
     let kkt = Array1::from_shape_vec(5, kkt).unwrap();
     let true_kkt =
         Array1::from_shape_vec(5, vec![0.95174179, 0.34320058, 0.3, 1.07978458, 0.12640847])
