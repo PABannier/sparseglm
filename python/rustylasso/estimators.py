@@ -6,7 +6,7 @@ from sklearn.base import BaseEstimator
 from sklearn.utils.validation import check_X_y
 
 
-__all__ = ["Lasso"]
+__all__ = ["Lasso", "MultiTaskLasso"]
 
 
 class Estimator(BaseEstimator):
@@ -124,9 +124,9 @@ class MultiTaskLasso(Estimator):
     """
     def __init__(self, alpha, max_iter=50, max_epochs=1000, tol=1e-9, p0=10,
                  use_accel=True, K=5, verbose=True):
-        super(Lasso, self).__init__(alpha=alpha, max_iter=max_iter, tol=tol,
-                                    p0=p0, max_epochs=max_epochs, K=K,
-                                    use_accel=use_accel, verbose=verbose)
+        super(MultiTaskLasso, self).__init__(
+            alpha=alpha, max_iter=max_iter, tol=tol, p0=p0, K=K,
+            verbose=verbose, use_accel=use_accel, max_epochs=max_epochs)
 
     def fit(self, X, Y):
         """Solves the L21-regularized linear regression to the data (X, Y).
@@ -140,7 +140,7 @@ class MultiTaskLasso(Estimator):
             Measurements.
         """
         self._validate_params()
-        X, Y = check_X_y(X, Y, accept_sparse='csc', order="C")
+        # X, Y = check_X_y(X, Y, accept_sparse='csc', order="C")
 
         if Y.dtype == np.float32 and X.dtype == np.float32:
             self._inner = rustylassopy.MultiTaskLassoWrapperF32(

@@ -2,6 +2,7 @@ use pyo3::prelude::*;
 
 #[allow(non_snake_case)]
 mod lasso;
+#[allow(non_snake_case)]
 mod mtl_lasso;
 
 #[pymodule]

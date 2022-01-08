@@ -1,7 +1,7 @@
 use numpy::{PyArray, PyArray1, PyArray2};
 use pyo3::prelude::*;
 use rustylasso;
-use rustylasso::estimators::Estimator;
+use rustylasso::estimators::MultiTaskEstimator;
 use rustylasso::sparse::CSCArray;
 
 #[pyclass]
@@ -92,7 +92,7 @@ impl MultiTaskLassoWrapperF32 {
         let params = rustylasso::estimators::SolverParams::new(
             max_epochs, max_iter, p0, tol, K, use_accel, verbose,
         );
-        let estimator = rustylasso::estimators::Lasso::new(alpha, Some(params));
+        let estimator = rustylasso::estimators::MultiTaskLasso::new(alpha, Some(params));
         Ok(MultiTaskLassoWrapperF32 { inner: estimator })
     }
 
