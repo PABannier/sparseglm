@@ -36,6 +36,12 @@ class Estimator(BaseEstimator):
         _check_types(self.max_iter, int, "max_iter")
         _check_types(self.max_epochs, int, "max_epochs")
 
+    def predict(self, X):
+        """Predicts the test set."""
+        if not self.coef_:
+            raise Exception("Estimator must be fitted before inference.")
+        return X @ self.coef_.T
+
 
 class Lasso(Estimator):
     """Solves a L1-regularized least square linear regression.
@@ -97,11 +103,6 @@ class Lasso(Estimator):
         self.coef_ = coefs.T
         return self
 
-    def predict(self, X):
-        """Predits the test set."""
-        # TODO: validation of X
-        return X @ self.coef_.T
-
 
 class MultiTaskLasso(Estimator):
     """Solves a L21-regularized least square multi-task linear regression.
@@ -139,21 +140,33 @@ class MultiTaskLasso(Estimator):
             Measurements.
         """
         self._validate_params()
-        # X, Y = check_X_y(X, Y, accept_sparse='csc', order="C")
 
-        if Y.dtype == np.float32 and X.dtype == np.float32:
+        check_X_params = dict(dtype=[np.float64, np.float32], order='F',
+                              accept_sparse='csc')
+        check_Y_params = dict(ensure_2d=False, order='F')
+        X, Y = self._validate_data(X, Y, validate_separately=(check_X_params,
+                                                              check_Y_params))
+        Y = Y.astype(X.dtype)
+
+        if Y.ndim == 1:
+            raise ValueError("For mono-task outputs, use Lasso")
+
+        n_samples = X.shape[0]
+
+        if n_samples != Y.shape[0]:
+            raise ValueError("X and Y have inconsistent dimensions (%d != %d)"
+                             % (n_samples, Y.shape[0]))
+
+        if (X.dtype, Y.dtype) == (np.float32, np.float32):
             self._inner = rustylassopy.MultiTaskLassoWrapperF32(
                 alpha=self.alpha, max_iter=self.max_iter, p0=self.p0, K=self.K,
                 max_epochs=self.max_epochs, tol=self.tol, verbose=self.verbose,
                 use_accel=self.use_accel)
-        elif Y.dtype == np.float64 and X.dtype == np.float64:
+        else:
             self._inner = rustylassopy.MultiTaskLassoWrapperF64(
                 alpha=self.alpha, max_iter=self.max_iter, p0=self.p0, K=self.K,
                 max_epochs=self.max_epochs, tol=self.tol, verbose=self.verbose,
                 use_accel=self.use_accel)
-        else:
-            raise TypeError("X and Y must have the same type. Got {} and {}"
-                            .format(X.data.dtype, Y.dtype))
 
         if sp.issparse(X):
             coefs = self._inner.fit_sparse(X.data, X.indices, X.indptr, Y)
@@ -162,8 +175,3 @@ class MultiTaskLasso(Estimator):
 
         self.coef_ = coefs.T
         return self
-
-    def predict(self, X):
-        """Predits the test set."""
-        # TODO: validation of X
-        return X @ self.coef_.T
