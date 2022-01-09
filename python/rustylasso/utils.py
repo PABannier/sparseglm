@@ -3,8 +3,15 @@ from numpy.linalg import norm
 from sklearn.utils import check_random_state
 
 
-def compute_alpha_max(X, y):
-    return np.abs(X.T @ y).max()
+def compute_alpha_max(X, Y):
+    if Y.ndim == 1:
+        return np.abs(X.T @ Y).max() / X.shape[0]
+    return np.max(norm(X.T @ Y, axis=1)) / X.shape[0]
+
+
+def sum_squared(X):
+    X_flat = X.ravel(order="F" if np.isfortran(X) else "C")
+    return np.dot(X_flat, X_flat)
 
 
 def make_correlated_data(
