@@ -36,9 +36,11 @@ pub mod prox {
 }
 
 pub mod helpers {
-    use ndarray::{Array1, Array2, ArrayView1, ArrayView2, Axis};
+    use ndarray::Data;
+    use ndarray::{Array1, Array2, ArrayBase, ArrayView1, ArrayView2, Axis, Ix1};
     use ndarray_stats::QuantileExt;
     use num::Float;
+    use std::cmp::Ordering;
 
     use crate::sparse::*;
 
@@ -85,6 +87,17 @@ pub mod helpers {
         let Xty = Xty.map(|x| x.abs());
         let alpha_max = Xty.max().unwrap();
         *alpha_max / n_samples
+    }
+
+    pub fn argsort_by<S, F>(arr: &ArrayBase<S, Ix1>, mut compare: F) -> Vec<usize>
+    where
+        S: Data,
+        F: FnMut(&S::Elem, &S::Elem) -> Ordering,
+    {
+        // https://github.com/rust-ndarray/ndarray/issues/1145
+        let mut indices: Vec<usize> = (0..arr.len()).collect();
+        indices.sort_unstable_by(move |&i, &j| compare(&arr[i], &arr[j]));
+        indices
     }
 
     pub fn solve_lin_sys<T: 'static + Float>(
