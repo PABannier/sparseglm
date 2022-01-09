@@ -15,6 +15,7 @@ from ..utils import make_correlated_data
 n_samples = 50
 n_tasks = 30
 n_features = 60
+
 X, Y, _ = make_correlated_data(
     n_samples=n_samples, n_features=n_features, n_tasks=n_tasks, density=0.1,
     random_state=0)
