@@ -16,16 +16,16 @@ use crate::sparse::{CSCArray, MatrixParam};
 #[cfg(test)]
 mod tests;
 
-pub trait Estimator<T: Float> {
+pub trait Estimator<'a, T: Float> {
     fn new(alpha: T, params: Option<SolverParams<T>>) -> Self;
     fn fit(&mut self, X: ArrayView2<T>, y: ArrayView1<T>) -> Array1<T>;
-    fn fit_sparse(&mut self, X: &CSCArray<T>, y: ArrayView1<T>) -> Array1<T>;
+    fn fit_sparse(&mut self, X: &'a CSCArray<'a, T>, y: ArrayView1<T>) -> Array1<T>;
 }
 
-pub trait MultiTaskEstimator<T: Float> {
+pub trait MultiTaskEstimator<'a, T: Float> {
     fn new(alpha: T, params: Option<SolverParams<T>>) -> Self;
     fn fit(&mut self, X: ArrayView2<T>, Y: ArrayView2<T>) -> Array2<T>;
-    fn fit_sparse(&mut self, X: &CSCArray<T>, Y: ArrayView2<T>) -> Array2<T>;
+    fn fit_sparse(&mut self, X: &'a CSCArray<'a, T>, Y: ArrayView2<T>) -> Array2<T>;
 }
 
 pub struct SolverParams<T> {
@@ -85,7 +85,7 @@ pub struct Lasso<T: Float> {
     params: SolverParams<T>,
 }
 
-impl<T: 'static + Float + Debug> Estimator<T> for Lasso<T> {
+impl<'a, T: 'static + Float + Debug> Estimator<'a, T> for Lasso<T> {
     /// Create new instance
     fn new(alpha: T, params: Option<SolverParams<T>>) -> Self {
         Lasso {
@@ -114,7 +114,7 @@ impl<T: 'static + Float + Debug> Estimator<T> for Lasso<T> {
     }
 
     /// Fits an instance of an Estimator to a sparse matrix
-    fn fit_sparse(&mut self, X: &CSCArray<T>, y: ArrayView1<T>) -> Array1<T> {
+    fn fit_sparse(&mut self, X: &'a CSCArray<'a, T>, y: ArrayView1<T>) -> Array1<T> {
         let w = solver(
             MatrixParam::SparseMatrix(X),
             y,
@@ -142,7 +142,7 @@ pub struct MultiTaskLasso<T: Float> {
     params: SolverParams<T>,
 }
 
-impl<T: 'static + Float + Debug> MultiTaskEstimator<T> for MultiTaskLasso<T> {
+impl<'a, T: 'static + Float + Debug> MultiTaskEstimator<'a, T> for MultiTaskLasso<T> {
     /// Create new instance
     fn new(alpha: T, params: Option<SolverParams<T>>) -> Self {
         MultiTaskLasso {
@@ -169,7 +169,7 @@ impl<T: 'static + Float + Debug> MultiTaskEstimator<T> for MultiTaskLasso<T> {
         W
     }
 
-    fn fit_sparse(&mut self, X: &CSCArray<T>, Y: ArrayView2<T>) -> Array2<T> {
+    fn fit_sparse(&mut self, X: &'a CSCArray<'a, T>, Y: ArrayView2<T>) -> Array2<T> {
         let W = solver_multitask(
             MatrixParam::SparseMatrix(X),
             Y,

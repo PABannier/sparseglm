@@ -182,9 +182,16 @@ pub fn anderson_accel<T, D, P>(
                             }
                         }
                     }
-                    MatrixParam::SparseMatrix(_) => {
-                        // TODO: Implement with sparse matrices
-                        // Xw_acc += X_full
+                    MatrixParam::SparseMatrix(X_sparse) => {
+                        for &j in ws {
+                            for idx in X_sparse.indptr[j]..X_sparse.indptr[j + 1] {
+                                for t in 0..n_tasks {
+                                    XW_acc[[X_sparse.indices[idx as usize] as usize, t]] = XW_acc
+                                        [[X_sparse.indices[idx as usize] as usize, t]]
+                                        + X_sparse.data[idx as usize] * W_acc[[j, t]];
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -296,7 +303,8 @@ pub fn bcd_epoch_sparse<T: 'static + Float, D: DatafitMultiTask<T>, P: PenaltyMu
         if sum_diff != T::zero() {
             for i in X.indptr[j]..X.indptr[j + 1] {
                 for t in 0..n_tasks {
-                    XW[[X.indices[i], t]] = XW[[X.indices[i], t]] + diff[t] * X.data[i];
+                    XW[[X.indices[i as usize] as usize, t]] =
+                        XW[[X.indices[i as usize] as usize, t]] + diff[t] * X.data[i as usize];
                 }
             }
         }

@@ -61,9 +61,10 @@ impl<'a, T: 'static + Float> DatafitMultiTask<T> for QuadraticMultiTask<T> {
             let mut nrm2 = T::zero();
             let mut xty = Array1::<T>::zeros(n_tasks);
             for idx in X.indptr[j]..X.indptr[j + 1] {
-                nrm2 = nrm2 + X.data[idx] * X.data[idx];
+                nrm2 = nrm2 + X.data[idx as usize] * X.data[idx as usize];
                 for t in 0..n_tasks {
-                    xty[t] = xty[t] + X.data[idx] * Y[[X.indices[idx], t]];
+                    xty[t] =
+                        xty[t] + X.data[idx as usize] * Y[[X.indices[idx as usize] as usize, t]];
                 }
             }
             self.lipschitz[j] = nrm2 / T::from(n_samples).unwrap();
@@ -105,7 +106,7 @@ impl<'a, T: 'static + Float> DatafitMultiTask<T> for QuadraticMultiTask<T> {
         let mut XjTXW = Array1::<T>::zeros(n_tasks);
         for i in X.indptr[j]..X.indptr[j + 1] {
             for t in 0..n_tasks {
-                XjTXW[t] = XjTXW[t] + X.data[i] * XW[[X.indices[i], t]];
+                XjTXW[t] = XjTXW[t] + X.data[i as usize] * XW[[X.indices[i as usize] as usize, t]];
             }
         }
         let mut grad_j = XjTXW - self.XtY.slice(s![j, ..]);
@@ -125,7 +126,8 @@ impl<'a, T: 'static + Float> DatafitMultiTask<T> for QuadraticMultiTask<T> {
             let mut XjTXW = Array1::<T>::zeros(n_tasks);
             for i in X.indptr[j]..X.indptr[j + 1] {
                 for t in 0..n_tasks {
-                    XjTXW[t] = XjTXW[t] + X.data[i] * XW[[X.indices[i], t]];
+                    XjTXW[t] =
+                        XjTXW[t] + X.data[i as usize] * XW[[X.indices[i as usize] as usize, t]];
                 }
             }
             let mut grad_j = XjTXW - self.XtY.slice(s![j, ..]);

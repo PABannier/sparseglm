@@ -1,18 +1,22 @@
 extern crate ndarray;
 extern crate num;
 
-use ndarray::ArrayView2;
+use ndarray::{ArrayView1, ArrayView2};
 use num::Float;
 
 #[derive(Debug)]
-pub struct CSCArray<T: Float> {
-    pub data: Vec<T>,
-    pub indices: Vec<usize>,
-    pub indptr: Vec<usize>,
+pub struct CSCArray<'a, T: Float> {
+    pub data: ArrayView1<'a, T>,
+    pub indices: ArrayView1<'a, i32>,
+    pub indptr: ArrayView1<'a, i32>,
 }
 
-impl<T: Float> CSCArray<T> {
-    pub fn new(data: Vec<T>, indices: Vec<usize>, indptr: Vec<usize>) -> CSCArray<T> {
+impl<'a, T: Float> CSCArray<'a, T> {
+    pub fn new(
+        data: ArrayView1<'a, T>,
+        indices: ArrayView1<'a, i32>,
+        indptr: ArrayView1<'a, i32>,
+    ) -> CSCArray<'a, T> {
         CSCArray {
             data,
             indices,
@@ -24,5 +28,5 @@ impl<T: Float> CSCArray<T> {
 #[derive(Clone, Copy)]
 pub enum MatrixParam<'a, T: Float> {
     DenseMatrix(ArrayView2<'a, T>),
-    SparseMatrix(&'a CSCArray<T>),
+    SparseMatrix(&'a CSCArray<'a, T>),
 }
