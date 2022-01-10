@@ -1,6 +1,6 @@
 extern crate ndarray;
 
-use ndarray::{s, Array1, Array2, ArrayView1, ArrayView2};
+use ndarray::{s, Array1, Array2, ArrayView1, ArrayView2, Data};
 
 use super::Float;
 use crate::datafits_multitask::DatafitMultiTask;
@@ -11,12 +11,16 @@ use crate::sparse::{CSCArray, MatrixParam};
 #[cfg(test)]
 mod tests;
 
-pub fn construct_grad<T: 'static + Float, D: DatafitMultiTask<T>>(
+pub fn construct_grad<T, D>(
     X: ArrayView2<T>,
     XW: ArrayView2<T>,
     ws: ArrayView1<usize>,
     datafit: &D,
-) -> Array2<T> {
+) -> Array2<T>
+where
+    T: 'static + Float,
+    D: DatafitMultiTask<T>,
+{
     let ws_size = ws.len();
     let n_tasks = XW.shape()[1];
     let mut grad = Array2::<T>::zeros((ws_size, n_tasks));
@@ -29,12 +33,16 @@ pub fn construct_grad<T: 'static + Float, D: DatafitMultiTask<T>>(
     grad
 }
 
-pub fn construct_grad_sparse<T: 'static + Float, D: DatafitMultiTask<T>>(
+pub fn construct_grad_sparse<T, D>(
     X: &CSCArray<T>,
     XW: ArrayView2<T>,
     ws: ArrayView1<usize>,
     datafit: &D,
-) -> Array2<T> {
+) -> Array2<T>
+where
+    T: 'static + Float,
+    D: DatafitMultiTask<T>,
+{
     let ws_size = ws.len();
     let n_tasks = XW.shape()[1];
     let mut grad = Array2::<T>::zeros((ws_size, n_tasks));
@@ -47,37 +55,50 @@ pub fn construct_grad_sparse<T: 'static + Float, D: DatafitMultiTask<T>>(
     grad
 }
 
-pub fn kkt_violation<T: 'static + Float, D: DatafitMultiTask<T>, P: PenaltyMultiTask<T>>(
+pub fn kkt_violation<T, D, P>(
     X: ArrayView2<T>,
     W: ArrayView2<T>,
     XW: ArrayView2<T>,
     ws: ArrayView1<usize>,
     datafit: &D,
     penalty: &P,
-) -> (Array1<T>, T) {
+) -> (Array1<T>, T)
+where
+    T: 'static + Float,
+    D: DatafitMultiTask<T>,
+    P: PenaltyMultiTask<T>,
+{
     let grad_ws = construct_grad(X, XW.view(), ws.view(), datafit);
     let (kkt_ws, kkt_ws_max) = penalty.subdiff_distance(W.view(), grad_ws.view(), ws.view());
     (kkt_ws, kkt_ws_max)
 }
 
-pub fn kkt_violation_sparse<T: 'static + Float, D: DatafitMultiTask<T>, P: PenaltyMultiTask<T>>(
+pub fn kkt_violation_sparse<T, D, P>(
     X: &CSCArray<T>,
     W: ArrayView2<T>,
     XW: ArrayView2<T>,
     ws: ArrayView1<usize>,
     datafit: &D,
     penalty: &P,
-) -> (Array1<T>, T) {
+) -> (Array1<T>, T)
+where
+    T: 'static + Float,
+    D: DatafitMultiTask<T>,
+    P: PenaltyMultiTask<T>,
+{
     let grad_ws = construct_grad_sparse(&X, XW.view(), ws.view(), datafit);
     let (kkt_ws, kkt_ws_max) = penalty.subdiff_distance(W.view(), grad_ws.view(), ws.view());
     (kkt_ws, kkt_ws_max)
 }
 
-pub fn construct_ws_from_kkt<T: 'static + Float>(
+pub fn construct_ws_from_kkt<T>(
     kkt: &mut Array1<T>,
     W: ArrayView2<T>,
     p0: usize,
-) -> (Array1<usize>, usize) {
+) -> (Array1<usize>, usize)
+where
+    T: 'static + Float,
+{
     let n_features = W.shape()[0];
     let mut nnz_features: usize = 0;
 
@@ -211,14 +232,18 @@ pub fn anderson_accel<T, D, P>(
     }
 }
 
-pub fn bcd_epoch<T: 'static + Float, D: DatafitMultiTask<T>, P: PenaltyMultiTask<T>>(
+pub fn bcd_epoch<T, D, P>(
     X: ArrayView2<T>,
     W: &mut Array2<T>,
     XW: &mut Array2<T>,
     datafit: &D,
     penalty: &P,
     ws: ArrayView1<usize>,
-) {
+) where
+    T: 'static + Float,
+    D: DatafitMultiTask<T>,
+    P: PenaltyMultiTask<T>,
+{
     let n_samples = X.shape()[0];
     let n_tasks = W.shape()[1];
     let lipschitz = datafit.lipschitz();
@@ -259,14 +284,18 @@ pub fn bcd_epoch<T: 'static + Float, D: DatafitMultiTask<T>, P: PenaltyMultiTask
     }
 }
 
-pub fn bcd_epoch_sparse<T: 'static + Float, D: DatafitMultiTask<T>, P: PenaltyMultiTask<T>>(
+pub fn bcd_epoch_sparse<T, D, P>(
     X: &CSCArray<T>,
     W: &mut Array2<T>,
     XW: &mut Array2<T>,
     datafit: &D,
     penalty: &P,
     ws: ArrayView1<usize>,
-) {
+) where
+    T: 'static + Float,
+    D: DatafitMultiTask<T>,
+    P: PenaltyMultiTask<T>,
+{
     let n_tasks = W.shape()[1];
     let lipschitz = datafit.lipschitz();
     for &j in ws {
@@ -306,7 +335,7 @@ pub fn bcd_epoch_sparse<T: 'static + Float, D: DatafitMultiTask<T>, P: PenaltyMu
     }
 }
 
-pub fn solver_multitask<T: 'static + Float, D: DatafitMultiTask<T>, P: PenaltyMultiTask<T>>(
+pub fn solver_multitask<T, D, P>(
     X: MatrixParam<T>,
     Y: ArrayView2<T>,
     datafit: &mut D,
@@ -318,7 +347,12 @@ pub fn solver_multitask<T: 'static + Float, D: DatafitMultiTask<T>, P: PenaltyMu
     use_accel: bool,
     K: usize,
     verbose: bool,
-) -> Array2<T> {
+) -> Array2<T>
+where
+    T: 'static + Float,
+    D: DatafitMultiTask<T>,
+    P: PenaltyMultiTask<T>,
+{
     let n_samples = Y.shape()[0];
     let n_tasks = Y.shape()[1];
     let n_features: usize;

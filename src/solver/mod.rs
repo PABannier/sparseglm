@@ -11,12 +11,16 @@ use crate::sparse::{CSCArray, MatrixParam};
 #[cfg(test)]
 mod tests;
 
-pub fn construct_grad<T: 'static + Float, D: Datafit<T>>(
+pub fn construct_grad<T, D>(
     X: ArrayView2<T>,
     Xw: ArrayView1<T>,
     ws: ArrayView1<usize>,
     datafit: &D,
-) -> Array1<T> {
+) -> Array1<T>
+where
+    T: 'static + Float,
+    D: Datafit<T>,
+{
     let ws_size = ws.len();
     let mut grad = Array1::<T>::zeros(ws_size);
     for (idx, &j) in ws.iter().enumerate() {
@@ -25,12 +29,16 @@ pub fn construct_grad<T: 'static + Float, D: Datafit<T>>(
     grad
 }
 
-pub fn construct_grad_sparse<T: 'static + Float, D: Datafit<T>>(
+pub fn construct_grad_sparse<T, D>(
     X: &CSCArray<T>,
     Xw: ArrayView1<T>,
     ws: ArrayView1<usize>,
     datafit: &D,
-) -> Array1<T> {
+) -> Array1<T>
+where
+    T: 'static + Float,
+    D: Datafit<T>,
+{
     let ws_size = ws.len();
     let mut grad = Array1::<T>::zeros(ws_size);
     for (idx, &j) in ws.iter().enumerate() {
@@ -39,37 +47,50 @@ pub fn construct_grad_sparse<T: 'static + Float, D: Datafit<T>>(
     grad
 }
 
-pub fn kkt_violation<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
+pub fn kkt_violation<T, D, P>(
     X: ArrayView2<T>,
     w: ArrayView1<T>,
     Xw: ArrayView1<T>,
     ws: ArrayView1<usize>,
     datafit: &D,
     penalty: &P,
-) -> (Array1<T>, T) {
+) -> (Array1<T>, T)
+where
+    T: 'static + Float,
+    D: Datafit<T>,
+    P: Penalty<T>,
+{
     let grad_ws = construct_grad(X, Xw, ws, datafit);
     let (kkt_ws, kkt_ws_max) = penalty.subdiff_distance(w, grad_ws.view(), ws);
     (kkt_ws, kkt_ws_max)
 }
 
-pub fn kkt_violation_sparse<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
+pub fn kkt_violation_sparse<T, D, P>(
     X: &CSCArray<T>,
     w: ArrayView1<T>,
     Xw: ArrayView1<T>,
     ws: ArrayView1<usize>,
     datafit: &D,
     penalty: &P,
-) -> (Array1<T>, T) {
+) -> (Array1<T>, T)
+where
+    T: 'static + Float,
+    D: Datafit<T>,
+    P: Penalty<T>,
+{
     let grad_ws = construct_grad_sparse(&X, Xw, ws, datafit);
     let (kkt_ws, kkt_ws_max) = penalty.subdiff_distance(w, grad_ws.view(), ws);
     (kkt_ws, kkt_ws_max)
 }
 
-pub fn construct_ws_from_kkt<T: 'static + Float>(
+pub fn construct_ws_from_kkt<T>(
     kkt: &mut Array1<T>,
     w: ArrayView1<T>,
     p0: usize,
-) -> (Array1<usize>, usize) {
+) -> (Array1<usize>, usize)
+where
+    T: 'static + Float,
+{
     let n_features = w.len();
     let mut nnz_features: usize = 0;
 
@@ -192,14 +213,18 @@ pub fn anderson_accel<T, D, P>(
     }
 }
 
-pub fn cd_epoch<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
+pub fn cd_epoch<T, D, P>(
     X: ArrayView2<T>,
     w: &mut Array1<T>,
     Xw: &mut Array1<T>,
     datafit: &D,
     penalty: &P,
     ws: ArrayView1<usize>,
-) {
+) where
+    T: 'static + Float,
+    D: Datafit<T>,
+    P: Penalty<T>,
+{
     let n_samples = X.shape()[0];
     let lipschitz = datafit.lipschitz();
 
@@ -218,14 +243,18 @@ pub fn cd_epoch<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
     }
 }
 
-pub fn cd_epoch_sparse<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
+pub fn cd_epoch_sparse<T, D, P>(
     X: &CSCArray<T>,
     w: &mut Array1<T>,
     Xw: &mut Array1<T>,
     datafit: &D,
     penalty: &P,
     ws: ArrayView1<usize>,
-) {
+) where
+    T: 'static + Float,
+    D: Datafit<T>,
+    P: Penalty<T>,
+{
     let lipschitz = datafit.lipschitz();
 
     for &j in ws {
@@ -245,7 +274,7 @@ pub fn cd_epoch_sparse<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
     }
 }
 
-pub fn solver<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
+pub fn solver<T, D, P>(
     X: MatrixParam<T>,
     y: ArrayView1<T>,
     datafit: &mut D,
@@ -257,7 +286,12 @@ pub fn solver<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
     use_accel: bool,
     K: usize,
     verbose: bool,
-) -> Array1<T> {
+) -> Array1<T>
+where
+    T: 'static + Float,
+    D: Datafit<T>,
+    P: Penalty<T>,
+{
     let n_samples = y.len();
     let n_features: usize;
 
