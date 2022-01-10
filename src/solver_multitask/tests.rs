@@ -4,10 +4,10 @@ use ndarray::linalg::general_mat_mul;
 use ndarray::{Array1, Array2};
 
 use crate::datafits_multitask::*;
+use crate::dataset::*;
 use crate::helpers::test_helpers::*;
 use crate::penalties_multitask::*;
 use crate::solver_multitask::*;
-use crate::sparse::*;
 
 #[test]
 fn test_bcd_epoch() {

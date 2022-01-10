@@ -1,6 +1,7 @@
 extern crate ndarray;
 
-mod csc_array;
+pub mod csc_array;
+
 mod impl_datasets;
 mod impl_design_matrix;
 
@@ -17,6 +18,8 @@ pub trait DesignMatrix: Sized {
 
     fn n_samples(&self) -> usize;
     fn n_features(&self) -> usize;
+
+    fn matrix_type(&self) -> DesignMatrixType;
 }
 
 pub trait Targets: Sized {
@@ -24,4 +27,9 @@ pub trait Targets: Sized {
 
     fn n_samples(&self) -> usize;
     fn n_tasks(&self) -> usize;
+}
+
+pub enum DesignMatrixType {
+    Dense,
+    Sparse,
 }

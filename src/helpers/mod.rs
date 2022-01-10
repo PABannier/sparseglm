@@ -35,13 +35,12 @@ pub mod prox {
 }
 
 pub mod helpers {
+    use crate::datasets::csc_array::CSCArray;
     use crate::Float;
     use ndarray::Data;
     use ndarray::{Array1, Array2, ArrayBase, ArrayView1, ArrayView2, Axis, Ix1};
     use ndarray_stats::QuantileExt;
     use std::cmp::Ordering;
-
-    use crate::sparse::*;
 
     pub fn compute_alpha_max<T>(X: ArrayView2<T>, y: ArrayView1<T>) -> T
     where

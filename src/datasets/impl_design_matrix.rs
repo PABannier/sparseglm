@@ -1,4 +1,4 @@
-use super::{csc_array::CSCArray, DatasetBase, DesignMatrix, Targets};
+use super::{csc_array::CSCArray, DatasetBase, DesignMatrix, DesignMatrixType, Targets};
 use ndarray::{ArrayBase, Axis, Data, Dimension};
 
 /// Implement DesignMatrix trait for NdArrays
@@ -12,6 +12,10 @@ impl<F, S: Data<Elem = F>, I: Dimension> DesignMatrix for ArrayBase<S, I> {
     fn n_features(&self) -> usize {
         self.len_of(Axis(1))
     }
+
+    fn matrix_type(&self) -> DesignMatrixType {
+        DesignMatrixType::Dense
+    }
 }
 
 /// Implement DesignMatrix trait for CSCArrays
@@ -24,6 +28,10 @@ impl<F> DesignMatrix for CSCArray<'_, F> {
 
     fn n_features(&self) -> usize {
         self.indptr.len() - 1
+    }
+
+    fn matrix_type(&self) -> DesignMatrixType {
+        DesignMatrixType::Sparse
     }
 }
 
@@ -42,6 +50,10 @@ where
     fn n_features(&self) -> usize {
         self.design_matrix.n_features()
     }
+
+    fn matrix_type(&self) -> DesignMatrixType {
+        self.design_matrix.matrix_type()
+    }
 }
 
 /// Implement DesignMatrix for an empty dataset
@@ -55,6 +67,11 @@ impl DesignMatrix for () {
     fn n_features(&self) -> usize {
         0
     }
+
+    fn matrix_type(&self) -> DesignMatrixType {
+        // By default, design matrices are assumed dense
+        DesignMatrixType::Dense
+    }
 }
 
 /// Implement records for references
@@ -67,5 +84,9 @@ impl<DM: DesignMatrix> DesignMatrix for &DM {
 
     fn n_features(&self) -> usize {
         (*self).n_features()
+    }
+
+    fn matrix_type(&self) -> DesignMatrixType {
+        (*self).matrix_type()
     }
 }

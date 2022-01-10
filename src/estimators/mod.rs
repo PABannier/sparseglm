@@ -1,33 +1,24 @@
 extern crate ndarray;
 
-use ndarray::{Array1, Array2, ArrayView1, ArrayView2};
+use ndarray::{Array, ArrayBase, Data, Dimension, Ix1, Ix2};
 
 use super::Float;
 use crate::datafits::Quadratic;
 use crate::datafits_multitask::QuadraticMultiTask;
+use crate::datasets::{csc_array::CSCArray, DatasetBase, DesignMatrix, Targets};
 use crate::penalties::L1;
 use crate::penalties_multitask::L21;
 use crate::solver::solver;
 use crate::solver_multitask::solver_multitask;
-use crate::sparse::{CSCArray, MatrixParam};
 
 #[cfg(test)]
 mod tests;
 
-pub trait Estimator<'a, T: Float> {
-    fn new(alpha: T, params: Option<SolverParams<T>>) -> Self;
-    fn fit(&mut self, X: ArrayView2<T>, y: ArrayView1<T>) -> Array1<T>;
-    fn fit_sparse(&mut self, X: &'a CSCArray<'a, T>, y: ArrayView1<T>) -> Array1<T>;
-}
-
-pub trait MultiTaskEstimator<'a, T: Float> {
-    fn new(alpha: T, params: Option<SolverParams<T>>) -> Self;
-    fn fit(&mut self, X: ArrayView2<T>, Y: ArrayView2<T>) -> Array2<T>;
-    fn fit_sparse(&mut self, X: &'a CSCArray<'a, T>, Y: ArrayView2<T>) -> Array2<T>;
-}
-
-pub struct SolverParams<T> {
-    tol: T,
+/// Solver parameters
+///
+/// This block gives default parameters to the coordinate descent solver.
+pub struct SolverParams<F> {
+    tol: F,
     max_epochs: usize,
     max_iter: usize,
     p0: usize,
@@ -36,11 +27,11 @@ pub struct SolverParams<T> {
     verbose: bool,
 }
 
-impl<T: Float> Default for SolverParams<T> {
+impl<F: Float> Default for SolverParams<F> {
     /// Create an instance with default parameters
-    fn default() -> SolverParams<T> {
+    fn default() -> SolverParams<F> {
         SolverParams {
-            tol: T::from(1e-9).unwrap(),
+            tol: F::from(1e-9).unwrap(),
             max_epochs: 1000,
             max_iter: 50,
             p0: 10,
@@ -51,13 +42,13 @@ impl<T: Float> Default for SolverParams<T> {
     }
 }
 
-impl<T: Float> SolverParams<T> {
+impl<F: Float> SolverParams<F> {
     /// Create a new instance
     pub fn new(
         max_epochs: usize,
         max_iter: usize,
         p0: usize,
-        tol: T,
+        tol: F,
         K: usize,
         use_accel: bool,
         verbose: bool,
@@ -74,29 +65,53 @@ impl<T: Float> SolverParams<T> {
     }
 }
 
+/// Fit trait
+///
+
+pub trait Fit<F, D, DM, T, I>
+where
+    F: Float,
+    D: Data<Elem = F>,
+    DM: DesignMatrix<Elem = F>,
+    T: Targets<Elem = F>,
+    I: Dimension,
+{
+    fn fit(&self, dataset: &DatasetBase<DM, T>) -> Array<F, I>;
+}
+
 /// Lasso
 ///
 
-pub struct Lasso<T: Float> {
-    datafit: Quadratic<T>,
-    penalty: L1<T>,
-    params: SolverParams<T>,
+pub struct Lasso<F: Float> {
+    datafit: Quadratic<F>,
+    penalty: L1<F>,
+    params: SolverParams<F>,
 }
 
-impl<'a, T: 'static + Float> Estimator<'a, T> for Lasso<T> {
+impl<F> Lasso<F>
+where
+    F: Float,
+{
     /// Create new instance
-    fn new(alpha: T, params: Option<SolverParams<T>>) -> Self {
+    fn new(alpha: F, params: Option<SolverParams<F>>) -> Self {
         Lasso {
             datafit: Quadratic::default(),
             penalty: L1::new(alpha),
-            params: params.unwrap_or(SolverParams::<T>::default()),
+            params: params.unwrap_or(SolverParams::<F>::default()),
         }
     }
-    /// Fits an instance of Estimator
-    fn fit(&mut self, X: ArrayView2<T>, y: ArrayView1<T>) -> Array1<T> {
+}
+
+impl<F, D, T> Fit<F, D, ArrayBase<D, Ix2>, T, Ix1> for Lasso<F>
+where
+    F: Float,
+    D: Data<Elem = F>,
+    T: Targets<Elem = F>,
+{
+    /// Fits the Lasso estimator to a dense design matrix
+    fn fit(&self, dataset: &DatasetBase<ArrayBase<D, Ix2>, T>) -> Array<F, Ix1> {
         let w = solver(
-            MatrixParam::DenseMatrix(X),
-            y,
+            dataset,
             &mut self.datafit,
             &self.penalty,
             self.params.max_iter,
@@ -107,15 +122,20 @@ impl<'a, T: 'static + Float> Estimator<'a, T> for Lasso<T> {
             self.params.K,
             self.params.verbose,
         );
-
         w
     }
+}
 
-    /// Fits an instance of an Estimator to a sparse matrix
-    fn fit_sparse(&mut self, X: &'a CSCArray<'a, T>, y: ArrayView1<T>) -> Array1<T> {
+impl<F, D, T> Fit<F, D, CSCArray<'_, F>, T, Ix1> for Lasso<F>
+where
+    F: Float,
+    D: Data<Elem = F>,
+    T: Targets<Elem = F>,
+{
+    /// Fits the Lasso estimator to a sparse design matrix
+    fn fit(&self, dataset: &DatasetBase<CSCArray<F>, T>) -> Array<F, Ix1> {
         let w = solver(
-            MatrixParam::SparseMatrix(X),
-            y,
+            dataset,
             &mut self.datafit,
             &self.penalty,
             self.params.max_iter,
@@ -126,7 +146,6 @@ impl<'a, T: 'static + Float> Estimator<'a, T> for Lasso<T> {
             self.params.K,
             self.params.verbose,
         );
-
         w
     }
 }
@@ -134,26 +153,33 @@ impl<'a, T: 'static + Float> Estimator<'a, T> for Lasso<T> {
 /// MultiTask Lasso
 ///
 
-pub struct MultiTaskLasso<T: Float> {
-    datafit: QuadraticMultiTask<T>,
-    penalty: L21<T>,
-    params: SolverParams<T>,
+pub struct MultiTaskLasso<F: Float> {
+    datafit: QuadraticMultiTask<F>,
+    penalty: L21<F>,
+    params: SolverParams<F>,
 }
 
-impl<'a, T: 'static + Float> MultiTaskEstimator<'a, T> for MultiTaskLasso<T> {
+impl<F: Float> MultiTaskLasso<F> {
     /// Create new instance
-    fn new(alpha: T, params: Option<SolverParams<T>>) -> Self {
+    fn new(alpha: F, params: Option<SolverParams<F>>) -> Self {
         MultiTaskLasso {
             datafit: QuadraticMultiTask::default(),
             penalty: L21::new(alpha),
-            params: params.unwrap_or(SolverParams::<T>::default()),
+            params: params.unwrap_or(SolverParams::<F>::default()),
         }
     }
-    /// Fits an instance of estimator
-    fn fit(&mut self, X: ArrayView2<T>, Y: ArrayView2<T>) -> Array2<T> {
+}
+
+impl<F, D, T> Fit<F, D, ArrayBase<D, Ix2>, T, Ix2> for MultiTaskLasso<F>
+where
+    F: Float,
+    D: Data<Elem = F>,
+    T: Targets<Elem = F>,
+{
+    /// Fits the MultiTaskLasso estimator to a dense design matrix
+    fn fit(&self, dataset: &DatasetBase<ArrayBase<D, Ix2>, T>) -> Array<F, Ix2> {
         let W = solver_multitask(
-            MatrixParam::DenseMatrix(X),
-            Y,
+            dataset,
             &mut self.datafit,
             &self.penalty,
             self.params.max_iter,
@@ -166,11 +192,18 @@ impl<'a, T: 'static + Float> MultiTaskEstimator<'a, T> for MultiTaskLasso<T> {
         );
         W
     }
+}
 
-    fn fit_sparse(&mut self, X: &'a CSCArray<'a, T>, Y: ArrayView2<T>) -> Array2<T> {
+impl<F, D, T> Fit<F, D, CSCArray<'_, F>, T, Ix2> for MultiTaskLasso<F>
+where
+    F: Float,
+    D: Data<Elem = F>,
+    T: Targets<Elem = F>,
+{
+    /// Fits the MultiTask estimator to a sparse design matrix
+    fn fit(&self, dataset: &DatasetBase<CSCArray<'_, F>, T>) -> Array<F, Ix2> {
         let W = solver_multitask(
-            MatrixParam::SparseMatrix(X),
-            Y,
+            dataset,
             &mut self.datafit,
             &self.penalty,
             self.params.max_iter,

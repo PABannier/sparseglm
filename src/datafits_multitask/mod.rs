@@ -4,7 +4,7 @@ use ndarray::linalg::general_mat_mul;
 use ndarray::{s, Array1, Array2, ArrayView1, ArrayView2, Axis};
 
 use super::Float;
-use crate::sparse::CSCArray;
+use crate::dataset::CSCArray;
 
 #[cfg(test)]
 mod tests;

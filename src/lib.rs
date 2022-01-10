@@ -2,9 +2,6 @@
 
 use ndarray::ScalarOperand;
 
-#[cfg(feature = "ndarray-linalg")]
-use ndarray_linalg::{Lapack, Scalar};
-
 use num_traits::{AsPrimitive, FromPrimitive, NumAssignOps, NumCast, Signed};
 
 use std::cmp::PartialOrd;
@@ -58,10 +55,10 @@ impl Float for f64 {
 
 pub mod datafits;
 pub mod datafits_multitask;
+pub mod datasets;
 pub mod estimators;
 pub mod helpers;
 pub mod penalties;
 pub mod penalties_multitask;
 pub mod solver;
 pub mod solver_multitask;
-pub mod sparse;
