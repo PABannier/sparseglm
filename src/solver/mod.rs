@@ -1,10 +1,8 @@
 extern crate ndarray;
-extern crate num;
 
 use ndarray::{Array1, Array2, ArrayView1, ArrayView2};
-use num::Float;
-use std::fmt::Debug;
 
+use super::Float;
 use crate::datafits::Datafit;
 use crate::helpers::helpers::{argsort_by, solve_lin_sys};
 use crate::penalties::Penalty;
@@ -107,7 +105,7 @@ pub fn anderson_accel<T, D, P>(
     K: usize,
     verbose: bool,
 ) where
-    T: 'static + Float + Debug,
+    T: 'static + Float,
     D: Datafit<T>,
     P: Penalty<T>,
 {
@@ -203,7 +201,7 @@ pub fn cd_epoch<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
     ws: ArrayView1<usize>,
 ) {
     let n_samples = X.shape()[0];
-    let lipschitz = datafit.get_lipschitz();
+    let lipschitz = datafit.lipschitz();
 
     for &j in ws {
         if lipschitz[j] == T::zero() {
@@ -228,7 +226,7 @@ pub fn cd_epoch_sparse<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
     penalty: &P,
     ws: ArrayView1<usize>,
 ) {
-    let lipschitz = datafit.get_lipschitz();
+    let lipschitz = datafit.lipschitz();
 
     for &j in ws {
         if lipschitz[j] == T::zero() {
@@ -247,7 +245,7 @@ pub fn cd_epoch_sparse<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
     }
 }
 
-pub fn solver<T: 'static + Float + Debug, D: Datafit<T>, P: Penalty<T>>(
+pub fn solver<T: 'static + Float, D: Datafit<T>, P: Penalty<T>>(
     X: MatrixParam<T>,
     y: ArrayView1<T>,
     datafit: &mut D,

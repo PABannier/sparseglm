@@ -1,9 +1,8 @@
 extern crate ndarray;
-extern crate num;
 
 use ndarray::{Array1, ArrayView1, ArrayView2, Axis};
-use num::Float;
 
+use super::Float;
 use crate::sparse::CSCArray;
 
 #[cfg(test)]
@@ -16,8 +15,9 @@ pub trait Datafit<T: Float> {
     fn gradient_j(&self, X: ArrayView2<T>, Xw: ArrayView1<T>, j: usize) -> T;
     fn gradient_j_sparse(&self, X: &CSCArray<T>, Xw: ArrayView1<T>, j: usize) -> T;
     fn full_grad_sparse(&self, X: &CSCArray<T>, y: ArrayView1<T>, Xw: ArrayView1<T>) -> Array1<T>;
-    fn get_lipschitz(&self) -> ArrayView1<T>;
-    fn get_Xty(&self) -> ArrayView1<T>;
+
+    fn lipschitz(&self) -> ArrayView1<T>;
+    fn Xty(&self) -> ArrayView1<T>;
 }
 
 /// Quadratic datafit
@@ -45,6 +45,7 @@ impl<'a, T: 'static + Float> Datafit<T> for Quadratic<T> {
         let lc = X.map_axis(Axis(0), |Xj| Xj.dot(&Xj) / n_samples);
         self.lipschitz = lc;
     }
+
     /// Initializes the datafit by pre-computing useful quantites with sparse matrices
     fn initialize_sparse(&mut self, X: &CSCArray<T>, y: ArrayView1<T>) {
         let n_features = X.indptr.len() - 1;
@@ -71,7 +72,6 @@ impl<'a, T: 'static + Float> Datafit<T> for Quadratic<T> {
     }
 
     /// Computes the value of the gradient at some point w for coordinate j
-
     fn gradient_j(&self, X: ArrayView2<T>, Xw: ArrayView1<T>, j: usize) -> T {
         let n_samples = T::from(Xw.len()).unwrap();
         let mut _res = T::zero();
@@ -82,7 +82,6 @@ impl<'a, T: 'static + Float> Datafit<T> for Quadratic<T> {
     }
 
     /// Computes the value of the gradient at some point w for coordinate j using sparse matrices
-
     fn gradient_j_sparse(&self, X: &CSCArray<T>, Xw: ArrayView1<T>, j: usize) -> T {
         let mut XjTXw = T::zero();
         for i in X.indptr[j]..X.indptr[j + 1] {
@@ -92,7 +91,6 @@ impl<'a, T: 'static + Float> Datafit<T> for Quadratic<T> {
     }
 
     /// Computes the gradient at some point w using sparse matrices
-
     fn full_grad_sparse(&self, X: &CSCArray<T>, y: ArrayView1<T>, Xw: ArrayView1<T>) -> Array1<T> {
         let n_features = X.indptr.len() - 1;
         let n_samples = y.len();
@@ -107,13 +105,13 @@ impl<'a, T: 'static + Float> Datafit<T> for Quadratic<T> {
         grad
     }
 
-    // Getter for Lipschitz
-    fn get_lipschitz(&self) -> ArrayView1<T> {
+    // Getter for Lipschitz constants
+    fn lipschitz(&self) -> ArrayView1<T> {
         self.lipschitz.view()
     }
 
     // Getter for Xty
-    fn get_Xty(&self) -> ArrayView1<T> {
+    fn Xty(&self) -> ArrayView1<T> {
         self.Xty.view()
     }
 }

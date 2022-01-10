@@ -1,10 +1,8 @@
 extern crate ndarray;
-extern crate num;
 
 use ndarray::{s, Array1, Array2, ArrayView1, ArrayView2};
-use num::Float;
-use std::fmt::Debug;
 
+use super::Float;
 use crate::datafits_multitask::DatafitMultiTask;
 use crate::helpers::helpers::{argsort_by, solve_lin_sys};
 use crate::penalties_multitask::PenaltyMultiTask;
@@ -116,7 +114,7 @@ pub fn anderson_accel<T, D, P>(
     K: usize,
     verbose: bool,
 ) where
-    T: 'static + Float + Debug,
+    T: 'static + Float,
     D: DatafitMultiTask<T>,
     P: PenaltyMultiTask<T>,
 {
@@ -223,7 +221,7 @@ pub fn bcd_epoch<T: 'static + Float, D: DatafitMultiTask<T>, P: PenaltyMultiTask
 ) {
     let n_samples = X.shape()[0];
     let n_tasks = W.shape()[1];
-    let lipschitz = datafit.get_lipschitz();
+    let lipschitz = datafit.lipschitz();
     for &j in ws {
         if lipschitz[j] == T::zero() {
             continue;
@@ -270,7 +268,7 @@ pub fn bcd_epoch_sparse<T: 'static + Float, D: DatafitMultiTask<T>, P: PenaltyMu
     ws: ArrayView1<usize>,
 ) {
     let n_tasks = W.shape()[1];
-    let lipschitz = datafit.get_lipschitz();
+    let lipschitz = datafit.lipschitz();
     for &j in ws {
         if lipschitz[j] == T::zero() {
             continue;
@@ -308,11 +306,7 @@ pub fn bcd_epoch_sparse<T: 'static + Float, D: DatafitMultiTask<T>, P: PenaltyMu
     }
 }
 
-pub fn solver_multitask<
-    T: 'static + Float + Debug,
-    D: DatafitMultiTask<T>,
-    P: PenaltyMultiTask<T>,
->(
+pub fn solver_multitask<T: 'static + Float, D: DatafitMultiTask<T>, P: PenaltyMultiTask<T>>(
     X: MatrixParam<T>,
     Y: ArrayView2<T>,
     datafit: &mut D,

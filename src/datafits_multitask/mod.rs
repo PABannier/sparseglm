@@ -1,10 +1,9 @@
 extern crate ndarray;
-extern crate num;
 
 use ndarray::linalg::general_mat_mul;
 use ndarray::{s, Array1, Array2, ArrayView1, ArrayView2, Axis};
-use num::Float;
 
+use super::Float;
 use crate::sparse::CSCArray;
 
 #[cfg(test)]
@@ -17,8 +16,9 @@ pub trait DatafitMultiTask<T: Float> {
     fn gradient_j(&self, X: ArrayView2<T>, XW: ArrayView2<T>, j: usize) -> Array1<T>;
     fn gradient_j_sparse(&self, X: &CSCArray<T>, XW: ArrayView2<T>, j: usize) -> Array1<T>;
     fn full_grad_sparse(&self, X: &CSCArray<T>, Y: ArrayView2<T>, XW: ArrayView2<T>) -> Array2<T>;
-    fn get_lipschitz(&self) -> ArrayView1<T>;
-    fn get_XtY(&self) -> ArrayView2<T>;
+
+    fn lipschitz(&self) -> ArrayView1<T>;
+    fn XtY(&self) -> ArrayView2<T>;
 }
 
 /// Quadratic datafit
@@ -41,22 +41,26 @@ impl<T: Float> Default for QuadraticMultiTask<T> {
 impl<'a, T: 'static + Float> DatafitMultiTask<T> for QuadraticMultiTask<T> {
     /// Initializes the datafit by pre-computing useful quantities
     fn initialize(&mut self, X: ArrayView2<T>, Y: ArrayView2<T>) {
+        let n_samples = T::cast(X.shape()[0]);
         let n_features = X.shape()[1];
         let n_tasks = Y.shape()[1];
+
         let mut xty = Array2::<T>::zeros((n_features, n_tasks));
         general_mat_mul(T::one(), &X.t(), &Y, T::one(), &mut xty);
-        let n_samples = T::from(X.shape()[0]).unwrap();
+
         let lc = X.map_axis(Axis(0), |Xj| Xj.dot(&Xj) / n_samples);
         self.lipschitz = lc;
         self.XtY = xty;
     }
     /// Initializes the datafit by pre-computing useful quantites with sparse matrices
     fn initialize_sparse(&mut self, X: &CSCArray<T>, Y: ArrayView2<T>) {
-        let n_samples = Y.shape()[0];
+        let n_samples = T::cast(Y.shape()[0]);
         let n_features = X.indptr.len() - 1;
         let n_tasks = Y.shape()[1];
+
         self.XtY = Array2::<T>::zeros((n_features, n_tasks));
         self.lipschitz = Array1::<T>::zeros(n_features);
+
         for j in 0..n_features {
             let mut nrm2 = T::zero();
             let mut xty = Array1::<T>::zeros(n_tasks);
@@ -67,7 +71,7 @@ impl<'a, T: 'static + Float> DatafitMultiTask<T> for QuadraticMultiTask<T> {
                         xty[t] + X.data[idx as usize] * Y[[X.indices[idx as usize] as usize, t]];
                 }
             }
-            self.lipschitz[j] = nrm2 / T::from(n_samples).unwrap();
+            self.lipschitz[j] = nrm2 / n_samples;
             self.XtY.slice_mut(s![j, ..]).assign(&xty);
         }
     }
@@ -77,19 +81,18 @@ impl<'a, T: 'static + Float> DatafitMultiTask<T> for QuadraticMultiTask<T> {
         let R = &Y - &XW;
         let n_samples = Y.shape()[0];
         let n_tasks = Y.shape()[1];
-        let denom = T::from(2 * n_samples).unwrap();
         let mut val = T::zero();
         for i in 0..n_samples {
             for j in 0..n_tasks {
                 val = val + R[[i, j]] * R[[i, j]];
             }
         }
-        val / denom
+        val / T::cast(2 * n_samples)
     }
 
     /// Computes the value of the gradient at some point w for coordinate j
     fn gradient_j(&self, X: ArrayView2<T>, XW: ArrayView2<T>, j: usize) -> Array1<T> {
-        let n_samples = T::from(X.shape()[0]).unwrap();
+        let n_samples = T::cast(X.shape()[0]);
         let n_tasks = XW.shape()[1];
         let Xj: ArrayView1<T> = X.slice(s![.., j]);
         let mut grad = Xj.dot(&XW) - self.XtY.slice(s![j, ..]);
@@ -101,7 +104,7 @@ impl<'a, T: 'static + Float> DatafitMultiTask<T> for QuadraticMultiTask<T> {
 
     /// Computes the value of the gradient at some point w for coordinate j using sparse matrices
     fn gradient_j_sparse(&self, X: &CSCArray<T>, XW: ArrayView2<T>, j: usize) -> Array1<T> {
-        let n_samples = T::from(XW.shape()[0]).unwrap();
+        let n_samples = T::cast(XW.shape()[0]);
         let n_tasks = XW.shape()[1];
         let mut XjTXW = Array1::<T>::zeros(n_tasks);
         for i in X.indptr[j]..X.indptr[j + 1] {
@@ -120,8 +123,10 @@ impl<'a, T: 'static + Float> DatafitMultiTask<T> for QuadraticMultiTask<T> {
     fn full_grad_sparse(&self, X: &CSCArray<T>, Y: ArrayView2<T>, XW: ArrayView2<T>) -> Array2<T> {
         let n_features = X.indptr.len() - 1;
         let n_tasks = XW.shape()[1];
-        let n_samples = T::from(Y.shape()[0]).unwrap();
+        let n_samples = T::cast(Y.shape()[0]);
+
         let mut grad = Array2::<T>::zeros((n_features, n_tasks));
+
         for j in 0..n_features {
             let mut XjTXW = Array1::<T>::zeros(n_tasks);
             for i in X.indptr[j]..X.indptr[j + 1] {
@@ -140,12 +145,12 @@ impl<'a, T: 'static + Float> DatafitMultiTask<T> for QuadraticMultiTask<T> {
     }
 
     // Getter for Lipschitz
-    fn get_lipschitz(&self) -> ArrayView1<T> {
+    fn lipschitz(&self) -> ArrayView1<T> {
         self.lipschitz.view()
     }
 
     // Getter for Xty
-    fn get_XtY(&self) -> ArrayView2<T> {
+    fn XtY(&self) -> ArrayView2<T> {
         self.XtY.view()
     }
 }

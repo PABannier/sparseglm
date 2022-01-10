@@ -1,9 +1,8 @@
 extern crate ndarray;
-extern crate num;
 
 use ndarray::{Array1, ArrayView1};
-use num::Float;
 
+use super::Float;
 use crate::helpers::prox::soft_thresholding;
 
 #[cfg(test)]
@@ -37,7 +36,7 @@ impl<T: Float> L1<T> {
 impl<T: Float> Penalty<T> for L1<T> {
     /// Gets the current value of the penalty
     fn value(&self, w: ArrayView1<T>) -> T {
-        self.alpha * w.map(|x| T::abs(*x)).sum()
+        self.alpha * w.map(|x| (*x).abs()).sum()
     }
     /// Computes the value of the proximal operator
     fn prox_op(&self, value: T, stepsize: T) -> T {
@@ -55,9 +54,9 @@ impl<T: Float> Penalty<T> for L1<T> {
         let mut max_subdiff_dist = T::neg_infinity();
         for (idx, &j) in ws.iter().enumerate() {
             if w[j] == T::zero() {
-                subdiff_dist[idx] = T::max(T::zero(), T::abs(grad[idx]) - self.alpha);
+                subdiff_dist[idx] = T::max(T::zero(), grad[idx].abs() - self.alpha);
             } else {
-                subdiff_dist[idx] = T::abs(-grad[idx] - T::signum(w[j]) * self.alpha);
+                subdiff_dist[idx] = (-grad[idx] - w[j].signum() * self.alpha).abs();
             }
 
             if subdiff_dist[idx] > max_subdiff_dist {

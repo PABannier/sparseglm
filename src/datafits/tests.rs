@@ -1,5 +1,4 @@
 extern crate ndarray;
-extern crate num;
 
 use ndarray::{Array1, Array2};
 
@@ -15,8 +14,8 @@ fn test_initialization_quadratic() {
     df.initialize(X.view(), y.view());
     let Xty = Array1::from_shape_vec(3, vec![-4.42, -9.66, -7.4]).unwrap();
     let lipschitz = Array1::from_shape_vec(3, vec![11.56, 2.925, 2.665]).unwrap();
-    assert_array_all_close(Xty.view(), df.get_Xty().view(), 1e-8);
-    assert_array_all_close(lipschitz.view(), df.get_lipschitz().view(), 1e-8);
+    assert_array_all_close(Xty.view(), df.Xty(), 1e-8);
+    assert_array_all_close(lipschitz.view(), df.lipschitz(), 1e-8);
 }
 
 #[test]
@@ -34,12 +33,8 @@ fn test_initialization_sparse_quadratic() {
     let mut df = Quadratic::default();
     df.initialize(X.view(), y.view());
 
-    assert_array_all_close(df.get_Xty().view(), df_sparse.get_Xty().view(), 1e-8);
-    assert_array_all_close(
-        df.get_lipschitz().view(),
-        df_sparse.get_lipschitz().view(),
-        1e-8,
-    );
+    assert_array_all_close(df.Xty(), df_sparse.Xty(), 1e-8);
+    assert_array_all_close(df.lipschitz(), df_sparse.lipschitz(), 1e-8);
 }
 
 #[test]

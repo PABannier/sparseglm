@@ -1,8 +1,7 @@
 extern crate ndarray;
-extern crate num;
 
+use super::Float;
 use ndarray::{ArrayView1, ArrayView2};
-use num::Float;
 
 #[derive(Debug)]
 pub struct CSCArray<'a, T: Float> {

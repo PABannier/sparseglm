@@ -1,10 +1,8 @@
 extern crate ndarray;
-extern crate num;
 
 use ndarray::{Array1, Array2, ArrayView1, ArrayView2};
-use num::Float;
-use std::fmt::Debug;
 
+use super::Float;
 use crate::datafits::Quadratic;
 use crate::datafits_multitask::QuadraticMultiTask;
 use crate::penalties::L1;
@@ -85,7 +83,7 @@ pub struct Lasso<T: Float> {
     params: SolverParams<T>,
 }
 
-impl<'a, T: 'static + Float + Debug> Estimator<'a, T> for Lasso<T> {
+impl<'a, T: 'static + Float> Estimator<'a, T> for Lasso<T> {
     /// Create new instance
     fn new(alpha: T, params: Option<SolverParams<T>>) -> Self {
         Lasso {
@@ -142,7 +140,7 @@ pub struct MultiTaskLasso<T: Float> {
     params: SolverParams<T>,
 }
 
-impl<'a, T: 'static + Float + Debug> MultiTaskEstimator<'a, T> for MultiTaskLasso<T> {
+impl<'a, T: 'static + Float> MultiTaskEstimator<'a, T> for MultiTaskLasso<T> {
     /// Create new instance
     fn new(alpha: T, params: Option<SolverParams<T>>) -> Self {
         MultiTaskLasso {

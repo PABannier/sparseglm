@@ -1,9 +1,8 @@
 extern crate ndarray;
-extern crate num;
 
 use ndarray::{s, Array1, ArrayView1, ArrayView2, Axis};
-use num::Float;
 
+use super::Float;
 use crate::helpers::prox::block_soft_thresholding;
 
 #[cfg(test)]

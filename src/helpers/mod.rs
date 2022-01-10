@@ -1,6 +1,5 @@
 extern crate ndarray;
 extern crate ndarray_stats;
-extern crate num;
 extern crate rand;
 extern crate rand_distr;
 
@@ -8,8 +7,8 @@ extern crate rand_distr;
 mod tests;
 
 pub mod prox {
+    use crate::Float;
     use ndarray::{Array1, ArrayView1};
-    use num::Float;
 
     pub fn soft_thresholding<T: Float>(x: T, threshold: T) -> T {
         if x > threshold {
@@ -36,15 +35,18 @@ pub mod prox {
 }
 
 pub mod helpers {
+    use crate::Float;
     use ndarray::Data;
     use ndarray::{Array1, Array2, ArrayBase, ArrayView1, ArrayView2, Axis, Ix1};
     use ndarray_stats::QuantileExt;
-    use num::Float;
     use std::cmp::Ordering;
 
     use crate::sparse::*;
 
-    pub fn compute_alpha_max<T: 'static + Float>(X: ArrayView2<T>, y: ArrayView1<T>) -> T {
+    pub fn compute_alpha_max<T>(X: ArrayView2<T>, y: ArrayView1<T>) -> T
+    where
+        T: 'static + Float,
+    {
         let n_samples = T::from(X.shape()[0]).unwrap();
         let Xty = X.t().dot(&y);
         let Xty = Xty.map(|x| x.abs());
@@ -52,7 +54,10 @@ pub mod helpers {
         *alpha_max / n_samples
     }
 
-    pub fn compute_alpha_max_mtl<T: 'static + Float>(X: ArrayView2<T>, Y: ArrayView2<T>) -> T {
+    pub fn compute_alpha_max_mtl<T>(X: ArrayView2<T>, Y: ArrayView2<T>) -> T
+    where
+        T: 'static + Float,
+    {
         let n_features = X.shape()[1];
         let n_tasks = Y.shape()[1];
         let n_samples = X.shape()[0];
@@ -72,10 +77,10 @@ pub mod helpers {
         *alpha_max / T::from(n_samples).unwrap()
     }
 
-    pub fn compute_alpha_max_sparse<T: 'static + Float + std::fmt::Debug>(
-        X: &CSCArray<T>,
-        y: ArrayView1<T>,
-    ) -> T {
+    pub fn compute_alpha_max_sparse<T>(X: &CSCArray<T>, y: ArrayView1<T>) -> T
+    where
+        T: 'static + Float,
+    {
         let n_samples = T::from(y.len()).unwrap();
         let n_features = X.indptr.len() - 1;
         let mut Xty = Array1::<T>::zeros(n_features);
@@ -157,37 +162,35 @@ pub mod helpers {
 }
 
 pub mod test_helpers {
+    use crate::Float;
+    use approx::AbsDiffEq;
     use ndarray::prelude::*;
     use ndarray::{linalg::general_mat_mul, Array1, Array2, ArrayView1, ArrayView2};
-    use num::Float;
     use rand::rngs::StdRng;
     use rand::SeedableRng;
     use rand_distr::{Distribution, Normal};
-    use std::fmt::Display;
 
-    pub fn assert_array_all_close<T: Float + Display>(
-        x: ArrayView1<T>,
-        y: ArrayView1<T>,
-        delta: T,
-    ) {
+    pub fn assert_array_all_close<T>(x: ArrayView1<T>, y: ArrayView1<T>, delta: T)
+    where
+        T: Float + AbsDiffEq<Epsilon = T>,
+    {
         assert_eq!(x.len(), y.len());
         for i in 0..x.len() {
-            if !(T::abs(x[i] - y[i]) < delta) {
+            if x[i].abs_diff_ne(&y[i], delta) {
                 panic!("x: {}, y: {} ; with precision level {}", x[i], y[i], delta);
             }
         }
     }
 
-    pub fn assert_array2d_all_close<T: Float + Display>(
-        x: ArrayView2<T>,
-        y: ArrayView2<T>,
-        delta: T,
-    ) {
+    pub fn assert_array2d_all_close<T>(x: ArrayView2<T>, y: ArrayView2<T>, delta: T)
+    where
+        T: Float + AbsDiffEq<Epsilon = T>,
+    {
         assert_eq!(x.shape()[0], y.shape()[0]);
         assert_eq!(x.shape()[1], y.shape()[1]);
         for i in 0..x.shape()[0] {
             for j in 0..x.shape()[1] {
-                if !(T::abs(x[[i, j]] - y[[i, j]]) < delta) {
+                if x[[i, j]].abs_diff_ne(&y[[i, j]], delta) {
                     panic!(
                         "x: {}, y: {} ; with precision level {}",
                         x[[i, j]],

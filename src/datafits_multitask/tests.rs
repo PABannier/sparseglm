@@ -1,5 +1,4 @@
 extern crate ndarray;
-extern crate num;
 
 use ndarray::linalg::general_mat_mul;
 use ndarray::{Array1, Array2};
@@ -17,8 +16,8 @@ fn test_initialization_quadratic_mtl() {
     let XtY =
         Array2::from_shape_vec((3, 2), vec![-12.58, 14.96, -6.78, 1.65, -7.88, 5.29]).unwrap();
     let lipschitz = Array1::from_shape_vec(3, vec![11.56, 2.925, 2.665]).unwrap();
-    assert_array2d_all_close(XtY.view(), df.get_XtY().view(), 1e-8);
-    assert_array_all_close(lipschitz.view(), df.get_lipschitz().view(), 1e-8);
+    assert_array2d_all_close(XtY.view(), df.XtY(), 1e-8);
+    assert_array_all_close(lipschitz.view(), df.lipschitz(), 1e-8);
 }
 
 #[test]
@@ -36,12 +35,8 @@ fn test_initialization_sparse_quadratic_mtl() {
     let mut df = QuadraticMultiTask::default();
     df.initialize(X.view(), Y.view());
 
-    assert_array2d_all_close(df.get_XtY().view(), df_sparse.get_XtY().view(), 1e-8);
-    assert_array_all_close(
-        df.get_lipschitz().view(),
-        df_sparse.get_lipschitz().view(),
-        1e-8,
-    );
+    assert_array2d_all_close(df.XtY(), df_sparse.XtY(), 1e-8);
+    assert_array_all_close(df.lipschitz(), df_sparse.lipschitz(), 1e-8);
 }
 
 #[test]
