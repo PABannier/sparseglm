@@ -6,7 +6,7 @@ import scipy.sparse as sp
 from sklearn.linear_model import Lasso as Lasso_sk
 from rustylasso.estimators import Lasso
 
-from rustylasso.utils import make_correlated_data, compute_alpha_max, sum_squared
+from rustylasso.utils import make_correlated_data, compute_alpha_max
 
 n_samples = 300
 n_features = 1000

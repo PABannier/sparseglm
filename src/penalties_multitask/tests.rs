@@ -40,11 +40,10 @@ fn test_subdiff_dist_l21() {
     let grad = Array2::from_shape_vec((3, 3), vec![0.4, 3.2, -3.4, 0.2, 3.2, -3., 0.8, -1.2, -2.3])
         .unwrap();
 
-    let ws: Vec<usize> = (0..3).collect();
+    let ws = Array1::from_shape_vec(3, (0..3).collect()).unwrap();
     let pen = L21::new(1.);
 
-    let (subdiff_dist, max_dist) = pen.subdiff_distance(W.view(), grad.view(), &ws);
-    let subdiff_dist = Array1::from_shape_vec(3, subdiff_dist).unwrap();
+    let (subdiff_dist, max_dist) = pen.subdiff_distance(W.view(), grad.view(), ws.view());
 
     let truth = Array1::from_shape_vec(3, vec![4.21809671, 5.38866612, 2.73406173]).unwrap();
     assert_array_all_close(subdiff_dist.view(), truth.view(), 1e-6);

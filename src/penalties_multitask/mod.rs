@@ -12,7 +12,12 @@ mod tests;
 pub trait PenaltyMultiTask<T: Float> {
     fn value(&self, W: ArrayView2<T>) -> T;
     fn prox_op(&self, value: ArrayView1<T>, stepsize: T) -> Array1<T>;
-    fn subdiff_distance(&self, W: ArrayView2<T>, grad: ArrayView2<T>, ws: &[usize]) -> (Vec<T>, T);
+    fn subdiff_distance(
+        &self,
+        W: ArrayView2<T>,
+        grad: ArrayView2<T>,
+        ws: ArrayView1<usize>,
+    ) -> (Array1<T>, T);
 }
 
 /// L21 penalty
@@ -39,10 +44,15 @@ impl<T: 'static + Float> PenaltyMultiTask<T> for L21<T> {
         block_soft_thresholding(value, self.alpha * stepsize)
     }
     /// Computes the distance of the gradient to the subdifferential
-    fn subdiff_distance(&self, W: ArrayView2<T>, grad: ArrayView2<T>, ws: &[usize]) -> (Vec<T>, T) {
+    fn subdiff_distance(
+        &self,
+        W: ArrayView2<T>,
+        grad: ArrayView2<T>,
+        ws: ArrayView1<usize>,
+    ) -> (Array1<T>, T) {
         let ws_size = ws.len();
         let n_tasks = W.shape()[1];
-        let mut subdiff_dist: Vec<T> = vec![T::zero(); ws_size];
+        let mut subdiff_dist = Array1::zeros(ws_size);
         let mut max_subdiff_dist = T::neg_infinity();
         for (idx, &j) in ws.iter().enumerate() {
             if W.slice(s![j, ..]).map(|&w| w.abs()).sum() == T::zero() {
