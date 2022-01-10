@@ -6,7 +6,7 @@ use num::Float;
 use std::fmt::Debug;
 
 use crate::datafits_multitask::DatafitMultiTask;
-use crate::helpers::helpers::solve_lin_sys;
+use crate::helpers::helpers::{argsort_by, solve_lin_sys};
 use crate::penalties_multitask::PenaltyMultiTask;
 use crate::sparse::{CSCArray, MatrixParam};
 
@@ -16,7 +16,7 @@ mod tests;
 pub fn construct_grad<T: 'static + Float, D: DatafitMultiTask<T>>(
     X: ArrayView2<T>,
     XW: ArrayView2<T>,
-    ws: &[usize],
+    ws: ArrayView1<usize>,
     datafit: &D,
 ) -> Array2<T> {
     let ws_size = ws.len();
@@ -34,7 +34,7 @@ pub fn construct_grad<T: 'static + Float, D: DatafitMultiTask<T>>(
 pub fn construct_grad_sparse<T: 'static + Float, D: DatafitMultiTask<T>>(
     X: &CSCArray<T>,
     XW: ArrayView2<T>,
-    ws: &[usize],
+    ws: ArrayView1<usize>,
     datafit: &D,
 ) -> Array2<T> {
     let ws_size = ws.len();
@@ -53,12 +53,12 @@ pub fn kkt_violation<T: 'static + Float, D: DatafitMultiTask<T>, P: PenaltyMulti
     X: ArrayView2<T>,
     W: ArrayView2<T>,
     XW: ArrayView2<T>,
-    ws: &[usize],
+    ws: ArrayView1<usize>,
     datafit: &D,
     penalty: &P,
-) -> (Vec<T>, T) {
-    let grad_ws = construct_grad(X, XW.view(), &ws, datafit);
-    let (kkt_ws, kkt_ws_max) = penalty.subdiff_distance(W.view(), grad_ws.view(), &ws);
+) -> (Array1<T>, T) {
+    let grad_ws = construct_grad(X, XW.view(), ws.view(), datafit);
+    let (kkt_ws, kkt_ws_max) = penalty.subdiff_distance(W.view(), grad_ws.view(), ws.view());
     (kkt_ws, kkt_ws_max)
 }
 
@@ -66,20 +66,20 @@ pub fn kkt_violation_sparse<T: 'static + Float, D: DatafitMultiTask<T>, P: Penal
     X: &CSCArray<T>,
     W: ArrayView2<T>,
     XW: ArrayView2<T>,
-    ws: &[usize],
+    ws: ArrayView1<usize>,
     datafit: &D,
     penalty: &P,
-) -> (Vec<T>, T) {
-    let grad_ws = construct_grad_sparse(&X, XW.view(), &ws, datafit);
-    let (kkt_ws, kkt_ws_max) = penalty.subdiff_distance(W.view(), grad_ws.view(), &ws);
+) -> (Array1<T>, T) {
+    let grad_ws = construct_grad_sparse(&X, XW.view(), ws.view(), datafit);
+    let (kkt_ws, kkt_ws_max) = penalty.subdiff_distance(W.view(), grad_ws.view(), ws.view());
     (kkt_ws, kkt_ws_max)
 }
 
 pub fn construct_ws_from_kkt<T: 'static + Float>(
-    kkt: &mut Vec<T>,
+    kkt: &mut Array1<T>,
     W: ArrayView2<T>,
     p0: usize,
-) -> (Vec<usize>, usize) {
+) -> (Array1<usize>, usize) {
     let n_features = W.shape()[0];
     let mut nnz_features: usize = 0;
 
@@ -92,16 +92,13 @@ pub fn construct_ws_from_kkt<T: 'static + Float>(
 
     let ws_size = usize::max(p0, usize::min(2 * nnz_features, n_features));
 
-    let mut kkt_with_indices: Vec<(usize, T)> = kkt.iter().copied().enumerate().collect();
-    kkt_with_indices.sort_unstable_by(|(_, p), (_, q)| {
-        // Swapped order for sorting in descending order.
-        q.partial_cmp(p).expect("kkt must not be NaN.")
+    let mut sorted_indices = argsort_by(&kkt, |a, b| {
+        // Swapped order for sorting in descending order
+        b.partial_cmp(a).expect("Elements must not be NaN.")
     });
-    let ws: Vec<usize> = kkt_with_indices
-        .iter()
-        .map(|&(ind, _)| ind)
-        .take(ws_size)
-        .collect();
+    sorted_indices.truncate(ws_size);
+
+    let ws = Array1::from_shape_vec(ws_size, sorted_indices).unwrap();
     (ws, ws_size)
 }
 
@@ -112,7 +109,7 @@ pub fn anderson_accel<T, D, P>(
     XW: &mut Array2<T>,
     datafit: &D,
     penalty: &P,
-    ws: &[usize],
+    ws: ArrayView1<usize>,
     last_K_W: &mut Array2<T>,
     U: &mut Array2<T>,
     epoch: usize,
@@ -222,7 +219,7 @@ pub fn bcd_epoch<T: 'static + Float, D: DatafitMultiTask<T>, P: PenaltyMultiTask
     XW: &mut Array2<T>,
     datafit: &D,
     penalty: &P,
-    ws: &[usize],
+    ws: ArrayView1<usize>,
 ) {
     let n_samples = X.shape()[0];
     let n_tasks = W.shape()[1];
@@ -270,7 +267,7 @@ pub fn bcd_epoch_sparse<T: 'static + Float, D: DatafitMultiTask<T>, P: PenaltyMu
     XW: &mut Array2<T>,
     datafit: &D,
     penalty: &P,
-    ws: &[usize],
+    ws: ArrayView1<usize>,
 ) {
     let n_tasks = W.shape()[1];
     let lipschitz = datafit.get_lipschitz();
@@ -343,7 +340,7 @@ pub fn solver_multitask<
         }
     }
 
-    let all_feats: Vec<usize> = (0..n_features).collect();
+    let all_feats = Array1::from_shape_vec(n_features, (0..n_features).collect()).unwrap();
 
     let p0 = if _p0 > n_features { n_features } else { _p0 };
 
@@ -351,13 +348,19 @@ pub fn solver_multitask<
     let mut XW = Array2::<T>::zeros((n_samples, n_tasks));
 
     for t in 0..max_iter {
-        let mut kkt: Vec<T>;
+        let mut kkt: Array1<T>;
         let kkt_max: T;
 
         match X {
             MatrixParam::DenseMatrix(X_full) => {
-                let (a, b) =
-                    kkt_violation(X_full, W.view(), XW.view(), &all_feats, datafit, penalty);
+                let (a, b) = kkt_violation(
+                    X_full,
+                    W.view(),
+                    XW.view(),
+                    all_feats.view(),
+                    datafit,
+                    penalty,
+                );
                 kkt = a;
                 kkt_max = b;
             }
@@ -366,7 +369,7 @@ pub fn solver_multitask<
                     X_sparse,
                     W.view(),
                     XW.view(),
-                    &all_feats,
+                    all_feats.view(),
                     datafit,
                     penalty,
                 );
@@ -394,10 +397,10 @@ pub fn solver_multitask<
         for epoch in 0..max_epochs {
             match X {
                 MatrixParam::DenseMatrix(X_full) => {
-                    bcd_epoch(X_full.view(), &mut W, &mut XW, datafit, penalty, &ws);
+                    bcd_epoch(X_full.view(), &mut W, &mut XW, datafit, penalty, ws.view());
                 }
                 MatrixParam::SparseMatrix(X_sparse) => {
-                    bcd_epoch_sparse(X_sparse, &mut W, &mut XW, datafit, penalty, &ws);
+                    bcd_epoch_sparse(X_sparse, &mut W, &mut XW, datafit, penalty, ws.view());
                 }
             }
 
@@ -410,7 +413,7 @@ pub fn solver_multitask<
                     &mut XW,
                     datafit,
                     penalty,
-                    &ws,
+                    ws.view(),
                     &mut last_K_W,
                     &mut U,
                     epoch,
@@ -428,7 +431,7 @@ pub fn solver_multitask<
                 match X {
                     MatrixParam::DenseMatrix(X_full) => {
                         let (_, b) =
-                            kkt_violation(X_full, W.view(), XW.view(), &ws, datafit, penalty);
+                            kkt_violation(X_full, W.view(), XW.view(), ws.view(), datafit, penalty);
                         kkt_ws_max = b;
                     }
                     MatrixParam::SparseMatrix(X_sparse) => {
@@ -436,7 +439,7 @@ pub fn solver_multitask<
                             X_sparse,
                             W.view(),
                             XW.view(),
-                            &ws,
+                            ws.view(),
                             datafit,
                             penalty,
                         );
