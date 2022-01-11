@@ -3,8 +3,8 @@ extern crate ndarray;
 use ndarray::linalg::general_mat_mul;
 use ndarray::{Array1, Array2};
 
-use crate::datafits_multitask::*;
-use crate::dataset::*;
+use crate::datafits::*;
+use crate::datasets::*;
 use crate::helpers::test_helpers::*;
 use crate::penalties_multitask::*;
 use crate::solver_multitask::*;
@@ -19,11 +19,13 @@ fn test_bcd_epoch() {
     let mut XW = Array2::<f64>::zeros((2, 2));
     general_mat_mul(1., &X, &W, 1., &mut XW);
 
+    let dataset = DatasetBase::from((X, Y));
+
     let mut datafit = QuadraticMultiTask::default();
-    datafit.initialize(X.view(), Y.view());
+    datafit.initialize(&dataset);
     let penalty = L21::new(0.3);
 
-    bcd_epoch(X.view(), &mut W, &mut XW, &datafit, &penalty, ws.view());
+    bcd_epoch(&dataset, &mut W, &mut XW, &datafit, &penalty, ws.view());
 
     let true_W = Array2::from_shape_vec(
         (3, 2),
@@ -54,11 +56,14 @@ fn test_bcd_epoch_sparse() {
     let mut W = Array2::from_shape_vec((3, 2), vec![2.1, -0.9, 3.4, 2.1, -0.9, 3.4]).unwrap();
     let mut XW = Array2::from_shape_vec((3, 2), vec![-1.5, 12.7, -4.5, 17., 9., 24.9]).unwrap();
 
+    let dataset = DatasetBase::from((&X, Y));
+
     let mut datafit = QuadraticMultiTask::default();
-    datafit.initialize_sparse(&X, Y.view());
+    datafit.initialize(&dataset);
+
     let penalty = L21::new(0.7);
 
-    bcd_epoch_sparse(&X, &mut W, &mut XW, &datafit, &penalty, ws.view());
+    bcd_epoch_sparse(&dataset, &mut W, &mut XW, &datafit, &penalty, ws.view());
 
     let true_W = Array2::from_shape_vec(
         (3, 2),
@@ -100,12 +105,14 @@ fn test_kkt_violation() {
     let mut XW = Array2::<f64>::zeros((2, 3));
     general_mat_mul(1., &X, &W, 1., &mut XW);
 
+    let dataset = DatasetBase::from((X, Y));
+
     let mut datafit = QuadraticMultiTask::default();
-    datafit.initialize(X.view(), Y.view());
+    datafit.initialize(&dataset);
     let penalty = L21::new(0.3);
 
     let (kkt, kkt_max) =
-        kkt_violation(X.view(), W.view(), XW.view(), ws.view(), &datafit, &penalty);
+        kkt_violation(&dataset, W.view(), XW.view(), ws.view(), &datafit, &penalty);
     let true_kkt = Array1::from_shape_vec(3, vec![60.66759347, 22.63130826, 6.6374834]).unwrap();
 
     assert_array_all_close(kkt.view(), true_kkt.view(), 1e-6);
@@ -122,6 +129,8 @@ fn test_kkt_violation_sparse() {
     let X = CSCArray::new(data.view(), indices.view(), indptr.view());
     let Y = Array2::from_shape_vec((2, 3), vec![0.3, -2.3, 0.8, 1.2, -3.2, 0.1]).unwrap();
     let ws = Array1::from_shape_vec(5, (0..5).collect()).unwrap();
+
+    let dataset = DatasetBase::from((&X, Y));
 
     let W = Array2::from_shape_vec(
         (5, 3),
@@ -144,11 +153,11 @@ fn test_kkt_violation_sparse() {
     .unwrap();
 
     let mut datafit = QuadraticMultiTask::default();
-    datafit.initialize_sparse(&X, Y.view());
+    datafit.initialize(&dataset);
     let penalty = L21::new(0.3);
 
     let (kkt, kkt_max) =
-        kkt_violation_sparse(&X, W.view(), XW.view(), ws.view(), &datafit, &penalty);
+        kkt_violation(&dataset, W.view(), XW.view(), ws.view(), &datafit, &penalty);
     let true_kkt =
         Array1::from_shape_vec(5, vec![1.0795966, 1.54808192, 0.3, 1.54213716, 0.5701502]).unwrap();
 
