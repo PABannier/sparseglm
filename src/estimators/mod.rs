@@ -3,8 +3,7 @@ extern crate ndarray;
 use ndarray::{Array, ArrayBase, Data, Dimension, Ix1, Ix2};
 
 use super::Float;
-use crate::datafits::Quadratic;
-use crate::datafits_multitask::QuadraticMultiTask;
+use crate::datafits::{Quadratic, QuadraticMultiTask};
 use crate::datasets::{csc_array::CSCArray, DatasetBase, DesignMatrix, Targets};
 use crate::penalties::L1;
 use crate::penalties_multitask::L21;
@@ -82,15 +81,20 @@ where
 /// Lasso
 ///
 
-pub struct Lasso<F: Float> {
-    datafit: Quadratic<F>,
+pub struct Lasso<F, D>
+where
+    F: Float,
+    D: Data<Elem = F>,
+{
+    datafit: Quadratic<F, D>,
     penalty: L1<F>,
     params: SolverParams<F>,
 }
 
-impl<F> Lasso<F>
+impl<F, D> Lasso<F, D>
 where
     F: Float,
+    D: Data<Elem = F>,
 {
     /// Create new instance
     fn new(alpha: F, params: Option<SolverParams<F>>) -> Self {
@@ -102,7 +106,7 @@ where
     }
 }
 
-impl<F, D, T> Fit<F, D, ArrayBase<D, Ix2>, T, Ix1> for Lasso<F>
+impl<F, D, T> Fit<F, D, ArrayBase<D, Ix2>, T, Ix1> for Lasso<F, D>
 where
     F: Float,
     D: Data<Elem = F>,
@@ -126,7 +130,7 @@ where
     }
 }
 
-impl<F, D, T> Fit<F, D, CSCArray<'_, F>, T, Ix1> for Lasso<F>
+impl<F, D, T> Fit<F, D, CSCArray<'_, F>, T, Ix1> for Lasso<F, D>
 where
     F: Float,
     D: Data<Elem = F>,
@@ -153,13 +157,21 @@ where
 /// MultiTask Lasso
 ///
 
-pub struct MultiTaskLasso<F: Float> {
-    datafit: QuadraticMultiTask<F>,
+pub struct MultiTaskLasso<F, D>
+where
+    F: Float,
+    D: Data<Elem = F>,
+{
+    datafit: QuadraticMultiTask<F, D>,
     penalty: L21<F>,
     params: SolverParams<F>,
 }
 
-impl<F: Float> MultiTaskLasso<F> {
+impl<F, D> MultiTaskLasso<F, D>
+where
+    F: Float,
+    D: Data<Elem = F>,
+{
     /// Create new instance
     fn new(alpha: F, params: Option<SolverParams<F>>) -> Self {
         MultiTaskLasso {
@@ -170,7 +182,7 @@ impl<F: Float> MultiTaskLasso<F> {
     }
 }
 
-impl<F, D, T> Fit<F, D, ArrayBase<D, Ix2>, T, Ix2> for MultiTaskLasso<F>
+impl<F, D, T> Fit<F, D, ArrayBase<D, Ix2>, T, Ix2> for MultiTaskLasso<F, D>
 where
     F: Float,
     D: Data<Elem = F>,
@@ -194,7 +206,7 @@ where
     }
 }
 
-impl<F, D, T> Fit<F, D, CSCArray<'_, F>, T, Ix2> for MultiTaskLasso<F>
+impl<F, D, T> Fit<F, D, CSCArray<'_, F>, T, Ix2> for MultiTaskLasso<F, D>
 where
     F: Float,
     D: Data<Elem = F>,
