@@ -3,7 +3,8 @@ extern crate ndarray;
 use ndarray::{Array, ArrayBase, Data, Dimension, Ix1, Ix2};
 
 use super::Float;
-use crate::datafits::{Quadratic, QuadraticMultiTask};
+use crate::datafits::Quadratic;
+use crate::datafits_multitask::QuadraticMultiTask;
 use crate::datasets::{csc_array::CSCArray, DatasetBase, DesignMatrix, Targets};
 use crate::penalties::L1;
 use crate::penalties_multitask::L21;
@@ -81,20 +82,18 @@ where
 /// Lasso
 ///
 
-pub struct Lasso<F, D>
+pub struct Lasso<F>
 where
     F: Float,
-    D: Data<Elem = F>,
 {
-    datafit: Quadratic<F, D>,
+    datafit: Quadratic<F>,
     penalty: L1<F>,
     params: SolverParams<F>,
 }
 
-impl<F, D> Lasso<F, D>
+impl<F> Lasso<F>
 where
     F: Float,
-    D: Data<Elem = F>,
 {
     /// Create new instance
     fn new(alpha: F, params: Option<SolverParams<F>>) -> Self {
@@ -106,14 +105,13 @@ where
     }
 }
 
-impl<F, D, T> Fit<F, D, ArrayBase<D, Ix2>, T, Ix1> for Lasso<F, D>
+impl<F, D> Fit<F, D, ArrayBase<D, Ix2>, ArrayBase<D, Ix1>, Ix1> for Lasso<F>
 where
     F: Float,
     D: Data<Elem = F>,
-    T: Targets<Elem = F>,
 {
     /// Fits the Lasso estimator to a dense design matrix
-    fn fit(&self, dataset: &DatasetBase<ArrayBase<D, Ix2>, T>) -> Array<F, Ix1> {
+    fn fit(&self, dataset: &DatasetBase<ArrayBase<D, Ix2>, ArrayBase<D, Ix1>>) -> Array<F, Ix1> {
         let w = solver(
             dataset,
             &mut self.datafit,
@@ -130,14 +128,13 @@ where
     }
 }
 
-impl<F, D, T> Fit<F, D, CSCArray<'_, F>, T, Ix1> for Lasso<F, D>
+impl<F, D> Fit<F, D, CSCArray<'_, F>, ArrayBase<D, Ix1>, Ix1> for Lasso<F>
 where
     F: Float,
     D: Data<Elem = F>,
-    T: Targets<Elem = F>,
 {
     /// Fits the Lasso estimator to a sparse design matrix
-    fn fit(&self, dataset: &DatasetBase<CSCArray<F>, T>) -> Array<F, Ix1> {
+    fn fit(&self, dataset: &DatasetBase<CSCArray<F>, ArrayBase<D, Ix1>>) -> Array<F, Ix1> {
         let w = solver(
             dataset,
             &mut self.datafit,
@@ -157,20 +154,18 @@ where
 /// MultiTask Lasso
 ///
 
-pub struct MultiTaskLasso<F, D>
+pub struct MultiTaskLasso<F>
 where
     F: Float,
-    D: Data<Elem = F>,
 {
-    datafit: QuadraticMultiTask<F, D>,
+    datafit: QuadraticMultiTask<F>,
     penalty: L21<F>,
     params: SolverParams<F>,
 }
 
-impl<F, D> MultiTaskLasso<F, D>
+impl<F> MultiTaskLasso<F>
 where
     F: Float,
-    D: Data<Elem = F>,
 {
     /// Create new instance
     fn new(alpha: F, params: Option<SolverParams<F>>) -> Self {
@@ -182,14 +177,13 @@ where
     }
 }
 
-impl<F, D, T> Fit<F, D, ArrayBase<D, Ix2>, T, Ix2> for MultiTaskLasso<F, D>
+impl<F, D> Fit<F, D, ArrayBase<D, Ix2>, ArrayBase<D, Ix2>, Ix2> for MultiTaskLasso<F>
 where
     F: Float,
     D: Data<Elem = F>,
-    T: Targets<Elem = F>,
 {
     /// Fits the MultiTaskLasso estimator to a dense design matrix
-    fn fit(&self, dataset: &DatasetBase<ArrayBase<D, Ix2>, T>) -> Array<F, Ix2> {
+    fn fit(&self, dataset: &DatasetBase<ArrayBase<D, Ix2>, ArrayBase<D, Ix2>>) -> Array<F, Ix2> {
         let W = solver_multitask(
             dataset,
             &mut self.datafit,
@@ -206,14 +200,13 @@ where
     }
 }
 
-impl<F, D, T> Fit<F, D, CSCArray<'_, F>, T, Ix2> for MultiTaskLasso<F, D>
+impl<F, D> Fit<F, D, CSCArray<'_, F>, ArrayBase<D, Ix2>, Ix2> for MultiTaskLasso<F>
 where
     F: Float,
     D: Data<Elem = F>,
-    T: Targets<Elem = F>,
 {
     /// Fits the MultiTask estimator to a sparse design matrix
-    fn fit(&self, dataset: &DatasetBase<CSCArray<'_, F>, T>) -> Array<F, Ix2> {
+    fn fit(&self, dataset: &DatasetBase<CSCArray<'_, F>, ArrayBase<D, Ix2>>) -> Array<F, Ix2> {
         let W = solver_multitask(
             dataset,
             &mut self.datafit,
