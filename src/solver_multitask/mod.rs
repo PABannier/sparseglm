@@ -1,32 +1,37 @@
 extern crate ndarray;
 
-use ndarray::{s, Array1, Array2, ArrayView1, ArrayView2};
+use ndarray::{s, Array1, Array2, ArrayBase, ArrayView1, ArrayView2, Data, Dimension, Ix2};
 
 use super::Float;
-use crate::datafits_multitask::DatafitMultiTask;
+use crate::datafits::Datafit;
 use crate::datasets::DesignMatrix;
 use crate::datasets::{csc_array::CSCArray, DatasetBase, DesignMatrixType, Targets};
 use crate::helpers::helpers::{argsort_by, solve_lin_sys};
+use crate::penalties::Penalty;
 use crate::penalties_multitask::PenaltyMultiTask;
 
 #[cfg(test)]
 mod tests;
 
-pub fn construct_grad<F, D>(
-    X: ArrayView2<F>,
+pub fn construct_grad<F, D, DF, DM, T, I>(
+    dataset: &DatasetBase<DM, T>,
     XW: ArrayView2<F>,
     ws: ArrayView1<usize>,
-    datafit: &D,
+    datafit: &DF,
 ) -> Array2<F>
 where
     F: 'static + Float,
-    D: DatafitMultiTask<F>,
+    D: Data<Elem = F>,
+    DM: DesignMatrix<Elem = F>,
+    T: Targets<Elem = F>,
+    DF: Datafit<F, D, I, DM, T>,
+    I: Dimension,
 {
     let ws_size = ws.len();
-    let n_tasks = XW.shape()[1];
+    let n_tasks = dataset.n_tasks();
     let mut grad = Array2::<F>::zeros((ws_size, n_tasks));
     for (idx, &j) in ws.iter().enumerate() {
-        let grad_j = datafit.gradient_j(X, XW.view(), j);
+        let grad_j = datafit.gradient_j(&dataset, XW, j);
         for t in 0..n_tasks {
             grad[[idx, t]] = grad_j[t];
         }
@@ -34,61 +39,25 @@ where
     grad
 }
 
-pub fn construct_grad_sparse<F, D>(
-    X: &CSCArray<F>,
-    XW: ArrayView2<F>,
-    ws: ArrayView1<usize>,
-    datafit: &D,
-) -> Array2<F>
-where
-    F: 'static + Float,
-    D: DatafitMultiTask<F>,
-{
-    let ws_size = ws.len();
-    let n_tasks = XW.shape()[1];
-    let mut grad = Array2::<F>::zeros((ws_size, n_tasks));
-    for (idx, &j) in ws.iter().enumerate() {
-        let grad_j = datafit.gradient_j_sparse(&X, XW.view(), j);
-        for t in 0..n_tasks {
-            grad[[idx, t]] = grad_j[t];
-        }
-    }
-    grad
-}
-
-pub fn kkt_violation<F, D, P>(
-    X: ArrayView2<F>,
+pub fn kkt_violation<F, D, DF, P, DM, T, I>(
+    dataset: &DatasetBase<DM, T>,
     W: ArrayView2<F>,
     XW: ArrayView2<F>,
     ws: ArrayView1<usize>,
-    datafit: &D,
+    datafit: &DF,
     penalty: &P,
 ) -> (Array1<F>, F)
 where
     F: 'static + Float,
-    D: DatafitMultiTask<F>,
-    P: PenaltyMultiTask<F>,
+    D: Data<Elem = F>,
+    DM: DesignMatrix<Elem = F>,
+    T: Targets<Elem = F>,
+    DF: Datafit<F, D, I, DM, T>,
+    P: Penalty<F, D>,
+    I: Dimension,
 {
-    let grad_ws = construct_grad(X, XW.view(), ws.view(), datafit);
-    let (kkt_ws, kkt_ws_max) = penalty.subdiff_distance(W.view(), grad_ws.view(), ws.view());
-    (kkt_ws, kkt_ws_max)
-}
-
-pub fn kkt_violation_sparse<F, D, P>(
-    X: &CSCArray<F>,
-    W: ArrayView2<F>,
-    XW: ArrayView2<F>,
-    ws: ArrayView1<usize>,
-    datafit: &D,
-    penalty: &P,
-) -> (Array1<F>, F)
-where
-    F: 'static + Float,
-    D: DatafitMultiTask<F>,
-    P: PenaltyMultiTask<F>,
-{
-    let grad_ws = construct_grad_sparse(&X, XW.view(), ws.view(), datafit);
-    let (kkt_ws, kkt_ws_max) = penalty.subdiff_distance(W.view(), grad_ws.view(), ws.view());
+    let grad_ws = construct_grad(&dataset, XW, ws, datafit);
+    let (kkt_ws, kkt_ws_max) = penalty.subdiff_distance(W, grad_ws.view(), ws);
     (kkt_ws, kkt_ws_max)
 }
 
@@ -122,11 +91,11 @@ where
     (ws, ws_size)
 }
 
-pub fn anderson_accel<F, D, P, DM, T>(
+pub fn anderson_accel<F, D, DM, T, DF, P, I>(
     dataset: &DatasetBase<DM, T>,
     W: &mut Array2<F>,
     XW: &mut Array2<F>,
-    datafit: &D,
+    datafit: &DF,
     penalty: &P,
     ws: ArrayView1<usize>,
     last_K_W: &mut Array2<F>,
@@ -136,10 +105,12 @@ pub fn anderson_accel<F, D, P, DM, T>(
     verbose: bool,
 ) where
     F: 'static + Float,
+    D: Data<Elem = F>,
     DM: DesignMatrix<Elem = F>,
     T: Targets<Elem = F>,
-    D: DatafitMultiTask<F>,
-    P: PenaltyMultiTask<F>,
+    DF: Datafit<F, D, I, DM, T>,
+    P: PenaltyMultiTask<F, D>,
+    I: Dimension,
 {
     let n_samples = dataset.n_samples();
     let n_features = dataset.n_features();
@@ -168,7 +139,7 @@ pub fn anderson_accel<F, D, P, DM, T>(
         for i in 0..K {
             for j in 0..K {
                 for l in 0..ws.len() {
-                    C[[i, j]] = C[[i, j]] + U[[i, l]] * U[[j, l]];
+                    C[[i, j]] += U[[i, l]] * U[[j, l]];
                 }
             }
         }
@@ -186,7 +157,7 @@ pub fn anderson_accel<F, D, P, DM, T>(
                 for (idx, &j) in ws.iter().enumerate() {
                     for k in 0..K {
                         for t in 0..n_tasks {
-                            W_acc[[j, t]] = W_acc[[j, t]] + last_K_W[[k, idx * n_tasks + t]] * c[k];
+                            W_acc[[j, t]] += last_K_W[[k, idx * n_tasks + t]] * c[k];
                         }
                     }
                 }
@@ -198,7 +169,7 @@ pub fn anderson_accel<F, D, P, DM, T>(
                         for i in 0..n_samples {
                             for &j in ws {
                                 for t in 0..n_tasks {
-                                    XW_acc[[i, t]] = XW_acc[[i, t]] + X[[i, j]] * W_acc[[j, t]];
+                                    XW_acc[[i, t]] += X[[i, j]] * W_acc[[j, t]];
                                 }
                             }
                         }
@@ -207,17 +178,16 @@ pub fn anderson_accel<F, D, P, DM, T>(
                         for &j in ws {
                             for idx in X.indptr[j]..X.indptr[j + 1] {
                                 for t in 0..n_tasks {
-                                    XW_acc[[X.indices[idx as usize] as usize, t]] = XW_acc
-                                        [[X.indices[idx as usize] as usize, t]]
-                                        + X.data[idx as usize] * W_acc[[j, t]];
+                                    XW_acc[[X.indices[idx as usize] as usize, t]] +=
+                                        X.data[idx as usize] * W_acc[[j, t]];
                                 }
                             }
                         }
                     }
                 }
 
-                let p_obj = datafit.value(Y, XW.view()) + penalty.value(W.view());
-                let p_obj_acc = datafit.value(Y, XW_acc.view()) + penalty.value(W_acc.view());
+                let p_obj = datafit.value(dataset, XW.view()) + penalty.value(W.view());
+                let p_obj_acc = datafit.value(dataset, XW_acc.view()) + penalty.value(W_acc.view());
 
                 if p_obj_acc < p_obj {
                     W.assign(&W_acc);
@@ -237,21 +207,27 @@ pub fn anderson_accel<F, D, P, DM, T>(
     }
 }
 
-pub fn bcd_epoch<F, D, P>(
-    X: ArrayView2<F>,
+pub fn bcd_epoch<F, D, DF, P, T, I>(
+    dataset: &DatasetBase<ArrayBase<D, Ix2>, T>,
     W: &mut Array2<F>,
     XW: &mut Array2<F>,
-    datafit: &D,
+    datafit: &DF,
     penalty: &P,
     ws: ArrayView1<usize>,
 ) where
     F: 'static + Float,
-    D: DatafitMultiTask<F>,
-    P: PenaltyMultiTask<F>,
+    D: Data<Elem = F>,
+    T: Targets<Elem = F>,
+    DF: Datafit<F, D, I, ArrayBase<D, Ix2>, T>,
+    P: PenaltyMultiTask<F, D>,
+    I: Dimension,
 {
-    let n_samples = X.shape()[0];
-    let n_tasks = W.shape()[1];
+    let n_samples = dataset.n_samples();
+    let n_tasks = dataset.n_tasks();
+
+    let X = dataset.design_matrix;
     let lipschitz = datafit.lipschitz();
+
     for &j in ws {
         if lipschitz[j] == F::zero() {
             continue;
@@ -261,7 +237,7 @@ pub fn bcd_epoch<F, D, P>(
         for t in 0..n_tasks {
             old_W_j[t] = W[[j, t]];
         }
-        let grad_j = datafit.gradient_j(X, XW.view(), j);
+        let grad_j = datafit.gradient_j(dataset, XW.view(), j);
 
         let mut upd = Array1::<F>::zeros(n_tasks);
         for t in 0..n_tasks {
@@ -276,33 +252,39 @@ pub fn bcd_epoch<F, D, P>(
         let mut sum_diff = F::zero();
         for t in 0..n_tasks {
             diff[t] = W[[j, t]] - old_W_j[t];
-            sum_diff = sum_diff + diff[t].abs()
+            sum_diff += diff[t].abs()
         }
 
         if sum_diff != F::zero() {
             for i in 0..n_samples {
                 for t in 0..n_tasks {
-                    XW[[i, t]] = XW[[i, t]] + diff[t] * Xj[i];
+                    XW[[i, t]] += diff[t] * Xj[i];
                 }
             }
         }
     }
 }
 
-pub fn bcd_epoch_sparse<F, D, P>(
-    X: &CSCArray<F>,
+pub fn bcd_epoch_sparse<'a, F, D, DF, P, T, I>(
+    dataset: &DatasetBase<CSCArray<'a, F>, T>,
     W: &mut Array2<F>,
     XW: &mut Array2<F>,
-    datafit: &D,
+    datafit: &DF,
     penalty: &P,
     ws: ArrayView1<usize>,
 ) where
     F: 'static + Float,
-    D: DatafitMultiTask<F>,
-    P: PenaltyMultiTask<F>,
+    D: Data<Elem = F>,
+    DF: Datafit<F, D, I, CSCArray<'a, F>, T>,
+    P: PenaltyMultiTask<F, D>,
+    T: Targets<Elem = F>,
+    I: Dimension,
 {
-    let n_tasks = W.shape()[1];
+    let n_tasks = dataset.n_tasks();
+
+    let X = dataset.design_matrix;
     let lipschitz = datafit.lipschitz();
+
     for &j in ws {
         if lipschitz[j] == F::zero() {
             continue;
@@ -311,7 +293,7 @@ pub fn bcd_epoch_sparse<F, D, P>(
         for t in 0..n_tasks {
             old_W_j[t] = W[[j, t]];
         }
-        let grad_j = datafit.gradient_j_sparse(&X, XW.view(), j);
+        let grad_j = datafit.gradient_j(dataset, XW.view(), j);
 
         let mut upd = Array1::<F>::zeros(n_tasks);
         for t in 0..n_tasks {
@@ -326,23 +308,22 @@ pub fn bcd_epoch_sparse<F, D, P>(
         let mut sum_diff = F::zero();
         for t in 0..n_tasks {
             diff[t] = W[[j, t]] - old_W_j[t];
-            sum_diff = sum_diff + diff[t].abs();
+            sum_diff += diff[t].abs();
         }
 
         if sum_diff != F::zero() {
             for i in X.indptr[j]..X.indptr[j + 1] {
                 for t in 0..n_tasks {
-                    XW[[X.indices[i as usize] as usize, t]] =
-                        XW[[X.indices[i as usize] as usize, t]] + diff[t] * X.data[i as usize];
+                    XW[[X.indices[i as usize] as usize, t]] += diff[t] * X.data[i as usize];
                 }
             }
         }
     }
 }
 
-pub fn solver_multitask<F, D, P, DM, T>(
+pub fn solver_multitask<F, D, DM, T, DF, P, I>(
     dataset: &DatasetBase<DM, T>,
-    datafit: &mut D,
+    datafit: &mut DF,
     penalty: &P,
     max_iter: usize,
     max_epochs: usize,
@@ -354,26 +335,21 @@ pub fn solver_multitask<F, D, P, DM, T>(
 ) -> Array2<F>
 where
     F: 'static + Float,
+    D: Data<Elem = F>,
     DM: DesignMatrix<Elem = F>,
     T: Targets<Elem = F>,
-    D: DatafitMultiTask<F>,
-    P: PenaltyMultiTask<F>,
+    DF: Datafit<F, D, I, DM, T>,
+    P: PenaltyMultiTask<F, D>,
+    I: Dimension,
 {
     let n_samples = dataset.n_samples();
     let n_features = dataset.n_features();
     let n_tasks = dataset.n_tasks();
 
+    datafit.initialize(dataset);
+
     let X = dataset.design_matrix;
     let Y = dataset.targets;
-
-    match dataset.matrix_type() {
-        DesignMatrixType::Dense => {
-            datafit.initialize(X, Y);
-        }
-        DesignMatrixType::Sparse => {
-            datafit.initialize_sparse(X, Y);
-        }
-    }
 
     let all_feats = Array1::from_shape_vec(n_features, (0..n_features).collect()).unwrap();
 
@@ -383,29 +359,14 @@ where
     let mut XW = Array2::<F>::zeros((n_samples, n_tasks));
 
     for t in 0..max_iter {
-        let mut kkt: Array1<F>;
-        let kkt_max: F;
-
-        match dataset.matrix_type() {
-            DesignMatrixType::Dense => {
-                let (a, b) =
-                    kkt_violation(X, W.view(), XW.view(), all_feats.view(), datafit, penalty);
-                kkt = a;
-                kkt_max = b;
-            }
-            DesignMatrixType::Sparse => {
-                let (a, b) = kkt_violation_sparse(
-                    X,
-                    W.view(),
-                    XW.view(),
-                    all_feats.view(),
-                    datafit,
-                    penalty,
-                );
-                kkt = a;
-                kkt_max = b;
-            }
-        }
+        let (mut kkt, kkt_max) = kkt_violation(
+            dataset,
+            W.view(),
+            XW.view(),
+            all_feats.view(),
+            datafit,
+            penalty,
+        );
 
         if verbose {
             println!("KKT max violation: {:#?}", kkt_max);
@@ -426,17 +387,17 @@ where
         for epoch in 0..max_epochs {
             match dataset.matrix_type() {
                 DesignMatrixType::Dense => {
-                    bcd_epoch(X, &mut W, &mut XW, datafit, penalty, ws.view());
+                    bcd_epoch(dataset, &mut W, &mut XW, datafit, penalty, ws.view());
                 }
                 DesignMatrixType::Sparse => {
-                    bcd_epoch_sparse(X, &mut W, &mut XW, datafit, penalty, ws.view());
+                    bcd_epoch_sparse(dataset, &mut W, &mut XW, datafit, penalty, ws.view());
                 }
             }
 
             // Anderson acceleration
             if use_accel {
                 anderson_accel(
-                    &dataset,
+                    dataset,
                     &mut W,
                     &mut XW,
                     datafit,
@@ -452,28 +413,10 @@ where
 
             // KKT violation check
             if epoch > 0 && epoch % 10 == 0 {
-                let p_obj = datafit.value(Y, XW.view()) + penalty.value(W.view());
+                let p_obj = datafit.value(dataset, XW.view()) + penalty.value(W.view());
 
-                let kkt_ws_max: F;
-
-                match dataset.matrix_type() {
-                    DesignMatrixType::Dense => {
-                        let (_, b) =
-                            kkt_violation(X, W.view(), XW.view(), ws.view(), datafit, penalty);
-                        kkt_ws_max = b;
-                    }
-                    DesignMatrixType::Sparse => {
-                        let (_, b) = kkt_violation_sparse(
-                            X,
-                            W.view(),
-                            XW.view(),
-                            ws.view(),
-                            datafit,
-                            penalty,
-                        );
-                        kkt_ws_max = b;
-                    }
-                }
+                let (_, kkt_ws_max) =
+                    kkt_violation(dataset, W.view(), XW.view(), ws.view(), datafit, penalty);
 
                 if verbose {
                     println!(
@@ -487,7 +430,7 @@ where
                         break;
                     }
                 } else {
-                    if kkt_ws_max < F::from(0.3).unwrap() * kkt_max {
+                    if kkt_ws_max < F::cast(0.3) * kkt_max {
                         if verbose {
                             println!("Early exit.")
                         }

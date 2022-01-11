@@ -82,11 +82,11 @@ where
     (ws, ws_size)
 }
 
-pub fn anderson_accel<F, DM, T, D, P, I>(
+pub fn anderson_accel<F, D, DM, T, DF, P, I>(
     dataset: &DatasetBase<DM, T>,
     w: &mut Array1<F>,
     Xw: &mut Array1<F>,
-    datafit: &D,
+    datafit: &DF,
     penalty: &P,
     ws: ArrayView1<usize>,
     last_K_w: &mut Array2<F>,
@@ -96,9 +96,10 @@ pub fn anderson_accel<F, DM, T, D, P, I>(
     verbose: bool,
 ) where
     F: 'static + Float,
+    D: Data<Elem = F>,
     DM: DesignMatrix<Elem = F>,
     T: Targets<Elem = F>,
-    D: Datafit<F, D, DM, T, I>,
+    DF: Datafit<F, D, DM, T, I>,
     P: Penalty<F, D>,
     I: Dimension,
 {
@@ -284,8 +285,7 @@ where
     let X = dataset.design_matrix;
     let y = dataset.targets;
 
-    let all_feats: Array1<usize> =
-        Array1::from_shape_vec(n_features, (0..n_features).collect()).unwrap();
+    let all_feats = Array1::from_shape_vec(n_features, (0..n_features).collect()).unwrap();
 
     let p0 = if _p0 > n_features { n_features } else { _p0 };
 
