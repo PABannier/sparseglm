@@ -1,9 +1,9 @@
 extern crate ndarray;
 
 pub mod csc_array;
-
 mod impl_datasets;
 mod impl_design_matrix;
+mod impl_targets;
 
 pub struct DatasetBase<DM, T>
 where
@@ -25,7 +25,6 @@ pub trait DesignMatrix: Sized {
 pub trait Targets: Sized {
     type Elem;
 
-    fn n_samples(&self) -> usize;
     fn n_tasks(&self) -> usize;
 }
 

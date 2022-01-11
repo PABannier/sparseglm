@@ -1,6 +1,6 @@
 extern crate ndarray;
 
-use ndarray::{Array1, ArrayBase, ArrayView1, Axis, Data, Ix2};
+use ndarray::{Array1, ArrayBase, ArrayView1, Axis, Data, Ix1, Ix2};
 
 use super::Float;
 use crate::datasets::{csc_array::CSCArray, DatasetBase, DesignMatrix, Targets};
@@ -8,19 +8,20 @@ use crate::datasets::{csc_array::CSCArray, DatasetBase, DesignMatrix, Targets};
 #[cfg(test)]
 mod tests;
 
-pub trait Datafit<F, DM, T>
+pub trait Datafit<F, D, DM, T>
 where
     F: Float,
+    D: Data<Elem = F>,
     DM: DesignMatrix<Elem = F>,
     T: Targets<Elem = F>,
 {
     fn initialize(&mut self, dataset: &DatasetBase<DM, T>);
-    fn value(&self, dataset: &DatasetBase<DM, T>, Xw: ArrayView1<F>) -> F;
-    fn gradient_j(&self, dataset: &DatasetBase<DM, T>, Xw: ArrayView1<F>, j: usize) -> F;
-    fn full_grad(&self, dataset: &DatasetBase<DM, T>, Xw: ArrayView1<F>) -> Array1<F>;
+    fn value(&self, dataset: &DatasetBase<DM, T>, Xw: ArrayBase<D, Ix1>) -> F;
+    fn gradient_j(&self, dataset: &DatasetBase<DM, T>, Xw: ArrayBase<D, Ix1>, j: usize) -> F;
+    fn full_grad(&self, dataset: &DatasetBase<DM, T>, Xw: ArrayBase<D, Ix1>) -> ArrayBase<D, Ix1>;
 
-    fn lipschitz(&self) -> ArrayView1<F>;
-    fn Xty(&self) -> ArrayView1<F>;
+    fn lipschitz(&self) -> ArrayBase<D, Ix1>;
+    fn Xty(&self) -> ArrayBase<D, Ix1>;
 }
 
 /// Quadratic datafit
@@ -40,14 +41,13 @@ impl<F: Float> Default for Quadratic<F> {
     }
 }
 
-impl<F, D, T> Datafit<F, ArrayBase<D, Ix2>, T> for Quadratic<F>
+impl<F, D> Datafit<F, D, ArrayBase<D, Ix2>, ArrayBase<D, Ix1>> for Quadratic<F>
 where
     F: Float,
     D: Data<Elem = F>,
-    T: Targets<Elem = F>,
 {
     /// Initializes the datafit by pre-computing useful quantities
-    fn initialize(&mut self, dataset: &DatasetBase<ArrayBase<D, Ix2>, T>) {
+    fn initialize(&mut self, dataset: &DatasetBase<ArrayBase<D, Ix2>, ArrayBase<D, Ix1>>) {
         let X = dataset.design_matrix;
         let y = dataset.targets;
         self.Xty = X.t().dot(&y);
@@ -59,8 +59,8 @@ where
     /// Computes the value of the gradient at some point w for coordinate j
     fn gradient_j(
         &self,
-        dataset: &DatasetBase<ArrayBase<D, Ix2>, T>,
-        Xw: ArrayView1<F>,
+        dataset: &DatasetBase<ArrayBase<D, Ix2>, ArrayBase<D, Ix1>>,
+        Xw: ArrayBase<D, Ix1>,
         j: usize,
     ) -> F {
         let n_samples = dataset.n_samples();
@@ -75,7 +75,7 @@ where
     /// Compute the gradient at some point w
     fn full_grad(
         &self,
-        dataset: &DatasetBase<ArrayBase<D, Ix2>, T>,
+        dataset: &DatasetBase<ArrayBase<D, Ix2>, ArrayBase<D, Ix1>>,
         Xw: ArrayView1<F>,
     ) -> Array1<F> {
         let n_samples = dataset.n_samples();
@@ -91,7 +91,11 @@ where
     }
 
     /// Computes the value of the datafit
-    fn value(&self, dataset: &DatasetBase<ArrayBase<D, Ix2>, T>, Xw: ArrayView1<F>) -> F {
+    fn value(
+        &self,
+        dataset: &DatasetBase<ArrayBase<D, Ix2>, ArrayBase<D, Ix1>>,
+        Xw: ArrayView1<F>,
+    ) -> F {
         let n_samples = dataset.n_samples();
         let y = dataset.targets;
         let r = &y - &Xw;
@@ -111,13 +115,13 @@ where
     }
 }
 
-impl<F, T> Datafit<F, CSCArray<'_, F>, T> for Quadratic<F>
+impl<F, D> Datafit<F, D, CSCArray<'_, F>, ArrayBase<D, Ix1>> for Quadratic<F>
 where
     F: Float,
-    T: Targets<Elem = F>,
+    D: Data<Elem = F>,
 {
     /// Initializes the datafit by pre-computing useful quantities with sparse matrices
-    fn initialize(&mut self, dataset: &DatasetBase<CSCArray<'_, F>, T>) {
+    fn initialize(&mut self, dataset: &DatasetBase<CSCArray<'_, F>, ArrayBase<D, Ix1>>) {
         let n_samples = dataset.n_samples();
         let n_features = dataset.n_features();
         let X = dataset.design_matrix;
@@ -139,7 +143,7 @@ where
     /// Computes the value of the gradient at some point w for coordinate j using sparse matrices
     fn gradient_j(
         &self,
-        dataset: &DatasetBase<CSCArray<'_, F>, T>,
+        dataset: &DatasetBase<CSCArray<'_, F>, ArrayBase<D, Ix1>>,
         Xw: ArrayView1<F>,
         j: usize,
     ) -> F {
@@ -153,7 +157,11 @@ where
     }
 
     /// Computes the gradient at some point w using sparse matrices
-    fn full_grad(&self, dataset: &DatasetBase<CSCArray<'_, F>, T>, Xw: ArrayView1<F>) -> Array1<F> {
+    fn full_grad(
+        &self,
+        dataset: &DatasetBase<CSCArray<'_, F>, ArrayBase<D, Ix1>>,
+        Xw: ArrayView1<F>,
+    ) -> Array1<F> {
         let n_samples = dataset.n_samples();
         let n_features = dataset.n_features();
         let X = dataset.design_matrix;
@@ -169,7 +177,11 @@ where
     }
 
     /// Computes the value of the datafit
-    fn value(&self, dataset: &DatasetBase<CSCArray<'_, F>, T>, Xw: ArrayView1<F>) -> F {
+    fn value(
+        &self,
+        dataset: &DatasetBase<CSCArray<'_, F>, ArrayBase<D, Ix1>>,
+        Xw: ArrayView1<F>,
+    ) -> F {
         let n_samples = dataset.n_samples();
         let y = dataset.targets;
         let r = &y - &Xw;
