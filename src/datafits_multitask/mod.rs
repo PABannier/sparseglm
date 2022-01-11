@@ -2,8 +2,7 @@ extern crate ndarray;
 
 use ndarray::linalg::general_mat_mul;
 use ndarray::{
-    s, Array1, Array2, ArrayBase, ArrayView1, ArrayView2, Axis, Data, Dimension, Ix1, Ix2,
-    OwnedRepr,
+    s, Array1, Array2, ArrayBase, ArrayView1, ArrayView2, Axis, Data, Ix1, Ix2, OwnedRepr,
 };
 
 use super::Float;

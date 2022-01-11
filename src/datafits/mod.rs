@@ -1,6 +1,6 @@
 extern crate ndarray;
 
-use ndarray::{Array1, ArrayBase, ArrayView1, Axis, Data, Dimension, Ix1, Ix2, OwnedRepr};
+use ndarray::{Array1, ArrayBase, ArrayView1, Axis, Data, Ix1, Ix2, OwnedRepr};
 
 use super::Float;
 use crate::datasets::{csc_array::CSCArray, DatasetBase, DesignMatrix, Targets};
@@ -45,8 +45,8 @@ where
 {
     fn default() -> Quadratic<F> {
         Quadratic {
-            lipschitz: Array1::zeros(1),
-            Xty: Array1::zeros(1),
+            lipschitz: Array1::<F>::zeros(1),
+            Xty: Array1::<F>::zeros(1),
         }
     }
 }

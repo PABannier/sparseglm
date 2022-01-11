@@ -36,7 +36,7 @@ fn test_initialization_sparse_quadratic_mtl() {
     let dataset_sparse = DatasetBase::from((X_sparse, Y));
 
     let mut df_sparse = QuadraticMultiTask::default();
-    df_sparse.initialize_sparse(&dataset_sparse);
+    df_sparse.initialize(&dataset_sparse);
 
     let mut df = QuadraticMultiTask::default();
     df.initialize(&dataset);
@@ -100,9 +100,9 @@ fn test_gradient_sparse_quadratic_mtl() {
     let mut df_sparse = QuadraticMultiTask::default();
 
     df.initialize(&dataset);
-    df_sparse.initialize_sparse(&dataset_sparse);
+    df_sparse.initialize(&dataset_sparse);
 
     let grad = df.gradient_j(&dataset, XW.view(), 1);
-    let grad_sparse = df_sparse.gradient_j_sparse(&dataset_sparse, XW.view(), 1);
+    let grad_sparse = df_sparse.gradient_j(&dataset_sparse, XW.view(), 1);
     assert_array_all_close(grad.view(), grad_sparse.view(), 1e-6);
 }

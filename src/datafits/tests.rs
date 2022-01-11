@@ -1,6 +1,6 @@
 extern crate ndarray;
 
-use ndarray::{Array1, Array2};
+use ndarray::{Array1, Array2, ViewRepr};
 
 use crate::datafits::*;
 use crate::datasets::DatasetBase;
@@ -8,14 +8,14 @@ use crate::helpers::test_helpers::*;
 
 #[test]
 fn test_initialization_quadratic() {
-    let X = Array2::from_shape_vec((2, 3), vec![3.4, 2.1, 2.3, 3.4, -1.2, 0.2]).unwrap();
-    let y = Array1::from_shape_vec(2, vec![-3.4, 2.1]).unwrap();
+    let X = Array2::<f64>::from_shape_vec((2, 3), vec![3.4, 2.1, 2.3, 3.4, -1.2, 0.2]).unwrap();
+    let y = Array1::<f64>::from_shape_vec(2, vec![-3.4, 2.1]).unwrap();
     let dataset = DatasetBase::from((X, y));
     let mut df = Quadratic::default();
     df.initialize(&dataset);
     let Xty = Array1::from_shape_vec(3, vec![-4.42, -9.66, -7.4]).unwrap();
     let lipschitz = Array1::from_shape_vec(3, vec![11.56, 2.925, 2.665]).unwrap();
-    let tmp = df.Xty();
+    let tmp: ArrayBase<ViewRepr<&f64>, Ix1> = df.Xty();
     assert_array_all_close(Xty.view(), df.Xty(), 1e-8);
     assert_array_all_close(lipschitz.view(), df.lipschitz(), 1e-8);
 }
@@ -31,7 +31,7 @@ fn test_initialization_sparse_quadratic() {
     let y = Array1::from_shape_vec(3, vec![1., 3., 2.]).unwrap();
 
     let dataset = DatasetBase::from((X, y));
-    let dataset_sparse = DatasetBase::from((&X_sparse, y));
+    let dataset_sparse = DatasetBase::from((X_sparse, y));
 
     let mut df_sparse = Quadratic::default();
     df_sparse.initialize(&dataset_sparse);
