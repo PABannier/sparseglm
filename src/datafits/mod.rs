@@ -8,10 +8,9 @@ use crate::datasets::{csc_array::CSCArray, DatasetBase, DesignMatrix, Targets};
 #[cfg(test)]
 mod tests;
 
-pub trait Datafit<F, D, DM, T>
+pub trait Datafit<F, DM, T>
 where
     F: Float,
-    D: Data<Elem = F>,
     DM: DesignMatrix<Elem = F>,
     T: Targets<Elem = F>,
 {
@@ -51,7 +50,7 @@ where
     }
 }
 
-impl<F, D> Datafit<F, D, ArrayBase<D, Ix2>, ArrayBase<D, Ix1>> for Quadratic<F>
+impl<F, D> Datafit<F, ArrayBase<D, Ix2>, ArrayBase<D, Ix1>> for Quadratic<F>
 where
     F: Float,
     D: Data<Elem = F>,
@@ -125,7 +124,7 @@ where
     }
 }
 
-impl<F, D> Datafit<F, D, CSCArray<'_, F>, ArrayBase<D, Ix1>> for Quadratic<F>
+impl<F, D> Datafit<F, CSCArray<'_, F>, ArrayBase<D, Ix1>> for Quadratic<F>
 where
     F: Float,
     D: Data<Elem = F>,

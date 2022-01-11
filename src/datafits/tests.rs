@@ -1,6 +1,6 @@
 extern crate ndarray;
 
-use ndarray::{Array1, Array2, ViewRepr};
+use ndarray::{Array1, Array2};
 
 use crate::datafits::*;
 use crate::datasets::DatasetBase;
@@ -15,7 +15,6 @@ fn test_initialization_quadratic() {
     df.initialize(&dataset);
     let Xty = Array1::from_shape_vec(3, vec![-4.42, -9.66, -7.4]).unwrap();
     let lipschitz = Array1::from_shape_vec(3, vec![11.56, 2.925, 2.665]).unwrap();
-    let tmp: ArrayBase<ViewRepr<&f64>, Ix1> = df.Xty();
     assert_array_all_close(Xty.view(), df.Xty(), 1e-8);
     assert_array_all_close(lipschitz.view(), df.lipschitz(), 1e-8);
 }

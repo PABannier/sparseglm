@@ -11,10 +11,9 @@ use crate::datasets::{csc_array::CSCArray, DatasetBase, DesignMatrix, Targets};
 #[cfg(test)]
 mod tests;
 
-pub trait MultiTaskDatafit<F, D, DM, T>
+pub trait MultiTaskDatafit<F, DM, T>
 where
     F: Float,
-    D: Data<Elem = F>,
     DM: DesignMatrix<Elem = F>,
     T: Targets<Elem = F>,
 {
@@ -59,7 +58,7 @@ where
     }
 }
 
-impl<F, D> MultiTaskDatafit<F, D, ArrayBase<D, Ix2>, ArrayBase<D, Ix2>> for QuadraticMultiTask<F>
+impl<F, D> MultiTaskDatafit<F, ArrayBase<D, Ix2>, ArrayBase<D, Ix2>> for QuadraticMultiTask<F>
 where
     F: Float,
     D: Data<Elem = F>,
@@ -160,7 +159,7 @@ where
     }
 }
 
-impl<F, D> MultiTaskDatafit<F, D, CSCArray<'_, F>, ArrayBase<D, Ix2>> for QuadraticMultiTask<F>
+impl<F, D> MultiTaskDatafit<F, CSCArray<'_, F>, ArrayBase<D, Ix2>> for QuadraticMultiTask<F>
 where
     F: Float,
     D: Data<Elem = F>,
