@@ -1,6 +1,8 @@
 extern crate ndarray;
 
-use ndarray::{s, Array1, ArrayBase, Axis, Data, Ix1, Ix2};
+use ndarray::{
+    s, Array1, ArrayBase, ArrayView, ArrayView1, ArrayView2, Axis, Data, Ix1, OwnedRepr,
+};
 
 use super::Float;
 use crate::helpers::prox::block_soft_thresholding;
@@ -13,14 +15,14 @@ where
     F: Float,
     D: Data<Elem = F>,
 {
-    fn value(&self, W: ArrayBase<D, Ix2>) -> F;
-    fn prox_op(&self, value: ArrayBase<D, Ix1>, stepsize: F) -> ArrayBase<D, Ix1>;
+    fn value(&self, W: ArrayView2<F>) -> F;
+    fn prox_op(&self, value: ArrayView1<F>, stepsize: F) -> ArrayBase<OwnedRepr<F>, Ix1>;
     fn subdiff_distance(
         &self,
-        W: ArrayBase<D, Ix2>,
-        grad: ArrayBase<D, Ix2>,
-        ws: ArrayBase<usize, Ix1>,
-    ) -> (ArrayBase<D, Ix1>, F);
+        W: ArrayView2<F>,
+        grad: ArrayView2<F>,
+        ws: ArrayView1<usize>,
+    ) -> (ArrayBase<OwnedRepr<F>, Ix1>, F);
 }
 
 /// L21 penalty
@@ -49,20 +51,20 @@ where
     D: Data<Elem = F>,
 {
     /// Gets the current value of the penalty
-    fn value(&self, W: ArrayBase<D, Ix2>) -> F {
+    fn value(&self, W: ArrayView2<F>) -> F {
         self.alpha * W.map_axis(Axis(1), |Wj| (Wj.dot(&Wj).sqrt())).sum()
     }
     /// Computes the value of the proximal operator
-    fn prox_op(&self, value: ArrayBase<D, Ix1>, stepsize: F) -> ArrayBase<D, Ix1> {
+    fn prox_op(&self, value: ArrayView<F, Ix1>, stepsize: F) -> ArrayBase<OwnedRepr<F>, Ix1> {
         block_soft_thresholding(value, self.alpha * stepsize)
     }
     /// Computes the distance of the gradient to the subdifferential
     fn subdiff_distance(
         &self,
-        W: ArrayBase<D, Ix2>,
-        grad: ArrayBase<D, Ix2>,
-        ws: ArrayBase<usize, Ix1>,
-    ) -> (ArrayBase<D, Ix1>, F) {
+        W: ArrayView2<F>,
+        grad: ArrayView2<F>,
+        ws: ArrayView1<usize>,
+    ) -> (ArrayBase<OwnedRepr<F>, Ix1>, F) {
         let ws_size = ws.len();
         let n_tasks = W.shape()[1];
         let mut subdiff_dist = Array1::<F>::zeros(ws_size);

@@ -1,6 +1,6 @@
 extern crate ndarray;
 
-use ndarray::{Array1, Array2, ArrayBase, ArrayView1, Data, Dimension, Ix2};
+use ndarray::{Array1, Array2, ArrayBase, ArrayView1, Data, Ix2};
 
 use super::Float;
 use crate::datafits::Datafit;
@@ -11,18 +11,18 @@ use crate::penalties::Penalty;
 #[cfg(test)]
 mod tests;
 
-pub fn construct_grad<F, D, DM, T, I>(
+pub fn construct_grad<F, D, DF, DM, T>(
     dataset: &DatasetBase<DM, T>,
     Xw: ArrayView1<F>,
     ws: ArrayView1<usize>,
-    datafit: &D,
+    datafit: &DF,
 ) -> Array1<F>
 where
     F: 'static + Float,
+    D: Data<Elem = F>,
     DM: DesignMatrix<Elem = F>,
     T: Targets<Elem = F>,
-    D: Datafit<F, D, DM, T, I>,
-    I: Dimension,
+    DF: Datafit<F, D, DM, T>,
 {
     let ws_size = ws.len();
     let mut grad = Array1::<F>::zeros(ws_size);
@@ -32,21 +32,21 @@ where
     grad
 }
 
-pub fn kkt_violation<F, D, P, DM, T, I>(
+pub fn kkt_violation<F, D, DF, P, DM, T>(
     dataset: &DatasetBase<DM, T>,
     w: ArrayView1<F>,
     Xw: ArrayView1<F>,
     ws: ArrayView1<usize>,
-    datafit: &D,
+    datafit: &DF,
     penalty: &P,
 ) -> (Array1<F>, F)
 where
     F: 'static + Float,
+    D: Data<Elem = F>,
     DM: DesignMatrix<Elem = F>,
     T: Targets<Elem = F>,
-    D: Datafit<F, D, DM, T, I>,
+    DF: Datafit<F, D, DM, T>,
     P: Penalty<F, D>,
-    I: Dimension,
 {
     let grad_ws = construct_grad(dataset, Xw, ws, datafit);
     let (kkt_ws, kkt_ws_max) = penalty.subdiff_distance(w, grad_ws.view(), ws);
@@ -82,7 +82,7 @@ where
     (ws, ws_size)
 }
 
-pub fn anderson_accel<F, D, DM, T, DF, P, I>(
+pub fn anderson_accel<F, D, DM, T, DF, P>(
     dataset: &DatasetBase<DM, T>,
     w: &mut Array1<F>,
     Xw: &mut Array1<F>,
@@ -99,9 +99,8 @@ pub fn anderson_accel<F, D, DM, T, DF, P, I>(
     D: Data<Elem = F>,
     DM: DesignMatrix<Elem = F>,
     T: Targets<Elem = F>,
-    DF: Datafit<F, D, DM, T, I>,
+    DF: Datafit<F, D, DM, T>,
     P: Penalty<F, D>,
-    I: Dimension,
 {
     let X = dataset.design_matrix;
     let y = dataset.targets;
@@ -190,7 +189,7 @@ pub fn anderson_accel<F, D, DM, T, DF, P, I>(
     }
 }
 
-pub fn cd_epoch<F, D, DF, P, T, I>(
+pub fn cd_epoch<F, D, DF, P, T>(
     dataset: &DatasetBase<ArrayBase<D, Ix2>, T>,
     w: &mut Array1<F>,
     Xw: &mut Array1<F>,
@@ -201,9 +200,8 @@ pub fn cd_epoch<F, D, DF, P, T, I>(
     F: 'static + Float,
     D: Data<Elem = F>,
     T: Targets<Elem = F>,
-    DF: Datafit<F, D, ArrayBase<D, Ix2>, T, I>,
+    DF: Datafit<F, D, ArrayBase<D, Ix2>, T>,
     P: Penalty<F, D>,
-    I: Dimension,
 {
     let n_samples = dataset.n_samples();
     let X = dataset.design_matrix;
@@ -224,19 +222,19 @@ pub fn cd_epoch<F, D, DF, P, T, I>(
     }
 }
 
-pub fn cd_epoch_sparse<'a, F, D, P, T, I>(
+pub fn cd_epoch_sparse<'a, F, D, DF, P, T>(
     dataset: &DatasetBase<CSCArray<'a, F>, T>,
     w: &mut Array1<F>,
     Xw: &mut Array1<F>,
-    datafit: &D,
+    datafit: &DF,
     penalty: &P,
     ws: ArrayView1<usize>,
 ) where
     F: 'static + Float,
+    D: Data<Elem = F>,
     T: Targets<Elem = F>,
-    D: Datafit<F, D, CSCArray<'a, F>, T, I>,
+    DF: Datafit<F, D, CSCArray<'a, F>, T>,
     P: Penalty<F, D>,
-    I: Dimension,
 {
     let lipschitz = datafit.lipschitz();
     let X = dataset.design_matrix;
@@ -257,9 +255,9 @@ pub fn cd_epoch_sparse<'a, F, D, P, T, I>(
     }
 }
 
-pub fn solver<F, DM, T, D, P, I>(
+pub fn solver<F, D, DM, T, DF, P>(
     dataset: &DatasetBase<DM, T>,
-    datafit: &mut D,
+    datafit: &mut DF,
     penalty: &P,
     max_iter: usize,
     max_epochs: usize,
@@ -271,11 +269,11 @@ pub fn solver<F, DM, T, D, P, I>(
 ) -> Array1<F>
 where
     F: 'static + Float,
+    D: Data<Elem = F>,
     DM: DesignMatrix<Elem = F>,
     T: Targets<Elem = F>,
-    D: Datafit<F, D, DM, T, I>,
+    DF: Datafit<F, D, DM, T>,
     P: Penalty<F, D>,
-    I: Dimension,
 {
     let n_samples = dataset.n_samples();
     let n_features = dataset.n_features();

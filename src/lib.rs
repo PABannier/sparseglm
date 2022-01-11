@@ -54,6 +54,7 @@ impl Float for f64 {
 }
 
 pub mod datafits;
+pub mod datafits_multitask;
 pub mod datasets;
 pub mod estimators;
 pub mod helpers;

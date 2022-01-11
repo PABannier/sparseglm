@@ -1,6 +1,6 @@
 extern crate ndarray;
 
-use ndarray::{Array1, ArrayBase, Data, Dimension, Ix1};
+use ndarray::{Array1, ArrayBase, ArrayView1, Data, Ix1, OwnedRepr};
 
 use super::Float;
 use crate::helpers::prox::soft_thresholding;
@@ -13,14 +13,14 @@ where
     F: Float,
     D: Data<Elem = F>,
 {
-    fn value(&self, w: ArrayBase<D, Ix1>) -> F;
+    fn value(&self, w: ArrayView1<F>) -> F;
     fn prox_op(&self, value: F, step_size: F) -> F;
     fn subdiff_distance(
         &self,
-        w: ArrayBase<D, Ix1>,
-        grad: ArrayBase<D, Ix1>,
-        ws: ArrayBase<usize, Ix1>,
-    ) -> (ArrayBase<D, Ix1>, F);
+        w: ArrayView1<F>,
+        grad: ArrayView1<F>,
+        ws: ArrayView1<usize>,
+    ) -> (ArrayBase<OwnedRepr<F>, Ix1>, F);
 }
 
 /// L1 penalty
@@ -49,7 +49,7 @@ where
     D: Data<Elem = F>,
 {
     /// Gets the current value of the penalty
-    fn value(&self, w: ArrayBase<D, Ix1>) -> F {
+    fn value(&self, w: ArrayView1<F>) -> F {
         self.alpha * w.map(|x| (*x).abs()).sum()
     }
     /// Computes the value of the proximal operator
@@ -59,10 +59,10 @@ where
     /// Computes the distance of the gradient to the subdifferential
     fn subdiff_distance(
         &self,
-        w: ArrayBase<D, Ix1>,
-        grad: ArrayBase<D, Ix1>,
-        ws: ArrayBase<usize, Ix1>,
-    ) -> (ArrayBase<D, Ix1>, F) {
+        w: ArrayView1<F>,
+        grad: ArrayView1<F>,
+        ws: ArrayView1<usize>,
+    ) -> (ArrayBase<OwnedRepr<F>, Ix1>, F) {
         let ws_size = ws.len();
         let mut subdiff_dist = Array1::<F>::zeros(ws_size);
         let mut max_subdiff_dist = F::neg_infinity();

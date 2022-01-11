@@ -1,19 +1,18 @@
 extern crate ndarray;
 
-use ndarray::{s, Array1, Array2, ArrayBase, ArrayView1, ArrayView2, Data, Dimension, Ix2};
+use ndarray::{s, Array1, Array2, ArrayBase, ArrayView1, ArrayView2, Data, Ix2};
 
 use super::Float;
-use crate::datafits::Datafit;
+use crate::datafits_multitask::MultiTaskDatafit;
 use crate::datasets::DesignMatrix;
 use crate::datasets::{csc_array::CSCArray, DatasetBase, DesignMatrixType, Targets};
 use crate::helpers::helpers::{argsort_by, solve_lin_sys};
-use crate::penalties::Penalty;
 use crate::penalties_multitask::PenaltyMultiTask;
 
 #[cfg(test)]
 mod tests;
 
-pub fn construct_grad<F, D, DF, DM, T, I>(
+pub fn construct_grad<F, D, DF, DM, T>(
     dataset: &DatasetBase<DM, T>,
     XW: ArrayView2<F>,
     ws: ArrayView1<usize>,
@@ -24,8 +23,7 @@ where
     D: Data<Elem = F>,
     DM: DesignMatrix<Elem = F>,
     T: Targets<Elem = F>,
-    DF: Datafit<F, D, I, DM, T>,
-    I: Dimension,
+    DF: MultiTaskDatafit<F, D, DM, T>,
 {
     let ws_size = ws.len();
     let n_tasks = dataset.n_tasks();
@@ -39,7 +37,7 @@ where
     grad
 }
 
-pub fn kkt_violation<F, D, DF, P, DM, T, I>(
+pub fn kkt_violation<F, D, DF, P, DM, T>(
     dataset: &DatasetBase<DM, T>,
     W: ArrayView2<F>,
     XW: ArrayView2<F>,
@@ -52,9 +50,8 @@ where
     D: Data<Elem = F>,
     DM: DesignMatrix<Elem = F>,
     T: Targets<Elem = F>,
-    DF: Datafit<F, D, I, DM, T>,
-    P: Penalty<F, D>,
-    I: Dimension,
+    DF: MultiTaskDatafit<F, D, DM, T>,
+    P: PenaltyMultiTask<F, D>,
 {
     let grad_ws = construct_grad(&dataset, XW, ws, datafit);
     let (kkt_ws, kkt_ws_max) = penalty.subdiff_distance(W, grad_ws.view(), ws);
@@ -91,7 +88,7 @@ where
     (ws, ws_size)
 }
 
-pub fn anderson_accel<F, D, DM, T, DF, P, I>(
+pub fn anderson_accel<F, D, DM, T, DF, P>(
     dataset: &DatasetBase<DM, T>,
     W: &mut Array2<F>,
     XW: &mut Array2<F>,
@@ -108,9 +105,8 @@ pub fn anderson_accel<F, D, DM, T, DF, P, I>(
     D: Data<Elem = F>,
     DM: DesignMatrix<Elem = F>,
     T: Targets<Elem = F>,
-    DF: Datafit<F, D, I, DM, T>,
+    DF: MultiTaskDatafit<F, D, DM, T>,
     P: PenaltyMultiTask<F, D>,
-    I: Dimension,
 {
     let n_samples = dataset.n_samples();
     let n_features = dataset.n_features();
@@ -207,7 +203,7 @@ pub fn anderson_accel<F, D, DM, T, DF, P, I>(
     }
 }
 
-pub fn bcd_epoch<F, D, DF, P, T, I>(
+pub fn bcd_epoch<F, D, DF, P, T>(
     dataset: &DatasetBase<ArrayBase<D, Ix2>, T>,
     W: &mut Array2<F>,
     XW: &mut Array2<F>,
@@ -218,9 +214,8 @@ pub fn bcd_epoch<F, D, DF, P, T, I>(
     F: 'static + Float,
     D: Data<Elem = F>,
     T: Targets<Elem = F>,
-    DF: Datafit<F, D, I, ArrayBase<D, Ix2>, T>,
+    DF: MultiTaskDatafit<F, D, ArrayBase<D, Ix2>, T>,
     P: PenaltyMultiTask<F, D>,
-    I: Dimension,
 {
     let n_samples = dataset.n_samples();
     let n_tasks = dataset.n_tasks();
@@ -265,7 +260,7 @@ pub fn bcd_epoch<F, D, DF, P, T, I>(
     }
 }
 
-pub fn bcd_epoch_sparse<'a, F, D, DF, P, T, I>(
+pub fn bcd_epoch_sparse<'a, F, D, DF, P, T>(
     dataset: &DatasetBase<CSCArray<'a, F>, T>,
     W: &mut Array2<F>,
     XW: &mut Array2<F>,
@@ -275,10 +270,9 @@ pub fn bcd_epoch_sparse<'a, F, D, DF, P, T, I>(
 ) where
     F: 'static + Float,
     D: Data<Elem = F>,
-    DF: Datafit<F, D, I, CSCArray<'a, F>, T>,
+    DF: MultiTaskDatafit<F, D, CSCArray<'a, F>, T>,
     P: PenaltyMultiTask<F, D>,
     T: Targets<Elem = F>,
-    I: Dimension,
 {
     let n_tasks = dataset.n_tasks();
 
@@ -321,7 +315,7 @@ pub fn bcd_epoch_sparse<'a, F, D, DF, P, T, I>(
     }
 }
 
-pub fn solver_multitask<F, D, DM, T, DF, P, I>(
+pub fn solver_multitask<F, D, DM, T, DF, P>(
     dataset: &DatasetBase<DM, T>,
     datafit: &mut DF,
     penalty: &P,
@@ -338,9 +332,8 @@ where
     D: Data<Elem = F>,
     DM: DesignMatrix<Elem = F>,
     T: Targets<Elem = F>,
-    DF: Datafit<F, D, I, DM, T>,
+    DF: MultiTaskDatafit<F, D, DM, T>,
     P: PenaltyMultiTask<F, D>,
-    I: Dimension,
 {
     let n_samples = dataset.n_samples();
     let n_features = dataset.n_features();
