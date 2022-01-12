@@ -109,8 +109,8 @@ pub fn anderson_accel<F, DM, T, DF, P>(
     let n_features = dataset.n_features();
     let n_tasks = dataset.n_tasks();
 
-    let X = dataset.design_matrix;
-    let Y = dataset.targets;
+    let X = dataset.design_matrix();
+    let Y = dataset.targets();
 
     // last_K_w[epoch % (K + 1)] = w[ws]
     for (idx, &j) in ws.iter().enumerate() {
@@ -217,7 +217,7 @@ pub fn bcd_epoch<F, D, DF, P, T>(
     let n_samples = dataset.n_samples();
     let n_tasks = dataset.n_tasks();
 
-    let X = dataset.design_matrix;
+    let X = dataset.design_matrix();
     let lipschitz = datafit.lipschitz();
 
     for &j in ws {
@@ -272,7 +272,7 @@ pub fn bcd_epoch_sparse<'a, F, DF, P, T>(
 {
     let n_tasks = dataset.n_tasks();
 
-    let X = dataset.design_matrix;
+    let X = dataset.design_matrix();
     let lipschitz = datafit.lipschitz();
 
     for &j in ws {
@@ -336,8 +336,8 @@ where
 
     datafit.initialize(dataset);
 
-    let X = dataset.design_matrix;
-    let Y = dataset.targets;
+    let X = dataset.design_matrix();
+    let Y = dataset.targets();
 
     let all_feats = Array1::from_shape_vec(n_features, (0..n_features).collect()).unwrap();
 

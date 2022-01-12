@@ -99,8 +99,8 @@ pub fn anderson_accel<F, DM, T, DF, P>(
     DF: Datafit<F, DM, T>,
     P: Penalty<F>,
 {
-    let X = dataset.design_matrix;
-    let y = dataset.targets;
+    let X = dataset.design_matrix();
+    let y = dataset.targets();
 
     let n_samples = dataset.n_samples();
 
@@ -201,7 +201,7 @@ pub fn cd_epoch<F, D, DF, P, T>(
     P: Penalty<F>,
 {
     let n_samples = dataset.n_samples();
-    let X = dataset.design_matrix;
+    let X = dataset.design_matrix();
     let lipschitz = datafit.lipschitz();
 
     for &j in ws {
@@ -233,7 +233,7 @@ pub fn cd_epoch_sparse<'a, F, DF, P, T>(
     P: Penalty<F>,
 {
     let lipschitz = datafit.lipschitz();
-    let X = dataset.design_matrix;
+    let X = dataset.design_matrix();
 
     for &j in ws {
         if lipschitz[j] == F::zero() {
@@ -275,8 +275,8 @@ where
 
     datafit.initialize(dataset);
 
-    let X = dataset.design_matrix;
-    let y = dataset.targets;
+    let X = dataset.design_matrix();
+    let y = dataset.targets();
 
     let all_feats = Array1::from_shape_vec(n_features, (0..n_features).collect()).unwrap();
 

@@ -69,8 +69,8 @@ where
         let n_features = dataset.n_features();
         let n_tasks = dataset.n_tasks();
 
-        let X = dataset.design_matrix;
-        let Y = dataset.targets;
+        let X = dataset.design_matrix();
+        let Y = dataset.targets();
 
         let mut xty = Array2::<F>::zeros((n_features, n_tasks));
         general_mat_mul(F::one(), &X.t(), &Y, F::one(), &mut xty);
@@ -87,7 +87,7 @@ where
         let n_samples = dataset.n_samples();
         let n_tasks = dataset.n_tasks();
 
-        let Y = dataset.targets;
+        let Y = dataset.targets();
 
         let R = &Y - &XW;
         let mut val = F::zero();
@@ -109,7 +109,7 @@ where
         let n_samples = F::cast(dataset.n_samples());
         let n_tasks = dataset.n_tasks();
 
-        let X = dataset.design_matrix;
+        let X = dataset.design_matrix();
 
         let Xj: ArrayView1<F> = X.slice(s![.., j]);
         let mut grad = Xj.dot(&XW) - self.XtY.slice(s![j, ..]);
@@ -129,7 +129,7 @@ where
         let n_features = dataset.n_features();
         let n_tasks = dataset.n_tasks();
 
-        let X = dataset.design_matrix;
+        let X = dataset.design_matrix();
 
         let mut grad = Array2::<F>::zeros((n_features, n_tasks));
 
@@ -171,8 +171,8 @@ where
         let n_features = dataset.n_features();
         let n_tasks = dataset.n_tasks();
 
-        let X = dataset.design_matrix;
-        let Y = dataset.targets;
+        let X = dataset.design_matrix();
+        let Y = dataset.targets();
 
         self.XtY = Array2::<F>::zeros((n_features, n_tasks));
         self.lipschitz = Array1::<F>::zeros(n_features);
@@ -200,7 +200,7 @@ where
         let n_samples = dataset.n_samples();
         let n_tasks = dataset.n_tasks();
 
-        let Y = dataset.targets;
+        let Y = dataset.targets();
         let R = &Y - &XW;
 
         let mut val = F::zero();
@@ -222,7 +222,7 @@ where
         let n_samples = F::cast(dataset.n_samples());
         let n_tasks = dataset.n_tasks();
 
-        let X = dataset.design_matrix;
+        let X = dataset.design_matrix();
         let mut XjTXW = Array1::<F>::zeros(n_tasks);
 
         for i in X.indptr[j]..X.indptr[j + 1] {
@@ -247,7 +247,7 @@ where
         let n_features = dataset.n_features();
         let n_tasks = dataset.n_tasks();
 
-        let X = dataset.design_matrix;
+        let X = dataset.design_matrix();
 
         let mut grad = Array2::<F>::zeros((n_features, n_tasks));
 

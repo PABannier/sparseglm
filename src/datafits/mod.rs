@@ -58,8 +58,8 @@ where
     /// Initializes the datafit by pre-computing useful quantities
     fn initialize(&mut self, dataset: &DatasetBase<ArrayBase<D, Ix2>, ArrayBase<D, Ix1>>) {
         let n_samples = F::cast(dataset.n_samples());
-        let X = dataset.design_matrix;
-        let y = dataset.targets;
+        let X = dataset.design_matrix();
+        let y = dataset.targets();
         self.Xty = X.t().dot(&y);
         self.lipschitz = X.map_axis(Axis(0), |Xj| Xj.dot(&Xj) / n_samples);
     }
@@ -72,7 +72,7 @@ where
         j: usize,
     ) -> F {
         let n_samples = dataset.n_samples();
-        let X = dataset.design_matrix;
+        let X = dataset.design_matrix();
         let mut _res = F::zero();
         for i in 0..n_samples {
             _res += X[[i, j]] * Xw[i];
@@ -88,7 +88,7 @@ where
     ) -> ArrayBase<OwnedRepr<F>, Ix1> {
         let n_samples = dataset.n_samples();
         let n_features = dataset.n_features();
-        let X = dataset.design_matrix;
+        let X = dataset.design_matrix();
         let mut grad = Array1::<F>::zeros(n_features);
         for j in 0..n_features {
             grad[j] = self.gradient_j(dataset, Xw, j);
@@ -103,7 +103,7 @@ where
         Xw: ArrayView1<F>,
     ) -> F {
         let n_samples = dataset.n_samples();
-        let y = dataset.targets;
+        let y = dataset.targets();
         let r = &y - &Xw;
         let val = r.dot(&r) / F::cast(2 * n_samples);
         val
@@ -129,8 +129,8 @@ where
     fn initialize(&mut self, dataset: &DatasetBase<CSCArray<'_, F>, ArrayBase<D, Ix1>>) {
         let n_samples = dataset.n_samples();
         let n_features = dataset.n_features();
-        let X = dataset.design_matrix;
-        let y = dataset.targets;
+        let X = dataset.design_matrix();
+        let y = dataset.targets();
         self.Xty = Array1::<F>::zeros(n_features);
         self.lipschitz = Array1::<F>::zeros(n_features);
         for j in 0..n_features {
@@ -153,7 +153,7 @@ where
         j: usize,
     ) -> F {
         let n_samples = dataset.n_samples();
-        let X = dataset.design_matrix;
+        let X = dataset.design_matrix();
         let mut XjTXw = F::zero();
         for i in X.indptr[j]..X.indptr[j + 1] {
             XjTXw += X.data[i as usize] * Xw[X.indices[i as usize] as usize];
@@ -169,7 +169,7 @@ where
     ) -> ArrayBase<OwnedRepr<F>, Ix1> {
         let n_samples = dataset.n_samples();
         let n_features = dataset.n_features();
-        let X = dataset.design_matrix;
+        let X = dataset.design_matrix();
         let mut grad = Array1::<F>::zeros(n_features);
         for j in 0..n_features {
             grad[j] = self.gradient_j(dataset, Xw, j);
@@ -184,7 +184,7 @@ where
         Xw: ArrayView1<F>,
     ) -> F {
         let n_samples = dataset.n_samples();
-        let y = dataset.targets;
+        let y = dataset.targets();
         let r = &y - &Xw;
         let val = r.dot(&r) / F::cast(2 * n_samples);
         val
