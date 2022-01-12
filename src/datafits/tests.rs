@@ -15,8 +15,8 @@ fn test_initialization_quadratic() {
     df.initialize(&dataset);
     let Xty = Array1::from_shape_vec(3, vec![-4.42, -9.66, -7.4]).unwrap();
     let lipschitz = Array1::from_shape_vec(3, vec![11.56, 2.925, 2.665]).unwrap();
-    assert_array_all_close(Xty.view(), df.Xty(), 1e-8);
-    assert_array_all_close(lipschitz.view(), df.lipschitz(), 1e-8);
+    assert_array_all_close(Xty.view(), df.Xty.view(), 1e-8);
+    assert_array_all_close(lipschitz.view(), df.lipschitz.view(), 1e-8);
 }
 
 #[test]
@@ -38,8 +38,8 @@ fn test_initialization_sparse_quadratic() {
     let mut df = Quadratic::default();
     df.initialize(&dataset_sparse);
 
-    assert_array_all_close(df.Xty(), df_sparse.Xty(), 1e-8);
-    assert_array_all_close(df.lipschitz(), df_sparse.lipschitz(), 1e-8);
+    assert_array_all_close(df.Xty.view(), df_sparse.Xty.view(), 1e-8);
+    assert_array_all_close(df.lipschitz.view(), df_sparse.lipschitz.view(), 1e-8);
 }
 
 #[test]
