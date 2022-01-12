@@ -89,7 +89,7 @@ where
 
         let Y = dataset.targets();
 
-        let R = &Y - &XW;
+        let R = Y - &XW;
         let mut val = F::zero();
         for i in 0..n_samples {
             for j in 0..n_tasks {
@@ -201,7 +201,7 @@ where
         let n_tasks = dataset.n_tasks();
 
         let Y = dataset.targets();
-        let R = &Y - &XW;
+        let R = Y - &XW;
 
         let mut val = F::zero();
         for i in 0..n_samples {

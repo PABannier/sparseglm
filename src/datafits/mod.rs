@@ -60,7 +60,7 @@ where
         let n_samples = F::cast(dataset.n_samples());
         let X = dataset.design_matrix();
         let y = dataset.targets();
-        self.Xty = X.t().dot(&y);
+        self.Xty = X.t().dot(y);
         self.lipschitz = X.map_axis(Axis(0), |Xj| Xj.dot(&Xj) / n_samples);
     }
 
@@ -104,7 +104,7 @@ where
     ) -> F {
         let n_samples = dataset.n_samples();
         let y = dataset.targets();
-        let r = &y - &Xw;
+        let r = y - &Xw;
         let val = r.dot(&r) / F::cast(2 * n_samples);
         val
     }
@@ -185,7 +185,7 @@ where
     ) -> F {
         let n_samples = dataset.n_samples();
         let y = dataset.targets();
-        let r = &y - &Xw;
+        let r = y - &Xw;
         let val = r.dot(&r) / F::cast(2 * n_samples);
         val
     }
