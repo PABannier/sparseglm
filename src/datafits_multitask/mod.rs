@@ -74,9 +74,7 @@ where
 
         let mut xty = Array2::<F>::zeros((n_features, n_tasks));
         general_mat_mul(F::one(), &X.t(), &Y, F::one(), &mut xty);
-
-        let lc = X.map_axis(Axis(0), |Xj| Xj.dot(&Xj) / n_samples);
-        self.lipschitz = lc;
+        self.lipschitz = X.map_axis(Axis(0), |Xj| Xj.dot(&Xj) / n_samples);
         self.XtY = xty;
     }
 
@@ -88,13 +86,14 @@ where
     ) -> F {
         let n_samples = dataset.n_samples();
         let n_tasks = dataset.n_tasks();
+
         let Y = dataset.targets;
 
         let R = &Y - &XW;
         let mut val = F::zero();
         for i in 0..n_samples {
             for j in 0..n_tasks {
-                val = val + R[[i, j]] * R[[i, j]];
+                val += R[[i, j]] * R[[i, j]];
             }
         }
         val / F::cast(2 * n_samples)
@@ -109,6 +108,7 @@ where
     ) -> ArrayBase<OwnedRepr<F>, Ix1> {
         let n_samples = F::cast(dataset.n_samples());
         let n_tasks = dataset.n_tasks();
+
         let X = dataset.design_matrix;
 
         let Xj: ArrayView1<F> = X.slice(s![.., j]);
@@ -128,6 +128,7 @@ where
         let n_samples = F::cast(dataset.n_samples());
         let n_features = dataset.n_features();
         let n_tasks = dataset.n_tasks();
+
         let X = dataset.design_matrix;
 
         let mut grad = Array2::<F>::zeros((n_features, n_tasks));
@@ -180,10 +181,9 @@ where
             let mut nrm2 = F::zero();
             let mut xty = Array1::<F>::zeros(n_tasks);
             for idx in X.indptr[j]..X.indptr[j + 1] {
-                nrm2 = nrm2 + X.data[idx as usize] * X.data[idx as usize];
+                nrm2 += X.data[idx as usize] * X.data[idx as usize];
                 for t in 0..n_tasks {
-                    xty[t] =
-                        xty[t] + X.data[idx as usize] * Y[[X.indices[idx as usize] as usize, t]];
+                    xty[t] += X.data[idx as usize] * Y[[X.indices[idx as usize] as usize, t]];
                 }
             }
             self.lipschitz[j] = nrm2 / n_samples;
@@ -199,13 +199,14 @@ where
     ) -> F {
         let n_samples = dataset.n_samples();
         let n_tasks = dataset.n_tasks();
-        let Y = dataset.targets;
 
+        let Y = dataset.targets;
         let R = &Y - &XW;
+
         let mut val = F::zero();
         for i in 0..n_samples {
             for j in 0..n_tasks {
-                val = val + R[[i, j]] * R[[i, j]];
+                val += R[[i, j]] * R[[i, j]];
             }
         }
         val / F::cast(2 * n_samples)
@@ -226,7 +227,7 @@ where
 
         for i in X.indptr[j]..X.indptr[j + 1] {
             for t in 0..n_tasks {
-                XjTXW[t] = XjTXW[t] + X.data[i as usize] * XW[[X.indices[i as usize] as usize, t]];
+                XjTXW[t] += X.data[i as usize] * XW[[X.indices[i as usize] as usize, t]];
             }
         }
         let mut grad_j = XjTXW - self.XtY.slice(s![j, ..]);
@@ -254,8 +255,7 @@ where
             let mut XjTXW = Array1::<F>::zeros(n_tasks);
             for i in X.indptr[j]..X.indptr[j + 1] {
                 for t in 0..n_tasks {
-                    XjTXW[t] =
-                        XjTXW[t] + X.data[i as usize] * XW[[X.indices[i as usize] as usize, t]];
+                    XjTXW[t] += X.data[i as usize] * XW[[X.indices[i as usize] as usize, t]];
                 }
             }
             let mut grad_j = XjTXW - self.XtY.slice(s![j, ..]);
