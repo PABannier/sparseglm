@@ -53,6 +53,8 @@ impl Float for f64 {
     type Lapack = f64;
 }
 
+pub mod bcd;
+pub mod cd;
 pub mod datafits;
 pub mod datafits_multitask;
 pub mod datasets;
