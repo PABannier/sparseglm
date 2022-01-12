@@ -1,8 +1,6 @@
 extern crate ndarray;
 
-use ndarray::{
-    s, Array1, ArrayBase, ArrayView, ArrayView1, ArrayView2, Axis, Data, Ix1, OwnedRepr,
-};
+use ndarray::{s, Array1, ArrayBase, ArrayView, ArrayView1, ArrayView2, Axis, Ix1, OwnedRepr};
 
 use super::Float;
 use crate::helpers::prox::block_soft_thresholding;
@@ -10,10 +8,9 @@ use crate::helpers::prox::block_soft_thresholding;
 #[cfg(test)]
 mod tests;
 
-pub trait PenaltyMultiTask<F, D>
+pub trait PenaltyMultiTask<F>
 where
     F: Float,
-    D: Data<Elem = F>,
 {
     fn value(&self, W: ArrayView2<F>) -> F;
     fn prox_op(&self, value: ArrayView1<F>, stepsize: F) -> ArrayBase<OwnedRepr<F>, Ix1>;
@@ -45,10 +42,9 @@ where
     }
 }
 
-impl<F, D> PenaltyMultiTask<F, D> for L21<F>
+impl<F> PenaltyMultiTask<F> for L21<F>
 where
     F: 'static + Float,
-    D: Data<Elem = F>,
 {
     /// Gets the current value of the penalty
     fn value(&self, W: ArrayView2<F>) -> F {

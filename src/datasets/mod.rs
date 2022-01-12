@@ -8,6 +8,7 @@ mod impl_targets;
 pub struct DatasetBase<DM, T>
 where
     DM: DesignMatrix,
+    T: Targets,
 {
     pub design_matrix: DM,
     pub targets: T,

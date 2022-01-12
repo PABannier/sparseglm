@@ -1,6 +1,6 @@
 extern crate ndarray;
 
-use ndarray::{Array1, ArrayBase, ArrayView1, Data, Ix1, OwnedRepr};
+use ndarray::{Array1, ArrayBase, ArrayView1, Ix1, OwnedRepr};
 
 use super::Float;
 use crate::helpers::prox::soft_thresholding;
@@ -8,10 +8,9 @@ use crate::helpers::prox::soft_thresholding;
 #[cfg(test)]
 mod tests;
 
-pub trait Penalty<F, D>
+pub trait Penalty<F>
 where
     F: Float,
-    D: Data<Elem = F>,
 {
     fn value(&self, w: ArrayView1<F>) -> F;
     fn prox_op(&self, value: F, step_size: F) -> F;
@@ -43,10 +42,9 @@ where
     }
 }
 
-impl<F, D> Penalty<F, D> for L1<F>
+impl<F> Penalty<F> for L1<F>
 where
     F: Float,
-    D: Data<Elem = F>,
 {
     /// Gets the current value of the penalty
     fn value(&self, w: ArrayView1<F>) -> F {

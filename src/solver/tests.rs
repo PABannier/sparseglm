@@ -20,7 +20,7 @@ fn test_cd_epoch() {
     let dataset = DatasetBase::from((X, y));
 
     let mut datafit = Quadratic::default();
-    datafit.initialize(X.view(), y.view());
+    datafit.initialize(&dataset);
 
     let penalty = L1::new(0.3);
 
@@ -47,7 +47,7 @@ fn test_cd_epoch_sparse() {
     let mut w = Array1::from_shape_vec(3, vec![2.1, -0.9, 3.4]).unwrap();
     let mut Xw = X_full.dot(&w);
 
-    let dataset = DatasetBase::from((&X, y));
+    let dataset = DatasetBase::from((X, y));
 
     let mut datafit = Quadratic::default();
     datafit.initialize(&dataset);
@@ -75,7 +75,7 @@ fn test_kkt_violation() {
     let dataset = DatasetBase::from((X, y));
 
     let mut datafit = Quadratic::default();
-    datafit.initialize(X.view(), y.view());
+    datafit.initialize(&dataset);
 
     let penalty = L1::new(0.3);
 
@@ -101,7 +101,7 @@ fn test_kkt_violation_sparse() {
     let w = Array1::from_shape_vec(5, vec![0.2, -0.3, 1.3, 3.4, -1.2]).unwrap();
     let Xw = Array1::from_shape_vec(3, vec![2.93252013, -0.28766626, 0.]).unwrap();
 
-    let dataset = DatasetBase::from((&X, y));
+    let dataset = DatasetBase::from((X, y));
 
     let mut datafit = Quadratic::default();
     datafit.initialize(&dataset);

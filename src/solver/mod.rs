@@ -11,7 +11,7 @@ use crate::penalties::Penalty;
 #[cfg(test)]
 mod tests;
 
-pub fn construct_grad<F, D, DF, DM, T>(
+pub fn construct_grad<F, DF, DM, T>(
     dataset: &DatasetBase<DM, T>,
     Xw: ArrayView1<F>,
     ws: ArrayView1<usize>,
@@ -19,10 +19,9 @@ pub fn construct_grad<F, D, DF, DM, T>(
 ) -> Array1<F>
 where
     F: 'static + Float,
-    D: Data<Elem = F>,
     DM: DesignMatrix<Elem = F>,
     T: Targets<Elem = F>,
-    DF: Datafit<F, D, DM, T>,
+    DF: Datafit<F, DM, T>,
 {
     let ws_size = ws.len();
     let mut grad = Array1::<F>::zeros(ws_size);
@@ -32,7 +31,7 @@ where
     grad
 }
 
-pub fn kkt_violation<F, D, DF, P, DM, T>(
+pub fn kkt_violation<F, DF, P, DM, T>(
     dataset: &DatasetBase<DM, T>,
     w: ArrayView1<F>,
     Xw: ArrayView1<F>,
@@ -42,11 +41,10 @@ pub fn kkt_violation<F, D, DF, P, DM, T>(
 ) -> (Array1<F>, F)
 where
     F: 'static + Float,
-    D: Data<Elem = F>,
     DM: DesignMatrix<Elem = F>,
     T: Targets<Elem = F>,
-    DF: Datafit<F, D, DM, T>,
-    P: Penalty<F, D>,
+    DF: Datafit<F, DM, T>,
+    P: Penalty<F>,
 {
     let grad_ws = construct_grad(dataset, Xw, ws, datafit);
     let (kkt_ws, kkt_ws_max) = penalty.subdiff_distance(w, grad_ws.view(), ws);
@@ -82,7 +80,7 @@ where
     (ws, ws_size)
 }
 
-pub fn anderson_accel<F, D, DM, T, DF, P>(
+pub fn anderson_accel<F, DM, T, DF, P>(
     dataset: &DatasetBase<DM, T>,
     w: &mut Array1<F>,
     Xw: &mut Array1<F>,
@@ -96,11 +94,10 @@ pub fn anderson_accel<F, D, DM, T, DF, P>(
     verbose: bool,
 ) where
     F: 'static + Float,
-    D: Data<Elem = F>,
     DM: DesignMatrix<Elem = F>,
     T: Targets<Elem = F>,
-    DF: Datafit<F, D, DM, T>,
-    P: Penalty<F, D>,
+    DF: Datafit<F, DM, T>,
+    P: Penalty<F>,
 {
     let X = dataset.design_matrix;
     let y = dataset.targets;
@@ -200,8 +197,8 @@ pub fn cd_epoch<F, D, DF, P, T>(
     F: 'static + Float,
     D: Data<Elem = F>,
     T: Targets<Elem = F>,
-    DF: Datafit<F, D, ArrayBase<D, Ix2>, T>,
-    P: Penalty<F, D>,
+    DF: Datafit<F, ArrayBase<D, Ix2>, T>,
+    P: Penalty<F>,
 {
     let n_samples = dataset.n_samples();
     let X = dataset.design_matrix;
@@ -222,7 +219,7 @@ pub fn cd_epoch<F, D, DF, P, T>(
     }
 }
 
-pub fn cd_epoch_sparse<'a, F, D, DF, P, T>(
+pub fn cd_epoch_sparse<'a, F, DF, P, T>(
     dataset: &DatasetBase<CSCArray<'a, F>, T>,
     w: &mut Array1<F>,
     Xw: &mut Array1<F>,
@@ -231,10 +228,9 @@ pub fn cd_epoch_sparse<'a, F, D, DF, P, T>(
     ws: ArrayView1<usize>,
 ) where
     F: 'static + Float,
-    D: Data<Elem = F>,
     T: Targets<Elem = F>,
-    DF: Datafit<F, D, CSCArray<'a, F>, T>,
-    P: Penalty<F, D>,
+    DF: Datafit<F, CSCArray<'a, F>, T>,
+    P: Penalty<F>,
 {
     let lipschitz = datafit.lipschitz();
     let X = dataset.design_matrix;
@@ -255,7 +251,7 @@ pub fn cd_epoch_sparse<'a, F, D, DF, P, T>(
     }
 }
 
-pub fn solver<F, D, DM, T, DF, P>(
+pub fn solver<F, DM, T, DF, P>(
     dataset: &DatasetBase<DM, T>,
     datafit: &mut DF,
     penalty: &P,
@@ -269,11 +265,10 @@ pub fn solver<F, D, DM, T, DF, P>(
 ) -> Array1<F>
 where
     F: 'static + Float,
-    D: Data<Elem = F>,
     DM: DesignMatrix<Elem = F>,
     T: Targets<Elem = F>,
-    DF: Datafit<F, D, DM, T>,
-    P: Penalty<F, D>,
+    DF: Datafit<F, DM, T>,
+    P: Penalty<F>,
 {
     let n_samples = dataset.n_samples();
     let n_features = dataset.n_features();

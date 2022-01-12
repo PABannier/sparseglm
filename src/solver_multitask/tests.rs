@@ -3,7 +3,7 @@ extern crate ndarray;
 use ndarray::linalg::general_mat_mul;
 use ndarray::{Array1, Array2};
 
-use crate::datafits::*;
+use crate::datafits_multitask::*;
 use crate::datasets::*;
 use crate::helpers::test_helpers::*;
 use crate::penalties_multitask::*;
@@ -56,7 +56,7 @@ fn test_bcd_epoch_sparse() {
     let mut W = Array2::from_shape_vec((3, 2), vec![2.1, -0.9, 3.4, 2.1, -0.9, 3.4]).unwrap();
     let mut XW = Array2::from_shape_vec((3, 2), vec![-1.5, 12.7, -4.5, 17., 9., 24.9]).unwrap();
 
-    let dataset = DatasetBase::from((&X, Y));
+    let dataset = DatasetBase::from((X, Y));
 
     let mut datafit = QuadraticMultiTask::default();
     datafit.initialize(&dataset);
@@ -130,7 +130,7 @@ fn test_kkt_violation_sparse() {
     let Y = Array2::from_shape_vec((2, 3), vec![0.3, -2.3, 0.8, 1.2, -3.2, 0.1]).unwrap();
     let ws = Array1::from_shape_vec(5, (0..5).collect()).unwrap();
 
-    let dataset = DatasetBase::from((&X, Y));
+    let dataset = DatasetBase::from((X, Y));
 
     let W = Array2::from_shape_vec(
         (5, 3),
