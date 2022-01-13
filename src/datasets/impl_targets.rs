@@ -9,6 +9,10 @@ where
 {
     type Elem = F;
 
+    fn n_samples(&self) -> usize {
+        self.len_of(Axis(0))
+    }
+
     fn n_tasks(&self) -> usize {
         self.len_of(Axis(1))
     }
@@ -22,6 +26,10 @@ where
 {
     type Elem = F;
 
+    fn n_samples(&self) -> usize {
+        self.targets.n_samples()
+    }
+
     fn n_tasks(&self) -> usize {
         self.targets.n_tasks()
     }
@@ -31,6 +39,10 @@ where
 impl Targets for () {
     type Elem = ();
 
+    fn n_samples(&self) -> usize {
+        0
+    }
+
     fn n_tasks(&self) -> usize {
         0
     }
@@ -39,6 +51,10 @@ impl Targets for () {
 /// Implement the Targets trait for a reference
 impl<T: Targets> Targets for &T {
     type Elem = T::Elem;
+
+    fn n_samples(&self) -> usize {
+        (*self).n_samples()
+    }
 
     fn n_tasks(&self) -> usize {
         (*self).n_tasks()

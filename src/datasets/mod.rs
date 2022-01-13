@@ -32,7 +32,6 @@ pub type SparseDatasetView<'a, D, I> = DatasetBase<CSCArray<'a, D>, ArrayBase<Vi
 pub trait DesignMatrix: Sized {
     type Elem;
 
-    fn n_samples(&self) -> usize;
     fn n_features(&self) -> usize;
 
     fn matrix_type(&self) -> DesignMatrixType;
@@ -40,6 +39,8 @@ pub trait DesignMatrix: Sized {
 
 pub trait Targets: Sized {
     type Elem;
+
+    fn n_samples(&self) -> usize;
 
     fn n_tasks(&self) -> usize;
 }
