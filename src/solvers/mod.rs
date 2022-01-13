@@ -1,6 +1,8 @@
 extern crate ndarray;
 
-use ndarray::{s, Array1, Array2, ArrayBase, ArrayView1, ArrayView2, Data, Ix2};
+use ndarray::{
+    s, Array1, Array2, ArrayBase, ArrayView1, Data, Dimension, Ix1, Ix2, OwnedRepr, ViewRepr,
+};
 
 use super::Float;
 use crate::datafits::Datafit;
@@ -39,17 +41,18 @@ where
     );
 }
 
-pub trait Extrapolator<F, DM, T>
+pub trait Extrapolator<F, DM, T, I>
 where
     F: Float,
     DM: DesignMatrix<Elem = F>,
     T: Targets<Elem = F>,
+    I: Dimension,
 {
     fn extrapolate(
         &self,
         dataset: &DatasetBase<DM, T>,
-        Xw_acc: &mut Array1<F>,
-        w_acc: ArrayView1<F>,
+        Xw_acc: &mut ArrayBase<OwnedRepr<F>, I>,
+        w_acc: ArrayBase<ViewRepr<&F>, I>,
         ws: ArrayView1<usize>,
     );
 }
@@ -136,7 +139,7 @@ where
 /// This implementation block implements the extrapolation method for coordinate
 /// descent solvers, using dense matrices.
 ///
-impl<F, D, T> Extrapolator<F, ArrayBase<D, Ix2>, T> for Solver
+impl<F, D, T> Extrapolator<F, ArrayBase<D, Ix2>, T, Ix1> for Solver
 where
     F: Float,
     D: Data<Elem = F>,
@@ -145,8 +148,8 @@ where
     fn extrapolate(
         &self,
         dataset: &DatasetBase<ArrayBase<D, Ix2>, T>,
-        Xw_acc: &mut Array1<F>,
-        w_acc: ArrayView1<F>,
+        Xw_acc: &mut ArrayBase<OwnedRepr<F>, Ix1>,
+        w_acc: ArrayBase<ViewRepr<&F>, Ix1>,
         ws: ArrayView1<usize>,
     ) {
         let X = dataset.design_matrix();
@@ -161,7 +164,7 @@ where
 /// This implementation block implements the extrapolation method for coordinate
 /// descent solvers, using sparse matrices.
 ///
-impl<'a, F, T> Extrapolator<F, CSCArray<'a, F>, T> for Solver
+impl<'a, F, T> Extrapolator<F, CSCArray<'a, F>, T, Ix1> for Solver
 where
     F: Float,
     T: Targets<Elem = F>,
@@ -169,8 +172,8 @@ where
     fn extrapolate(
         &self,
         dataset: &DatasetBase<CSCArray<'a, F>, T>,
-        Xw_acc: &mut Array1<F>,
-        w_acc: ArrayView1<F>,
+        Xw_acc: &mut ArrayBase<OwnedRepr<F>, Ix1>,
+        w_acc: ArrayBase<ViewRepr<&F>, Ix1>,
         ws: ArrayView1<usize>,
     ) {
         let X = dataset.design_matrix();
@@ -197,21 +200,6 @@ where
         penalty: &P,
         W: &mut Array2<F>,
         XW: &mut Array2<F>,
-        ws: ArrayView1<usize>,
-    );
-}
-
-pub trait MultiTaskExtrapolator<F, DM, T>
-where
-    F: Float,
-    DM: DesignMatrix<Elem = F>,
-    T: Targets<Elem = F>,
-{
-    fn extrapolate(
-        &self,
-        dataset: &DatasetBase<DM, T>,
-        XW_acc: &mut Array2<F>,
-        W_acc: ArrayView2<F>,
         ws: ArrayView1<usize>,
     );
 }
@@ -344,7 +332,7 @@ where
 /// This implementation block implements the extrapolation method for coordinate
 /// descent solvers, using dense matrices.
 ///
-impl<F, D, T> MultiTaskExtrapolator<F, ArrayBase<D, Ix2>, T> for Solver
+impl<F, D, T> Extrapolator<F, ArrayBase<D, Ix2>, T, Ix2> for Solver
 where
     F: Float,
     D: Data<Elem = F>,
@@ -353,8 +341,8 @@ where
     fn extrapolate(
         &self,
         dataset: &DatasetBase<ArrayBase<D, Ix2>, T>,
-        XW_acc: &mut Array2<F>,
-        W_acc: ArrayView2<F>,
+        XW_acc: &mut ArrayBase<OwnedRepr<F>, Ix2>,
+        W_acc: ArrayBase<ViewRepr<&F>, Ix2>,
         ws: ArrayView1<usize>,
     ) {
         let X = dataset.design_matrix();
@@ -373,7 +361,7 @@ where
 /// This implementation block implements the extrapolation method for coordinate
 /// descent solvers, using sparse matrices.
 ///
-impl<'a, F, T> MultiTaskExtrapolator<F, CSCArray<'a, F>, T> for Solver
+impl<'a, F, T> Extrapolator<F, CSCArray<'a, F>, T, Ix2> for Solver
 where
     F: Float,
     T: Targets<Elem = F>,
@@ -381,8 +369,8 @@ where
     fn extrapolate(
         &self,
         dataset: &DatasetBase<CSCArray<'a, F>, T>,
-        XW_acc: &mut Array2<F>,
-        W_acc: ArrayView2<F>,
+        XW_acc: &mut ArrayBase<OwnedRepr<F>, Ix2>,
+        W_acc: ArrayBase<ViewRepr<&F>, Ix2>,
         ws: ArrayView1<usize>,
     ) {
         let X = dataset.design_matrix();

@@ -1,6 +1,6 @@
 extern crate ndarray;
 
-use ndarray::{Array1, Array2, ArrayView1};
+use ndarray::{Array1, Array2, ArrayView1, Ix1};
 
 use super::Float;
 use crate::datafits::Datafit;
@@ -100,7 +100,7 @@ pub fn anderson_accel<F, DM, T, DF, P, S>(
     T: Targets<Elem = F>,
     DF: Datafit<F, DM, T>,
     P: Penalty<F>,
-    S: Extrapolator<F, DM, T>,
+    S: Extrapolator<F, DM, T, Ix1>,
 {
     let n_samples = dataset.n_samples();
     let n_features = dataset.n_features();
@@ -189,7 +189,7 @@ where
     T: Targets<Elem = F>,
     DF: Datafit<F, DM, T>,
     P: Penalty<F>,
-    S: CDSolver<F, DF, P, DM, T> + Extrapolator<F, DM, T>,
+    S: CDSolver<F, DF, P, DM, T> + Extrapolator<F, DM, T, Ix1>,
 {
     let n_samples = dataset.n_samples();
     let n_features = dataset.n_features();

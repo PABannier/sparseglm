@@ -1,6 +1,6 @@
 extern crate ndarray;
 
-use ndarray::{s, Array1, Array2, ArrayView1, ArrayView2};
+use ndarray::{s, Array1, Array2, ArrayView1, ArrayView2, Ix2};
 
 use super::Float;
 use crate::datafits_multitask::MultiTaskDatafit;
@@ -8,7 +8,7 @@ use crate::datasets::DesignMatrix;
 use crate::datasets::{DatasetBase, Targets};
 use crate::helpers::helpers::{argsort_by, solve_lin_sys};
 use crate::penalties_multitask::PenaltyMultiTask;
-use crate::solvers::{BCDSolver, MultiTaskExtrapolator};
+use crate::solvers::{BCDSolver, Extrapolator};
 
 #[cfg(test)]
 mod tests;
@@ -106,7 +106,7 @@ pub fn anderson_accel<F, DM, T, DF, P, S>(
     T: Targets<Elem = F>,
     DF: MultiTaskDatafit<F, DM, T>,
     P: PenaltyMultiTask<F>,
-    S: BCDSolver<F, DF, P, DM, T> + MultiTaskExtrapolator<F, DM, T>,
+    S: BCDSolver<F, DF, P, DM, T> + Extrapolator<F, DM, T, Ix2>,
 {
     let n_samples = dataset.n_samples();
     let n_features = dataset.n_features();
@@ -198,7 +198,7 @@ where
     T: Targets<Elem = F>,
     DF: MultiTaskDatafit<F, DM, T>,
     P: PenaltyMultiTask<F>,
-    S: BCDSolver<F, DF, P, DM, T> + MultiTaskExtrapolator<F, DM, T>,
+    S: BCDSolver<F, DF, P, DM, T> + Extrapolator<F, DM, T, Ix2>,
 {
     let n_samples = dataset.n_samples();
     let n_features = dataset.n_features();
