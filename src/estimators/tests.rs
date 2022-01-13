@@ -4,6 +4,7 @@ extern crate rand;
 use ndarray::linalg::general_mat_mul;
 use ndarray::{Array1, Array2};
 
+use crate::datasets::*;
 use crate::estimators::*;
 use crate::helpers::helpers::*;
 use crate::helpers::test_helpers::*;
@@ -15,7 +16,7 @@ macro_rules! kkt_check_tests {
             fn $name() {
                 let (n_samples, n_features) = $value;
                 let (X, y) = generate_random_data(n_samples, n_features);
-                let dataset = DatasetBase::from((X, y));
+                let dataset = DenseDatasetView::from((X.view(), y.view()));
 
                 let alpha_max = compute_alpha_max(X.view(), y.view());
                 let alpha = alpha_max * 0.5;
@@ -42,7 +43,7 @@ macro_rules! kkt_check_mtl_tests {
             fn $name() {
                 let (n_samples, n_features, n_tasks) = $value;
                 let (X, Y) = generate_random_data_mtl(n_samples, n_features, n_tasks);
-                let dataset = DatasetBase::from((X, Y));
+                let dataset = DenseDatasetView::from((X.view(), Y.view()));
 
                 let alpha_max = compute_alpha_max_mtl(X.view(), Y.view());
                 let alpha = alpha_max * 0.5;
@@ -84,7 +85,7 @@ fn test_null_weight() {
     let n_samples = 10;
     let n_features = 30;
     let (X, y) = generate_random_data(n_samples, n_features);
-    let dataset = DatasetBase::from((X, y));
+    let dataset = DenseDatasetView::from((X.view(), y.view()));
     let alpha_max = compute_alpha_max(X.view(), y.view());
 
     let mut clf = Lasso::new(alpha_max, None);
