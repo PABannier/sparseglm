@@ -14,6 +14,12 @@ mod tests;
 
 pub struct Solver {}
 
+impl Solver {
+    pub fn new() -> Solver {
+        Solver {}
+    }
+}
+
 pub trait CDSolver<F, DF, P, DM, T>
 where
     F: Float,

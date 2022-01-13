@@ -28,7 +28,7 @@ fn test_cd_epoch() {
 
     let penalty = L1::new(0.3);
 
-    let solver = Solver {};
+    let solver = Solver::new();
     solver.cd_epoch(&dataset, &datafit, &penalty, &mut w, &mut Xw, ws.view());
 
     let true_w = Array1::from_shape_vec(3, vec![-0.51752788, -1.24688448, 0.48867352]).unwrap();
@@ -59,7 +59,7 @@ fn test_cd_epoch_sparse() {
 
     let penalty = L1::new(0.7);
 
-    let solver = Solver {};
+    let solver = Solver::new();
     solver.cd_epoch(&dataset, &datafit, &penalty, &mut w, &mut Xw, ws.view());
 
     let true_w = Array1::from_shape_vec(3, vec![-8.7, -1.53333333, 2.75844156]).unwrap();
@@ -85,7 +85,7 @@ fn test_bcd_epoch() {
     datafit.initialize(&dataset);
     let penalty = L21::new(0.3);
 
-    let solver = Solver {};
+    let solver = Solver::new();
 
     solver.bcd_epoch(&dataset, &datafit, &penalty, &mut W, &mut XW, ws.view());
 
@@ -125,7 +125,7 @@ fn test_bcd_epoch_sparse() {
 
     let penalty = L21::new(0.7);
 
-    let solver = Solver {};
+    let solver = Solver::new();
 
     solver.bcd_epoch(&dataset, &datafit, &penalty, &mut W, &mut XW, ws.view());
 

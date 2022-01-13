@@ -116,7 +116,7 @@ where
         &mut self,
         dataset: &DatasetBase<ArrayBase<D, Ix2>, ArrayBase<D, Ix1>>,
     ) -> Array<F, Ix1> {
-        let solver = Solver {};
+        let solver = Solver::new();
         let w = coordinate_descent(
             dataset,
             &mut self.datafit,
@@ -141,7 +141,7 @@ where
 {
     /// Fits the Lasso estimator to a sparse design matrix
     fn fit(&mut self, dataset: &DatasetBase<CSCArray<F>, ArrayBase<D, Ix1>>) -> Array<F, Ix1> {
-        let solver = Solver {};
+        let solver = Solver::new();
         let w = coordinate_descent(
             dataset,
             &mut self.datafit,
@@ -195,7 +195,7 @@ where
         &mut self,
         dataset: &DatasetBase<ArrayBase<D, Ix2>, ArrayBase<D, Ix2>>,
     ) -> Array<F, Ix2> {
-        let solver = Solver {};
+        let solver = Solver::new();
         let W = block_coordinate_descent(
             dataset,
             &mut self.datafit,
@@ -220,7 +220,7 @@ where
 {
     /// Fits the MultiTask estimator to a sparse design matrix
     fn fit(&mut self, dataset: &DatasetBase<CSCArray<'_, F>, ArrayBase<D, Ix2>>) -> Array<F, Ix2> {
-        let solver = Solver {};
+        let solver = Solver::new();
         let W = block_coordinate_descent(
             dataset,
             &mut self.datafit,
