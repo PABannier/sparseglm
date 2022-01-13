@@ -4,6 +4,7 @@ extern crate rand;
 use ndarray::linalg::general_mat_mul;
 use ndarray::{Array1, Array2};
 
+use crate::datasets::*;
 use crate::estimators::*;
 use crate::helpers::helpers::*;
 use crate::helpers::test_helpers::*;
@@ -15,11 +16,13 @@ macro_rules! kkt_check_tests {
             fn $name() {
                 let (n_samples, n_features) = $value;
                 let (X, y) = generate_random_data(n_samples, n_features);
+                let dataset = DenseDatasetView::from((X.view(), y.view()));
+
                 let alpha_max = compute_alpha_max(X.view(), y.view());
                 let alpha = alpha_max * 0.5;
 
                 let mut clf = Lasso::new(alpha, None);
-                let w = clf.fit(X.view(), y.view());
+                let w = clf.fit(&dataset);
 
                 let r = y - X.dot(&w);
                 let xr = X.t().dot(&r) / (n_samples as f64);
@@ -40,11 +43,13 @@ macro_rules! kkt_check_mtl_tests {
             fn $name() {
                 let (n_samples, n_features, n_tasks) = $value;
                 let (X, Y) = generate_random_data_mtl(n_samples, n_features, n_tasks);
+                let dataset = DenseDatasetView::from((X.view(), Y.view()));
+
                 let alpha_max = compute_alpha_max_mtl(X.view(), Y.view());
                 let alpha = alpha_max * 0.5;
 
                 let mut clf = MultiTaskLasso::new(alpha, None);
-                let W = clf.fit(X.view(), Y.view());
+                let W = clf.fit(&dataset);
 
                 let mut XW = Array2::<f64>::zeros((n_samples, n_tasks));
                 general_mat_mul(1., &X, &W, 1., &mut XW);
@@ -80,10 +85,11 @@ fn test_null_weight() {
     let n_samples = 10;
     let n_features = 30;
     let (X, y) = generate_random_data(n_samples, n_features);
+    let dataset = DenseDatasetView::from((X.view(), y.view()));
     let alpha_max = compute_alpha_max(X.view(), y.view());
 
     let mut clf = Lasso::new(alpha_max, None);
-    let w = clf.fit(X.view(), y.view());
+    let w = clf.fit(&dataset);
 
     assert_array_all_close(w.view(), Array1::<f64>::zeros(w.len()).view(), 1e-9);
 }

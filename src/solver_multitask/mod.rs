@@ -1,474 +1,229 @@
 extern crate ndarray;
-extern crate num;
 
-use ndarray::{s, Array1, Array2, ArrayView1, ArrayView2};
-use num::Float;
-use std::fmt::Debug;
+use ndarray::{s, Array1, Array2, ArrayBase, ArrayView1, ArrayView2, Data, Ix2};
 
-use crate::datafits_multitask::DatafitMultiTask;
-use crate::helpers::helpers::{argsort_by, solve_lin_sys};
+use super::Float;
+use crate::datafits_multitask::MultiTaskDatafit;
+use crate::datasets::{csc_array::CSCArray, DatasetBase, DesignMatrix, Targets};
 use crate::penalties_multitask::PenaltyMultiTask;
-use crate::sparse::{CSCArray, MatrixParam};
 
 #[cfg(test)]
 mod tests;
 
-pub fn construct_grad<T: 'static + Float, D: DatafitMultiTask<T>>(
-    X: ArrayView2<T>,
-    XW: ArrayView2<T>,
-    ws: ArrayView1<usize>,
-    datafit: &D,
-) -> Array2<T> {
-    let ws_size = ws.len();
-    let n_tasks = XW.shape()[1];
-    let mut grad = Array2::<T>::zeros((ws_size, n_tasks));
-    for (idx, &j) in ws.iter().enumerate() {
-        let grad_j = datafit.gradient_j(X, XW.view(), j);
-        for t in 0..n_tasks {
-            grad[[idx, t]] = grad_j[t];
-        }
-    }
-    grad
-}
+pub struct MultiTaskSolver {}
 
-pub fn construct_grad_sparse<T: 'static + Float, D: DatafitMultiTask<T>>(
-    X: &CSCArray<T>,
-    XW: ArrayView2<T>,
-    ws: ArrayView1<usize>,
-    datafit: &D,
-) -> Array2<T> {
-    let ws_size = ws.len();
-    let n_tasks = XW.shape()[1];
-    let mut grad = Array2::<T>::zeros((ws_size, n_tasks));
-    for (idx, &j) in ws.iter().enumerate() {
-        let grad_j = datafit.gradient_j_sparse(&X, XW.view(), j);
-        for t in 0..n_tasks {
-            grad[[idx, t]] = grad_j[t];
-        }
-    }
-    grad
-}
-
-pub fn kkt_violation<T: 'static + Float, D: DatafitMultiTask<T>, P: PenaltyMultiTask<T>>(
-    X: ArrayView2<T>,
-    W: ArrayView2<T>,
-    XW: ArrayView2<T>,
-    ws: ArrayView1<usize>,
-    datafit: &D,
-    penalty: &P,
-) -> (Array1<T>, T) {
-    let grad_ws = construct_grad(X, XW.view(), ws.view(), datafit);
-    let (kkt_ws, kkt_ws_max) = penalty.subdiff_distance(W.view(), grad_ws.view(), ws.view());
-    (kkt_ws, kkt_ws_max)
-}
-
-pub fn kkt_violation_sparse<T: 'static + Float, D: DatafitMultiTask<T>, P: PenaltyMultiTask<T>>(
-    X: &CSCArray<T>,
-    W: ArrayView2<T>,
-    XW: ArrayView2<T>,
-    ws: ArrayView1<usize>,
-    datafit: &D,
-    penalty: &P,
-) -> (Array1<T>, T) {
-    let grad_ws = construct_grad_sparse(&X, XW.view(), ws.view(), datafit);
-    let (kkt_ws, kkt_ws_max) = penalty.subdiff_distance(W.view(), grad_ws.view(), ws.view());
-    (kkt_ws, kkt_ws_max)
-}
-
-pub fn construct_ws_from_kkt<T: 'static + Float>(
-    kkt: &mut Array1<T>,
-    W: ArrayView2<T>,
-    p0: usize,
-) -> (Array1<usize>, usize) {
-    let n_features = W.shape()[0];
-    let mut nnz_features: usize = 0;
-
-    for j in 0..n_features {
-        if W.slice(s![j, ..]).map(|&x| x.abs()).sum() != T::zero() {
-            nnz_features += 1;
-            kkt[j] = T::infinity();
-        }
-    }
-
-    let ws_size = usize::max(p0, usize::min(2 * nnz_features, n_features));
-
-    let mut sorted_indices = argsort_by(&kkt, |a, b| {
-        // Swapped order for sorting in descending order
-        b.partial_cmp(a).expect("Elements must not be NaN.")
-    });
-    sorted_indices.truncate(ws_size);
-
-    let ws = Array1::from_shape_vec(ws_size, sorted_indices).unwrap();
-    (ws, ws_size)
-}
-
-pub fn anderson_accel<T, D, P>(
-    Y: ArrayView2<T>,
-    X: MatrixParam<T>,
-    W: &mut Array2<T>,
-    XW: &mut Array2<T>,
-    datafit: &D,
-    penalty: &P,
-    ws: ArrayView1<usize>,
-    last_K_W: &mut Array2<T>,
-    U: &mut Array2<T>,
-    epoch: usize,
-    K: usize,
-    verbose: bool,
-) where
-    T: 'static + Float + Debug,
-    D: DatafitMultiTask<T>,
-    P: PenaltyMultiTask<T>,
+pub trait BCDSolver<F, DF, P, DM, T>
+where
+    F: Float,
+    DF: MultiTaskDatafit<F, DM, T>,
+    P: PenaltyMultiTask<F>,
+    DM: DesignMatrix<Elem = F>,
+    T: Targets<Elem = F>,
 {
-    let n_samples = Y.shape()[0];
-    let n_tasks = Y.shape()[1];
-    let n_features = W.shape()[0];
-    // last_K_w[epoch % (K + 1)] = w[ws]
-    for (idx, &j) in ws.iter().enumerate() {
-        for t in 0..n_tasks {
-            last_K_W[[epoch % (K + 1), idx * n_tasks + t]] = W[[j, t]];
-        }
-    }
+    fn bcd_epoch(
+        &self,
+        dataset: &DatasetBase<DM, T>,
+        datafit: &DF,
+        penalty: &P,
+        W: &mut Array2<F>,
+        XW: &mut Array2<F>,
+        ws: ArrayView1<usize>,
+    );
+}
 
-    if epoch % (K + 1) == K {
-        for k in 0..K {
-            for j in 0..(ws.len() * n_tasks) {
-                U[[k, j]] = last_K_W[[k + 1, j]] - last_K_W[[k, j]];
+pub trait MultiTaskExtrapolator<F, DM, T>
+where
+    F: Float,
+    DM: DesignMatrix<Elem = F>,
+    T: Targets<Elem = F>,
+{
+    fn extrapolate(
+        &self,
+        dataset: &DatasetBase<DM, T>,
+        XW_acc: &mut Array2<F>,
+        W_acc: ArrayView2<F>,
+        ws: ArrayView1<usize>,
+    );
+}
+
+/// This implementation block implements the coordinate descent epoch for dense
+/// design matrices.
+
+impl<F, D, DF, P, T> BCDSolver<F, DF, P, ArrayBase<D, Ix2>, T> for MultiTaskSolver
+where
+    F: Float,
+    D: Data<Elem = F>,
+    DF: MultiTaskDatafit<F, ArrayBase<D, Ix2>, T>,
+    P: PenaltyMultiTask<F>,
+    T: Targets<Elem = F>,
+{
+    fn bcd_epoch(
+        &self,
+        dataset: &DatasetBase<ArrayBase<D, Ix2>, T>,
+        datafit: &DF,
+        penalty: &P,
+        W: &mut Array2<F>,
+        XW: &mut Array2<F>,
+        ws: ArrayView1<usize>,
+    ) {
+        let n_samples = dataset.n_samples();
+        let n_tasks = dataset.n_tasks();
+
+        let X = dataset.design_matrix();
+        let lipschitz = datafit.lipschitz();
+
+        for &j in ws {
+            if lipschitz[j] == F::zero() {
+                continue;
             }
-        }
-
-        let mut C: Array2<T> = Array2::zeros((K, K));
-        // general_mat_mul is 20x slower than using plain for loops
-        // Complexity relatively low o(K^2 * ws_size) considering K usually is 5
-        for i in 0..K {
-            for j in 0..K {
-                for l in 0..ws.len() {
-                    C[[i, j]] = C[[i, j]] + U[[i, l]] * U[[j, l]];
-                }
+            let Xj: ArrayView1<F> = X.slice(s![.., j]);
+            let mut old_W_j = Array1::<F>::zeros(n_tasks);
+            for t in 0..n_tasks {
+                old_W_j[t] = W[[j, t]];
             }
-        }
+            let grad_j = datafit.gradient_j(dataset, XW.view(), j);
 
-        let _res = solve_lin_sys(C.view(), Array1::<T>::ones(K).view());
-
-        match _res {
-            Ok(z) => {
-                let denom = z.sum();
-                let c = z.map(|&x| x / denom);
-
-                let mut W_acc = Array2::<T>::zeros((n_features, n_tasks));
-
-                // Extrapolation
-                for (idx, &j) in ws.iter().enumerate() {
-                    for k in 0..K {
-                        for t in 0..n_tasks {
-                            W_acc[[j, t]] = W_acc[[j, t]] + last_K_W[[k, idx * n_tasks + t]] * c[k];
-                        }
-                    }
-                }
-
-                let mut XW_acc = Array2::<T>::zeros((n_samples, n_tasks));
-
-                match X {
-                    MatrixParam::DenseMatrix(X_full) => {
-                        for i in 0..n_samples {
-                            for &j in ws {
-                                for t in 0..n_tasks {
-                                    XW_acc[[i, t]] =
-                                        XW_acc[[i, t]] + X_full[[i, j]] * W_acc[[j, t]];
-                                }
-                            }
-                        }
-                    }
-                    MatrixParam::SparseMatrix(X_sparse) => {
-                        for &j in ws {
-                            for idx in X_sparse.indptr[j]..X_sparse.indptr[j + 1] {
-                                for t in 0..n_tasks {
-                                    XW_acc[[X_sparse.indices[idx as usize] as usize, t]] = XW_acc
-                                        [[X_sparse.indices[idx as usize] as usize, t]]
-                                        + X_sparse.data[idx as usize] * W_acc[[j, t]];
-                                }
-                            }
-                        }
-                    }
-                }
-
-                let p_obj = datafit.value(Y, XW.view()) + penalty.value(W.view());
-                let p_obj_acc = datafit.value(Y, XW_acc.view()) + penalty.value(W_acc.view());
-
-                if p_obj_acc < p_obj {
-                    W.assign(&W_acc);
-                    XW.assign(&XW_acc);
-
-                    if verbose {
-                        println!("[ACCEL] p_obj {:#?} :: p_obj_acc {:#?}", p_obj, p_obj_acc);
-                    }
-                }
+            let mut upd = Array1::<F>::zeros(n_tasks);
+            for t in 0..n_tasks {
+                upd[t] = old_W_j[t] - grad_j[t] / lipschitz[j];
             }
-            Err(_) => {
-                if verbose {
-                    println!("----LinAlg error");
+            let upd = penalty.prox_op(upd.view(), F::one() / lipschitz[j]);
+            for t in 0..n_tasks {
+                W[[j, t]] = upd[t];
+            }
+
+            let mut diff = Array1::<F>::zeros(n_tasks);
+            let mut sum_diff = F::zero();
+            for t in 0..n_tasks {
+                diff[t] = W[[j, t]] - old_W_j[t];
+                sum_diff += diff[t].abs()
+            }
+
+            if sum_diff != F::zero() {
+                for i in 0..n_samples {
+                    for t in 0..n_tasks {
+                        XW[[i, t]] += diff[t] * Xj[i];
+                    }
                 }
             }
         }
     }
 }
 
-pub fn bcd_epoch<T: 'static + Float, D: DatafitMultiTask<T>, P: PenaltyMultiTask<T>>(
-    X: ArrayView2<T>,
-    W: &mut Array2<T>,
-    XW: &mut Array2<T>,
-    datafit: &D,
-    penalty: &P,
-    ws: ArrayView1<usize>,
-) {
-    let n_samples = X.shape()[0];
-    let n_tasks = W.shape()[1];
-    let lipschitz = datafit.get_lipschitz();
-    for &j in ws {
-        if lipschitz[j] == T::zero() {
-            continue;
-        }
-        let Xj: ArrayView1<T> = X.slice(s![.., j]);
-        let mut old_W_j = Array1::<T>::zeros(n_tasks);
-        for t in 0..n_tasks {
-            old_W_j[t] = W[[j, t]];
-        }
-        let grad_j = datafit.gradient_j(X, XW.view(), j);
+/// This implementation block implements the coordinate descent epoch for sparse
+/// design matrices.
 
-        let mut upd = Array1::<T>::zeros(n_tasks);
-        for t in 0..n_tasks {
-            upd[t] = old_W_j[t] - grad_j[t] / lipschitz[j];
-        }
-        let upd = penalty.prox_op(upd.view(), T::one() / lipschitz[j]);
-        for t in 0..n_tasks {
-            W[[j, t]] = upd[t];
-        }
+impl<'a, F, DF, P, T> BCDSolver<F, DF, P, CSCArray<'a, F>, T> for MultiTaskSolver
+where
+    F: Float,
+    DF: MultiTaskDatafit<F, CSCArray<'a, F>, T>,
+    P: PenaltyMultiTask<F>,
+    T: Targets<Elem = F>,
+{
+    fn bcd_epoch(
+        &self,
+        dataset: &DatasetBase<CSCArray<'a, F>, T>,
+        datafit: &DF,
+        penalty: &P,
+        W: &mut Array2<F>,
+        XW: &mut Array2<F>,
+        ws: ArrayView1<usize>,
+    ) {
+        let n_tasks = dataset.n_tasks();
 
-        let mut diff = Array1::<T>::zeros(n_tasks);
-        let mut sum_diff = T::zero();
-        for t in 0..n_tasks {
-            diff[t] = W[[j, t]] - old_W_j[t];
-            sum_diff = sum_diff + diff[t].abs()
-        }
+        let X = dataset.design_matrix();
+        let lipschitz = datafit.lipschitz();
 
-        if sum_diff != T::zero() {
-            for i in 0..n_samples {
+        for &j in ws {
+            if lipschitz[j] == F::zero() {
+                continue;
+            }
+            let mut old_W_j = Array1::<F>::zeros(n_tasks);
+            for t in 0..n_tasks {
+                old_W_j[t] = W[[j, t]];
+            }
+            let grad_j = datafit.gradient_j(dataset, XW.view(), j);
+
+            let mut upd = Array1::<F>::zeros(n_tasks);
+            for t in 0..n_tasks {
+                upd[t] = old_W_j[t] - grad_j[t] / lipschitz[j];
+            }
+            let upd = penalty.prox_op(upd.view(), F::one() / lipschitz[j]);
+            for t in 0..n_tasks {
+                W[[j, t]] = upd[t];
+            }
+
+            let mut diff = Array1::<F>::zeros(n_tasks);
+            let mut sum_diff = F::zero();
+            for t in 0..n_tasks {
+                diff[t] = W[[j, t]] - old_W_j[t];
+                sum_diff += diff[t].abs();
+            }
+
+            if sum_diff != F::zero() {
+                for i in X.indptr[j]..X.indptr[j + 1] {
+                    for t in 0..n_tasks {
+                        XW[[X.indices[i as usize] as usize, t]] += diff[t] * X.data[i as usize];
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// This implementation block implements the extrapolation method for coordinate
+/// descent solvers, using dense matrices.
+///
+impl<F, D, T> MultiTaskExtrapolator<F, ArrayBase<D, Ix2>, T> for MultiTaskSolver
+where
+    F: Float,
+    D: Data<Elem = F>,
+    T: Targets<Elem = F>,
+{
+    fn extrapolate(
+        &self,
+        dataset: &DatasetBase<ArrayBase<D, Ix2>, T>,
+        XW_acc: &mut Array2<F>,
+        W_acc: ArrayView2<F>,
+        ws: ArrayView1<usize>,
+    ) {
+        let X = dataset.design_matrix();
+        let n_samples = dataset.n_samples();
+        let n_tasks = dataset.n_tasks();
+        for i in 0..n_samples {
+            for &j in ws {
                 for t in 0..n_tasks {
-                    XW[[i, t]] = XW[[i, t]] + diff[t] * Xj[i];
+                    XW_acc[[i, t]] += X[[i, j]] * W_acc[[j, t]];
                 }
             }
         }
     }
 }
 
-pub fn bcd_epoch_sparse<T: 'static + Float, D: DatafitMultiTask<T>, P: PenaltyMultiTask<T>>(
-    X: &CSCArray<T>,
-    W: &mut Array2<T>,
-    XW: &mut Array2<T>,
-    datafit: &D,
-    penalty: &P,
-    ws: ArrayView1<usize>,
-) {
-    let n_tasks = W.shape()[1];
-    let lipschitz = datafit.get_lipschitz();
-    for &j in ws {
-        if lipschitz[j] == T::zero() {
-            continue;
-        }
-        let mut old_W_j = Array1::<T>::zeros(n_tasks);
-        for t in 0..n_tasks {
-            old_W_j[t] = W[[j, t]];
-        }
-        let grad_j = datafit.gradient_j_sparse(&X, XW.view(), j);
-
-        let mut upd = Array1::<T>::zeros(n_tasks);
-        for t in 0..n_tasks {
-            upd[t] = old_W_j[t] - grad_j[t] / lipschitz[j];
-        }
-        let upd = penalty.prox_op(upd.view(), T::one() / lipschitz[j]);
-        for t in 0..n_tasks {
-            W[[j, t]] = upd[t];
-        }
-
-        let mut diff = Array1::<T>::zeros(n_tasks);
-        let mut sum_diff = T::zero();
-        for t in 0..n_tasks {
-            diff[t] = W[[j, t]] - old_W_j[t];
-            sum_diff = sum_diff + diff[t].abs();
-        }
-
-        if sum_diff != T::zero() {
-            for i in X.indptr[j]..X.indptr[j + 1] {
+/// This implementation block implements the extrapolation method for coordinate
+/// descent solvers, using sparse matrices.
+///
+impl<'a, F, T> MultiTaskExtrapolator<F, CSCArray<'a, F>, T> for MultiTaskSolver
+where
+    F: Float,
+    T: Targets<Elem = F>,
+{
+    fn extrapolate(
+        &self,
+        dataset: &DatasetBase<CSCArray<'a, F>, T>,
+        XW_acc: &mut Array2<F>,
+        W_acc: ArrayView2<F>,
+        ws: ArrayView1<usize>,
+    ) {
+        let X = dataset.design_matrix();
+        let n_tasks = dataset.n_tasks();
+        for &j in ws {
+            for idx in X.indptr[j]..X.indptr[j + 1] {
                 for t in 0..n_tasks {
-                    XW[[X.indices[i as usize] as usize, t]] =
-                        XW[[X.indices[i as usize] as usize, t]] + diff[t] * X.data[i as usize];
+                    XW_acc[[X.indices[idx as usize] as usize, t]] +=
+                        X.data[idx as usize] * W_acc[[j, t]];
                 }
             }
         }
     }
-}
-
-pub fn solver_multitask<
-    T: 'static + Float + Debug,
-    D: DatafitMultiTask<T>,
-    P: PenaltyMultiTask<T>,
->(
-    X: MatrixParam<T>,
-    Y: ArrayView2<T>,
-    datafit: &mut D,
-    penalty: &P,
-    max_iter: usize,
-    max_epochs: usize,
-    _p0: usize,
-    tol: T,
-    use_accel: bool,
-    K: usize,
-    verbose: bool,
-) -> Array2<T> {
-    let n_samples = Y.shape()[0];
-    let n_tasks = Y.shape()[1];
-    let n_features: usize;
-
-    match X {
-        MatrixParam::DenseMatrix(X_full) => {
-            datafit.initialize(X_full.view(), Y.view());
-            n_features = X_full.shape()[1];
-        }
-        MatrixParam::SparseMatrix(X_sparse) => {
-            datafit.initialize_sparse(X_sparse, Y.view());
-            n_features = X_sparse.indptr.len() - 1;
-        }
-    }
-
-    let all_feats = Array1::from_shape_vec(n_features, (0..n_features).collect()).unwrap();
-
-    let p0 = if _p0 > n_features { n_features } else { _p0 };
-
-    let mut W = Array2::<T>::zeros((n_features, n_tasks));
-    let mut XW = Array2::<T>::zeros((n_samples, n_tasks));
-
-    for t in 0..max_iter {
-        let mut kkt: Array1<T>;
-        let kkt_max: T;
-
-        match X {
-            MatrixParam::DenseMatrix(X_full) => {
-                let (a, b) = kkt_violation(
-                    X_full,
-                    W.view(),
-                    XW.view(),
-                    all_feats.view(),
-                    datafit,
-                    penalty,
-                );
-                kkt = a;
-                kkt_max = b;
-            }
-            MatrixParam::SparseMatrix(X_sparse) => {
-                let (a, b) = kkt_violation_sparse(
-                    X_sparse,
-                    W.view(),
-                    XW.view(),
-                    all_feats.view(),
-                    datafit,
-                    penalty,
-                );
-                kkt = a;
-                kkt_max = b;
-            }
-        }
-
-        if verbose {
-            println!("KKT max violation: {:#?}", kkt_max);
-        }
-        if kkt_max <= tol {
-            break;
-        }
-
-        let (ws, ws_size) = construct_ws_from_kkt(&mut kkt, W.view(), p0);
-
-        let mut last_K_W = Array2::<T>::zeros((K + 1, ws_size * n_tasks));
-        let mut U = Array2::<T>::zeros((K, ws_size * n_tasks));
-
-        if verbose {
-            println!("Iteration {}, {} features in subproblem.", t + 1, ws_size);
-        }
-
-        for epoch in 0..max_epochs {
-            match X {
-                MatrixParam::DenseMatrix(X_full) => {
-                    bcd_epoch(X_full.view(), &mut W, &mut XW, datafit, penalty, ws.view());
-                }
-                MatrixParam::SparseMatrix(X_sparse) => {
-                    bcd_epoch_sparse(X_sparse, &mut W, &mut XW, datafit, penalty, ws.view());
-                }
-            }
-
-            // Anderson acceleration
-            if use_accel {
-                anderson_accel(
-                    Y,
-                    X,
-                    &mut W,
-                    &mut XW,
-                    datafit,
-                    penalty,
-                    ws.view(),
-                    &mut last_K_W,
-                    &mut U,
-                    epoch,
-                    K,
-                    verbose,
-                );
-            }
-
-            // KKT violation check
-            if epoch > 0 && epoch % 10 == 0 {
-                let p_obj = datafit.value(Y, XW.view()) + penalty.value(W.view());
-
-                let kkt_ws_max: T;
-
-                match X {
-                    MatrixParam::DenseMatrix(X_full) => {
-                        let (_, b) =
-                            kkt_violation(X_full, W.view(), XW.view(), ws.view(), datafit, penalty);
-                        kkt_ws_max = b;
-                    }
-                    MatrixParam::SparseMatrix(X_sparse) => {
-                        let (_, b) = kkt_violation_sparse(
-                            X_sparse,
-                            W.view(),
-                            XW.view(),
-                            ws.view(),
-                            datafit,
-                            penalty,
-                        );
-                        kkt_ws_max = b;
-                    }
-                }
-
-                if verbose {
-                    println!(
-                        "epoch: {} :: obj: {:#?} :: kkt: {:#?}",
-                        epoch, p_obj, kkt_ws_max
-                    );
-                }
-
-                if ws_size == n_features {
-                    if kkt_ws_max <= tol {
-                        break;
-                    }
-                } else {
-                    if kkt_ws_max < T::from(0.3).unwrap() * kkt_max {
-                        if verbose {
-                            println!("Early exit.")
-                        }
-                        break;
-                    }
-                }
-            }
-        }
-    }
-
-    W
 }

@@ -1,63 +1,74 @@
 extern crate ndarray;
-extern crate num;
 
-use ndarray::{Array1, ArrayView1};
-use num::Float;
+use ndarray::{Array1, ArrayBase, ArrayView1, Ix1, OwnedRepr};
 
+use super::Float;
 use crate::helpers::prox::soft_thresholding;
 
 #[cfg(test)]
 mod tests;
 
-pub trait Penalty<T: Float> {
-    fn value(&self, w: ArrayView1<T>) -> T;
-    fn prox_op(&self, value: T, step_size: T) -> T;
+pub trait Penalty<F>
+where
+    F: Float,
+{
+    fn value(&self, w: ArrayView1<F>) -> F;
+    fn prox_op(&self, value: F, step_size: F) -> F;
     fn subdiff_distance(
         &self,
-        w: ArrayView1<T>,
-        grad: ArrayView1<T>,
+        w: ArrayView1<F>,
+        grad: ArrayView1<F>,
         ws: ArrayView1<usize>,
-    ) -> (Array1<T>, T);
+    ) -> (ArrayBase<OwnedRepr<F>, Ix1>, F);
 }
 
 /// L1 penalty
 ///
 
-pub struct L1<T> {
-    alpha: T,
+pub struct L1<F>
+where
+    F: Float,
+{
+    alpha: F,
 }
 
-impl<T: Float> L1<T> {
+impl<F> L1<F>
+where
+    F: Float,
+{
     // Constructor
-    pub fn new(alpha: T) -> Self {
+    pub fn new(alpha: F) -> Self {
         L1 { alpha }
     }
 }
 
-impl<T: Float> Penalty<T> for L1<T> {
+impl<F> Penalty<F> for L1<F>
+where
+    F: Float,
+{
     /// Gets the current value of the penalty
-    fn value(&self, w: ArrayView1<T>) -> T {
-        self.alpha * w.map(|x| T::abs(*x)).sum()
+    fn value(&self, w: ArrayView1<F>) -> F {
+        self.alpha * w.map(|x| (*x).abs()).sum()
     }
     /// Computes the value of the proximal operator
-    fn prox_op(&self, value: T, stepsize: T) -> T {
+    fn prox_op(&self, value: F, stepsize: F) -> F {
         soft_thresholding(value, self.alpha * stepsize)
     }
     /// Computes the distance of the gradient to the subdifferential
     fn subdiff_distance(
         &self,
-        w: ArrayView1<T>,
-        grad: ArrayView1<T>,
+        w: ArrayView1<F>,
+        grad: ArrayView1<F>,
         ws: ArrayView1<usize>,
-    ) -> (Array1<T>, T) {
+    ) -> (ArrayBase<OwnedRepr<F>, Ix1>, F) {
         let ws_size = ws.len();
-        let mut subdiff_dist = Array1::<T>::zeros(ws_size);
-        let mut max_subdiff_dist = T::neg_infinity();
+        let mut subdiff_dist = Array1::<F>::zeros(ws_size);
+        let mut max_subdiff_dist = F::neg_infinity();
         for (idx, &j) in ws.iter().enumerate() {
-            if w[j] == T::zero() {
-                subdiff_dist[idx] = T::max(T::zero(), T::abs(grad[idx]) - self.alpha);
+            if w[j] == F::zero() {
+                subdiff_dist[idx] = F::max(F::zero(), grad[idx].abs() - self.alpha);
             } else {
-                subdiff_dist[idx] = T::abs(-grad[idx] - T::signum(w[j]) * self.alpha);
+                subdiff_dist[idx] = (-grad[idx] - w[j].signum() * self.alpha).abs();
             }
 
             if subdiff_dist[idx] > max_subdiff_dist {
