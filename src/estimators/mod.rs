@@ -98,7 +98,7 @@ where
     F: Float,
 {
     /// Create new instance
-    fn new(alpha: F, params: Option<SolverParams<F>>) -> Self {
+    pub fn new(alpha: F, params: Option<SolverParams<F>>) -> Self {
         Lasso {
             datafit: Quadratic::default(),
             penalty: L1::new(alpha),
@@ -177,7 +177,7 @@ where
     F: Float,
 {
     /// Create new instance
-    fn new(alpha: F, params: Option<SolverParams<F>>) -> Self {
+    pub fn new(alpha: F, params: Option<SolverParams<F>>) -> Self {
         MultiTaskLasso {
             datafit: QuadraticMultiTask::default(),
             penalty: L21::new(alpha),

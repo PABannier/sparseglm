@@ -1,9 +1,9 @@
 use numpy::{PyArray, PyArray1, PyArray2};
 use pyo3::prelude::*;
 use rustylasso;
+use rustylasso::datasets::csc_array::CSCArray;
 use rustylasso::datasets::{DenseDatasetView, SparseDatasetView};
-use rustylasso::estimators::Estimator;
-use rustylasso::sparse::CSCArray;
+use rustylasso::estimators::{Fit, Lasso, SolverParams};
 
 #[pyclass]
 pub struct LassoWrapperF32 {
@@ -28,10 +28,8 @@ impl LassoWrapperF64 {
         K: usize,
         verbose: bool,
     ) -> PyResult<Self> {
-        let params = rustylasso::estimators::SolverParams::new(
-            max_epochs, max_iter, p0, tol, K, use_accel, verbose,
-        );
-        let estimator = rustylasso::estimators::Lasso::new(alpha, Some(params));
+        let params = SolverParams::new(max_epochs, max_iter, p0, tol, K, use_accel, verbose);
+        let estimator = Lasso::new(alpha, Some(params));
         Ok(LassoWrapperF64 { inner: estimator })
     }
 
@@ -72,10 +70,8 @@ impl LassoWrapperF32 {
         K: usize,
         verbose: bool,
     ) -> PyResult<Self> {
-        let params = rustylasso::estimators::SolverParams::new(
-            max_epochs, max_iter, p0, tol, K, use_accel, verbose,
-        );
-        let estimator = rustylasso::estimators::Lasso::new(alpha, Some(params));
+        let params = SolverParams::new(max_epochs, max_iter, p0, tol, K, use_accel, verbose);
+        let estimator = Lasso::new(alpha, Some(params));
         Ok(LassoWrapperF32 { inner: estimator })
     }
 
