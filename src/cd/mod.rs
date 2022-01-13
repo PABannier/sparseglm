@@ -7,7 +7,7 @@ use crate::datafits::Datafit;
 use crate::datasets::{DatasetBase, DesignMatrix, Targets};
 use crate::helpers::helpers::{argsort_by, solve_lin_sys};
 use crate::penalties::Penalty;
-use crate::solver::{CDSolver, Extrapolator};
+use crate::solvers::{CDSolver, Extrapolator};
 
 #[cfg(test)]
 mod tests;

@@ -10,8 +10,7 @@ use crate::datafits_multitask::QuadraticMultiTask;
 use crate::datasets::{csc_array::CSCArray, DatasetBase, DesignMatrix, Targets};
 use crate::penalties::L1;
 use crate::penalties_multitask::L21;
-use crate::solver::Solver;
-use crate::solver_multitask::MultiTaskSolver;
+use crate::solvers::Solver;
 
 #[cfg(test)]
 mod tests;
@@ -196,7 +195,7 @@ where
         &mut self,
         dataset: &DatasetBase<ArrayBase<D, Ix2>, ArrayBase<D, Ix2>>,
     ) -> Array<F, Ix2> {
-        let solver = MultiTaskSolver {};
+        let solver = Solver {};
         let W = block_coordinate_descent(
             dataset,
             &mut self.datafit,
@@ -221,7 +220,7 @@ where
 {
     /// Fits the MultiTask estimator to a sparse design matrix
     fn fit(&mut self, dataset: &DatasetBase<CSCArray<'_, F>, ArrayBase<D, Ix2>>) -> Array<F, Ix2> {
-        let solver = MultiTaskSolver {};
+        let solver = Solver {};
         let W = block_coordinate_descent(
             dataset,
             &mut self.datafit,

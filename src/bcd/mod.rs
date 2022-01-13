@@ -8,7 +8,7 @@ use crate::datasets::DesignMatrix;
 use crate::datasets::{DatasetBase, Targets};
 use crate::helpers::helpers::{argsort_by, solve_lin_sys};
 use crate::penalties_multitask::PenaltyMultiTask;
-use crate::solver_multitask::{BCDSolver, MultiTaskExtrapolator};
+use crate::solvers::{BCDSolver, MultiTaskExtrapolator};
 
 #[cfg(test)]
 mod tests;
