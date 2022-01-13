@@ -12,7 +12,7 @@ use crate::solver::{CDSolver, Extrapolator};
 #[cfg(test)]
 mod tests;
 
-pub fn construct_grad<F, DF, DM, T>(
+pub fn construct_grad_from_ws<F, DF, DM, T>(
     dataset: &DatasetBase<DM, T>,
     Xw: ArrayView1<F>,
     ws: ArrayView1<usize>,
@@ -47,7 +47,7 @@ where
     DF: Datafit<F, DM, T>,
     P: Penalty<F>,
 {
-    let grad_ws = construct_grad(dataset, Xw, ws, datafit);
+    let grad_ws = construct_grad_from_ws(dataset, Xw, ws, datafit);
     let (kkt_ws, kkt_ws_max) = penalty.subdiff_distance(w, grad_ws.view(), ws);
     (kkt_ws, kkt_ws_max)
 }
