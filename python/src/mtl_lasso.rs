@@ -1,6 +1,7 @@
 use numpy::{PyArray, PyArray1, PyArray2};
 use pyo3::prelude::*;
 use rustylasso;
+use rustylasso::datasets::{DenseDatasetView, SparseDataView};
 use rustylasso::estimators::MultiTaskEstimator;
 use rustylasso::sparse::CSCArray;
 
@@ -40,10 +41,8 @@ impl MultiTaskLassoWrapperF64 {
         X: &PyArray2<f64>,
         Y: &PyArray2<f64>,
     ) -> PyResult<&'py PyArray2<f64>> {
-        Ok(PyArray::from_array(
-            py,
-            &self.inner.fit(X.as_array(), Y.as_array()),
-        ))
+        let dataset = DenseDatasetView::from((X.as_array(), Y.as_array()));
+        Ok(PyArray::from_array(py, &self.inner.fit(&dataset)))
     }
 
     unsafe fn fit_sparse<'py>(
@@ -55,10 +54,8 @@ impl MultiTaskLassoWrapperF64 {
         Y: &PyArray2<f64>,
     ) -> PyResult<&'py PyArray2<f64>> {
         let X_sparse = CSCArray::new(X_data.as_array(), X_indices.as_array(), X_indptr.as_array());
-        Ok(PyArray::from_array(
-            py,
-            &self.inner.fit_sparse(&X_sparse, Y.as_array()),
-        ))
+        let dataset = SparseDatasetView::from((X_sparse, Y.as_array()));
+        Ok(PyArray::from_array(py, &self.inner.fit(&dataset)))
     }
 }
 
@@ -88,10 +85,8 @@ impl MultiTaskLassoWrapperF32 {
         X: &PyArray2<f32>,
         Y: &PyArray2<f32>,
     ) -> PyResult<&'py PyArray2<f32>> {
-        Ok(PyArray::from_array(
-            py,
-            &self.inner.fit(X.as_array(), Y.as_array()),
-        ))
+        let dataset = DenseDatasetView::from((X.as_array(), Y.as_array()));
+        Ok(PyArray::from_array(py, &self.inner.fit(&dataset)))
     }
 
     unsafe fn fit_sparse<'py>(
@@ -103,9 +98,7 @@ impl MultiTaskLassoWrapperF32 {
         Y: &PyArray2<f32>,
     ) -> PyResult<&'py PyArray2<f32>> {
         let X_sparse = CSCArray::new(X_data.as_array(), X_indices.as_array(), X_indptr.as_array());
-        Ok(PyArray::from_array(
-            py,
-            &self.inner.fit_sparse(&X_sparse, Y.as_array()),
-        ))
+        let dataset = SparseDatasetView::from((X_sparse, Y.as_array()));
+        Ok(PyArray::from_array(py, &self.inner.fit(&dataset)))
     }
 }
