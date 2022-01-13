@@ -40,13 +40,6 @@ where
 /// from the dataset.
 impl<DM: DesignMatrix, T: Targets> DatasetBase<DM, T> {
     /// Create a new dataset from design matrix and targets
-    ///
-    /// # Example
-    ///
-    /// ```ignore
-    /// let dataset = Dataset::new(records, targets);
-    /// ```
-
     pub fn new(design_matrix: DM, targets: T) -> DatasetBase<DM, T> {
         DatasetBase {
             design_matrix,

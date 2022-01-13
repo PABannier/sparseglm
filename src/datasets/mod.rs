@@ -25,9 +25,9 @@ pub type DenseDataset<D, I> = DatasetBase<ArrayBase<OwnedRepr<D>, Ix2>, ArrayBas
 pub type DenseDatasetView<'a, D, I> =
     DatasetBase<ArrayBase<ViewRepr<D>, Ix2>, ArrayBase<ViewRepr<D>, I>>;
 
-pub type SparseDataset<'a, D, I> = DatasetBase<CSCArray<'a, D>, ArrayBase<OwnedRepr<D>, I>>;
+pub type SparseDataset<'a, F, D, I> = DatasetBase<CSCArray<'a, F>, ArrayBase<OwnedRepr<D>, I>>;
 
-pub type SparseDatasetView<'a, D, I> = DatasetBase<CSCArray<'a, D>, ArrayBase<ViewRepr<D>, I>>;
+pub type SparseDatasetView<'a, F, D, I> = DatasetBase<CSCArray<'a, F>, ArrayBase<ViewRepr<D>, I>>;
 
 pub trait DesignMatrix: Sized {
     type Elem;
