@@ -112,9 +112,6 @@ pub fn anderson_accel<F, DM, T, DF, P, S>(
     let n_features = dataset.n_features();
     let n_tasks = dataset.n_tasks();
 
-    let X = dataset.design_matrix();
-    let Y = dataset.targets();
-
     // last_K_w[epoch % (K + 1)] = w[ws]
     for (idx, &j) in ws.iter().enumerate() {
         for t in 0..n_tasks {
@@ -208,9 +205,6 @@ where
     let n_tasks = dataset.n_tasks();
 
     datafit.initialize(dataset);
-
-    let X = dataset.design_matrix();
-    let Y = dataset.targets();
 
     let all_feats = Array1::from_shape_vec(n_features, (0..n_features).collect()).unwrap();
 

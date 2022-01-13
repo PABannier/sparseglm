@@ -3,13 +3,15 @@ extern crate ndarray;
 use ndarray::{Array, ArrayBase, Data, Dimension, Ix1, Ix2};
 
 use super::Float;
+use crate::bcd::block_coordinate_descent;
+use crate::cd::coordinate_descent;
 use crate::datafits::Quadratic;
 use crate::datafits_multitask::QuadraticMultiTask;
 use crate::datasets::{csc_array::CSCArray, DatasetBase, DesignMatrix, Targets};
 use crate::penalties::L1;
 use crate::penalties_multitask::L21;
-use crate::solver::solver;
-use crate::solver_multitask::solver_multitask;
+use crate::solver::Solver;
+use crate::solver_multitask::MultiTaskSolver;
 
 #[cfg(test)]
 mod tests;
@@ -76,7 +78,7 @@ where
     T: Targets<Elem = F>,
     I: Dimension,
 {
-    fn fit(&self, dataset: &DatasetBase<DM, T>) -> Array<F, I>;
+    fn fit(&mut self, dataset: &DatasetBase<DM, T>) -> Array<F, I>;
 }
 
 /// Lasso
@@ -111,10 +113,15 @@ where
     D: Data<Elem = F>,
 {
     /// Fits the Lasso estimator to a dense design matrix
-    fn fit(&self, dataset: &DatasetBase<ArrayBase<D, Ix2>, ArrayBase<D, Ix1>>) -> Array<F, Ix1> {
-        let w = solver(
+    fn fit(
+        &mut self,
+        dataset: &DatasetBase<ArrayBase<D, Ix2>, ArrayBase<D, Ix1>>,
+    ) -> Array<F, Ix1> {
+        let solver = Solver {};
+        let w = coordinate_descent(
             dataset,
             &mut self.datafit,
+            &solver,
             &self.penalty,
             self.params.max_iter,
             self.params.max_epochs,
@@ -134,10 +141,12 @@ where
     D: Data<Elem = F>,
 {
     /// Fits the Lasso estimator to a sparse design matrix
-    fn fit(&self, dataset: &DatasetBase<CSCArray<F>, ArrayBase<D, Ix1>>) -> Array<F, Ix1> {
-        let w = solver(
+    fn fit(&mut self, dataset: &DatasetBase<CSCArray<F>, ArrayBase<D, Ix1>>) -> Array<F, Ix1> {
+        let solver = Solver {};
+        let w = coordinate_descent(
             dataset,
             &mut self.datafit,
+            &solver,
             &self.penalty,
             self.params.max_iter,
             self.params.max_epochs,
@@ -183,10 +192,15 @@ where
     D: Data<Elem = F>,
 {
     /// Fits the MultiTaskLasso estimator to a dense design matrix
-    fn fit(&self, dataset: &DatasetBase<ArrayBase<D, Ix2>, ArrayBase<D, Ix2>>) -> Array<F, Ix2> {
-        let W = solver_multitask(
+    fn fit(
+        &mut self,
+        dataset: &DatasetBase<ArrayBase<D, Ix2>, ArrayBase<D, Ix2>>,
+    ) -> Array<F, Ix2> {
+        let solver = MultiTaskSolver {};
+        let W = block_coordinate_descent(
             dataset,
             &mut self.datafit,
+            &solver,
             &self.penalty,
             self.params.max_iter,
             self.params.max_epochs,
@@ -206,10 +220,12 @@ where
     D: Data<Elem = F>,
 {
     /// Fits the MultiTask estimator to a sparse design matrix
-    fn fit(&self, dataset: &DatasetBase<CSCArray<'_, F>, ArrayBase<D, Ix2>>) -> Array<F, Ix2> {
-        let W = solver_multitask(
+    fn fit(&mut self, dataset: &DatasetBase<CSCArray<'_, F>, ArrayBase<D, Ix2>>) -> Array<F, Ix2> {
+        let solver = MultiTaskSolver {};
+        let W = block_coordinate_descent(
             dataset,
             &mut self.datafit,
+            &solver,
             &self.penalty,
             self.params.max_iter,
             self.params.max_epochs,

@@ -86,9 +86,7 @@ where
         dataset: &DatasetBase<ArrayBase<D, Ix2>, ArrayBase<D, Ix1>>,
         Xw: ArrayView1<F>,
     ) -> ArrayBase<OwnedRepr<F>, Ix1> {
-        let n_samples = dataset.n_samples();
         let n_features = dataset.n_features();
-        let X = dataset.design_matrix();
         let mut grad = Array1::<F>::zeros(n_features);
         for j in 0..n_features {
             grad[j] = self.gradient_j(dataset, Xw, j);
@@ -167,9 +165,7 @@ where
         dataset: &DatasetBase<CSCArray<'_, F>, ArrayBase<D, Ix1>>,
         Xw: ArrayView1<F>,
     ) -> ArrayBase<OwnedRepr<F>, Ix1> {
-        let n_samples = dataset.n_samples();
         let n_features = dataset.n_features();
-        let X = dataset.design_matrix();
         let mut grad = Array1::<F>::zeros(n_features);
         for j in 0..n_features {
             grad[j] = self.gradient_j(dataset, Xw, j);

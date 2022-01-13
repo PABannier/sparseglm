@@ -102,9 +102,6 @@ pub fn anderson_accel<F, DM, T, DF, P, S>(
     P: Penalty<F>,
     S: Extrapolator<F, DM, T>,
 {
-    let X = dataset.design_matrix();
-    let y = dataset.targets();
-
     let n_samples = dataset.n_samples();
     let n_features = dataset.n_features();
 
@@ -199,15 +196,12 @@ where
 
     datafit.initialize(dataset);
 
-    let X = dataset.design_matrix();
-    let y = dataset.targets();
-
     let all_feats = Array1::from_shape_vec(n_features, (0..n_features).collect()).unwrap();
 
     let p0 = if _p0 > n_features { n_features } else { _p0 };
 
-    let w = Array1::<F>::zeros(n_features);
-    let Xw = Array1::<F>::zeros(n_samples);
+    let mut w = Array1::<F>::zeros(n_features);
+    let mut Xw = Array1::<F>::zeros(n_samples);
 
     for t in 0..max_iter {
         let (mut kkt, kkt_max) = kkt_violation(
