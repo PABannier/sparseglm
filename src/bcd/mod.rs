@@ -13,7 +13,7 @@ use crate::solvers::{BCDSolver, Extrapolator, WorkingSet};
 #[cfg(test)]
 mod tests;
 
-pub fn anderson_accel<F, DM, T, DF, P, S>(
+pub fn anderson_accel<'a, F, DM, T, DF, P, S>(
     dataset: &DatasetBase<DM, T>,
     solver: &S,
     W: &mut Array2<F>,
@@ -31,8 +31,8 @@ pub fn anderson_accel<F, DM, T, DF, P, S>(
     DM: DesignMatrix<Elem = F>,
     T: Targets<Elem = F>,
     DF: Datafit<F, DM, T, Ix2>,
-    P: Penalty<F, Ix2>,
-    S: BCDSolver<F, DF, P, DM, T> + Extrapolator<F, DM, T, Ix2>,
+    P: Penalty<'a, F, Ix2>,
+    S: BCDSolver<'a, F, DF, P, DM, T> + Extrapolator<F, DM, T, Ix2>,
 {
     let n_samples = dataset.n_samples();
     let n_features = dataset.n_features();
@@ -105,7 +105,7 @@ pub fn anderson_accel<F, DM, T, DF, P, S>(
     }
 }
 
-pub fn block_coordinate_descent<F, DM, T, DF, P, S>(
+pub fn block_coordinate_descent<'a, F, DM, T, DF, P, S>(
     dataset: &DatasetBase<DM, T>,
     datafit: &mut DF,
     solver: &S,
@@ -123,8 +123,10 @@ where
     DM: DesignMatrix<Elem = F>,
     T: Targets<Elem = F>,
     DF: Datafit<F, DM, T, Ix2>,
-    P: Penalty<F, Ix2>,
-    S: BCDSolver<F, DF, P, DM, T> + Extrapolator<F, DM, T, Ix2> + WorkingSet<F, DF, P, DM, T, Ix2>,
+    P: Penalty<'a, F, Ix2>,
+    S: BCDSolver<'a, F, DF, P, DM, T>
+        + Extrapolator<F, DM, T, Ix2>
+        + WorkingSet<'a, F, DF, P, DM, T, Ix2>,
 {
     let n_samples = dataset.n_samples();
     let n_features = dataset.n_features();

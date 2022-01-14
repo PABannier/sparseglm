@@ -12,7 +12,7 @@ use crate::solvers::{CDSolver, Extrapolator, WorkingSet};
 #[cfg(test)]
 mod tests;
 
-pub fn anderson_accel<F, DM, T, DF, P, S>(
+pub fn anderson_accel<'a, F, DM, T, DF, P, S>(
     dataset: &DatasetBase<DM, T>,
     datafit: &DF,
     penalty: &P,
@@ -30,7 +30,7 @@ pub fn anderson_accel<F, DM, T, DF, P, S>(
     DM: DesignMatrix<Elem = F>,
     T: Targets<Elem = F>,
     DF: Datafit<F, DM, T, Ix1>,
-    P: Penalty<F, Ix1>,
+    P: Penalty<'a, F, Ix1>,
     S: Extrapolator<F, DM, T, Ix1>,
 {
     let n_samples = dataset.n_samples();
@@ -101,7 +101,7 @@ pub fn anderson_accel<F, DM, T, DF, P, S>(
     }
 }
 
-pub fn coordinate_descent<F, DM, T, DF, P, S>(
+pub fn coordinate_descent<'a, F, DM, T, DF, P, S>(
     dataset: &DatasetBase<DM, T>,
     datafit: &mut DF,
     solver: &S,
@@ -119,8 +119,10 @@ where
     DM: DesignMatrix<Elem = F>,
     T: Targets<Elem = F>,
     DF: Datafit<F, DM, T, Ix1>,
-    P: Penalty<F, Ix1>,
-    S: CDSolver<F, DF, P, DM, T> + Extrapolator<F, DM, T, Ix1> + WorkingSet<F, DF, P, DM, T, Ix1>,
+    P: Penalty<'a, F, Ix1>,
+    S: CDSolver<'a, F, DF, P, DM, T>
+        + Extrapolator<F, DM, T, Ix1>
+        + WorkingSet<'a, F, DF, P, DM, T, Ix1>,
 {
     let n_samples = dataset.n_samples();
     let n_features = dataset.n_features();

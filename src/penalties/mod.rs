@@ -8,7 +8,7 @@ use crate::helpers::prox::{block_soft_thresholding, soft_thresholding};
 #[cfg(test)]
 mod tests;
 
-pub trait Penalty<F, I>
+pub trait Penalty<'a, F, I>
 where
     F: Float,
     I: Dimension,
@@ -40,7 +40,7 @@ impl<F: Float> L1<F> {
     }
 }
 
-impl<F: Float> Penalty<F, Ix1> for L1<F> {
+impl<'a, F: Float> Penalty<'a, F, Ix1> for L1<F> {
     type Input = F;
     type Output = F;
 
@@ -91,8 +91,8 @@ impl<F: Float> L21<F> {
     }
 }
 
-impl<F: Float> Penalty<F, Ix2> for L21<F> {
-    type Input = ArrayBase<ViewRepr<&'static F>, Ix1>;
+impl<'a, F: Float> Penalty<'a, F, Ix2> for L21<F> {
+    type Input = ArrayBase<ViewRepr<&'a F>, Ix1>;
     type Output = ArrayBase<OwnedRepr<F>, Ix1>;
 
     /// Gets the current value of the penalty

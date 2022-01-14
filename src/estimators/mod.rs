@@ -211,7 +211,7 @@ where
     }
 }
 
-impl<F, D> Fit<F, D, CSCArray<'_, F>, ArrayBase<D, Ix2>, Ix2> for MultiTaskLasso<F>
+impl<'a, F, D> Fit<F, D, CSCArray<'_, F>, ArrayBase<D, Ix2>, Ix2> for MultiTaskLasso<F>
 where
     F: Float,
     D: Data<Elem = F>,
