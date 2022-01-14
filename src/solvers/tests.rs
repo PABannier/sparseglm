@@ -4,12 +4,10 @@ use ndarray::linalg::general_mat_mul;
 use ndarray::{Array1, Array2};
 
 use crate::datafits::*;
-use crate::datafits_multitask::*;
 use crate::datasets::csc_array::*;
 use crate::datasets::*;
 use crate::helpers::test_helpers::*;
 use crate::penalties::*;
-use crate::penalties_multitask::*;
 use crate::solvers::*;
 
 #[test]

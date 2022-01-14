@@ -1,91 +1,17 @@
 extern crate ndarray;
 
-use ndarray::{s, Array1, Array2, ArrayView1, ArrayView2, Ix2};
+use ndarray::{Array1, Array2, ArrayView1, Ix2};
 
 use super::Float;
-use crate::datafits_multitask::MultiTaskDatafit;
+use crate::datafits::Datafit;
 use crate::datasets::DesignMatrix;
 use crate::datasets::{DatasetBase, Targets};
-use crate::helpers::helpers::{argsort_by, solve_lin_sys};
-use crate::penalties_multitask::PenaltyMultiTask;
-use crate::solvers::{BCDSolver, Extrapolator};
+use crate::helpers::helpers::solve_lin_sys;
+use crate::penalties::Penalty;
+use crate::solvers::{BCDSolver, Extrapolator, WorkingSet};
 
 #[cfg(test)]
 mod tests;
-
-pub fn construct_grad_from_ws<F, DF, DM, T>(
-    dataset: &DatasetBase<DM, T>,
-    XW: ArrayView2<F>,
-    ws: ArrayView1<usize>,
-    datafit: &DF,
-) -> Array2<F>
-where
-    F: 'static + Float,
-    DM: DesignMatrix<Elem = F>,
-    T: Targets<Elem = F>,
-    DF: MultiTaskDatafit<F, DM, T>,
-{
-    let ws_size = ws.len();
-    let n_tasks = dataset.n_tasks();
-    let mut grad = Array2::<F>::zeros((ws_size, n_tasks));
-    for (idx, &j) in ws.iter().enumerate() {
-        let grad_j = datafit.gradient_j(&dataset, XW, j);
-        for t in 0..n_tasks {
-            grad[[idx, t]] = grad_j[t];
-        }
-    }
-    grad
-}
-
-pub fn kkt_violation<F, DF, P, DM, T>(
-    dataset: &DatasetBase<DM, T>,
-    W: ArrayView2<F>,
-    XW: ArrayView2<F>,
-    ws: ArrayView1<usize>,
-    datafit: &DF,
-    penalty: &P,
-) -> (Array1<F>, F)
-where
-    F: 'static + Float,
-    DM: DesignMatrix<Elem = F>,
-    T: Targets<Elem = F>,
-    DF: MultiTaskDatafit<F, DM, T>,
-    P: PenaltyMultiTask<F>,
-{
-    let grad_ws = construct_grad_from_ws(dataset, XW, ws, datafit);
-    let (kkt_ws, kkt_ws_max) = penalty.subdiff_distance(W, grad_ws.view(), ws);
-    (kkt_ws, kkt_ws_max)
-}
-
-pub fn construct_ws_from_kkt<F>(
-    kkt: &mut Array1<F>,
-    W: ArrayView2<F>,
-    p0: usize,
-) -> (Array1<usize>, usize)
-where
-    F: 'static + Float,
-{
-    let n_features = W.shape()[0];
-    let mut nnz_features: usize = 0;
-
-    for j in 0..n_features {
-        if W.slice(s![j, ..]).map(|&x| x.abs()).sum() != F::zero() {
-            nnz_features += 1;
-            kkt[j] = F::infinity();
-        }
-    }
-
-    let ws_size = usize::max(p0, usize::min(2 * nnz_features, n_features));
-
-    let mut sorted_indices = argsort_by(&kkt, |a, b| {
-        // Swapped order for sorting in descending order
-        b.partial_cmp(a).expect("Elements must not be NaN.")
-    });
-    sorted_indices.truncate(ws_size);
-
-    let ws = Array1::from_shape_vec(ws_size, sorted_indices).unwrap();
-    (ws, ws_size)
-}
 
 pub fn anderson_accel<F, DM, T, DF, P, S>(
     dataset: &DatasetBase<DM, T>,
@@ -104,8 +30,8 @@ pub fn anderson_accel<F, DM, T, DF, P, S>(
     F: 'static + Float,
     DM: DesignMatrix<Elem = F>,
     T: Targets<Elem = F>,
-    DF: MultiTaskDatafit<F, DM, T>,
-    P: PenaltyMultiTask<F>,
+    DF: Datafit<F, DM, T, Ix2>,
+    P: Penalty<F, Ix2>,
     S: BCDSolver<F, DF, P, DM, T> + Extrapolator<F, DM, T, Ix2>,
 {
     let n_samples = dataset.n_samples();
@@ -196,9 +122,9 @@ where
     F: 'static + Float,
     DM: DesignMatrix<Elem = F>,
     T: Targets<Elem = F>,
-    DF: MultiTaskDatafit<F, DM, T>,
-    P: PenaltyMultiTask<F>,
-    S: BCDSolver<F, DF, P, DM, T> + Extrapolator<F, DM, T, Ix2>,
+    DF: Datafit<F, DM, T, Ix2>,
+    P: Penalty<F, Ix2>,
+    S: BCDSolver<F, DF, P, DM, T> + Extrapolator<F, DM, T, Ix2> + WorkingSet<F, DF, P, DM, T, Ix2>,
 {
     let n_samples = dataset.n_samples();
     let n_features = dataset.n_features();
@@ -214,7 +140,7 @@ where
     let mut XW = Array2::<F>::zeros((n_samples, n_tasks));
 
     for t in 0..max_iter {
-        let (mut kkt, kkt_max) = kkt_violation(
+        let (mut kkt, kkt_max) = solver.kkt_violation(
             dataset,
             W.view(),
             XW.view(),
@@ -230,7 +156,7 @@ where
             break;
         }
 
-        let (ws, ws_size) = construct_ws_from_kkt(&mut kkt, W.view(), p0);
+        let (ws, ws_size) = solver.construct_ws_from_kkt(&mut kkt, W.view(), p0);
 
         let mut last_K_W = Array2::<F>::zeros((K + 1, ws_size * n_tasks));
         let mut U = Array2::<F>::zeros((K, ws_size * n_tasks));
@@ -265,7 +191,7 @@ where
                 let p_obj = datafit.value(dataset, XW.view()) + penalty.value(W.view());
 
                 let (_, kkt_ws_max) =
-                    kkt_violation(dataset, W.view(), XW.view(), ws.view(), datafit, penalty);
+                    solver.kkt_violation(dataset, W.view(), XW.view(), ws.view(), datafit, penalty);
 
                 if verbose {
                     println!(

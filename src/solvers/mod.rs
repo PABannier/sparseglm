@@ -6,10 +6,9 @@ use ndarray::{
 
 use super::Float;
 use crate::datafits::Datafit;
-use crate::datafits_multitask::MultiTaskDatafit;
 use crate::datasets::{csc_array::CSCArray, DatasetBase, DesignMatrix, Targets};
+use crate::helpers::helpers::argsort_by;
 use crate::penalties::Penalty;
-use crate::penalties_multitask::PenaltyMultiTask;
 
 #[cfg(test)]
 mod tests;
@@ -25,8 +24,8 @@ impl Solver {
 pub trait CDSolver<F, DF, P, DM, T>
 where
     F: Float,
-    DF: Datafit<F, DM, T>,
-    P: Penalty<F>,
+    DF: Datafit<F, DM, T, Ix1>,
+    P: Penalty<F, Ix1>,
     DM: DesignMatrix<Elem = F>,
     T: Targets<Elem = F>,
 {
@@ -37,6 +36,25 @@ where
         penalty: &P,
         w: &mut Array1<F>,
         Xw: &mut Array1<F>,
+        ws: ArrayView1<usize>,
+    );
+}
+
+pub trait BCDSolver<F, DF, P, DM, T>
+where
+    F: Float,
+    DF: Datafit<F, DM, T, Ix2>,
+    P: Penalty<F, Ix2>,
+    DM: DesignMatrix<Elem = F>,
+    T: Targets<Elem = F>,
+{
+    fn bcd_epoch(
+        &self,
+        dataset: &DatasetBase<DM, T>,
+        datafit: &DF,
+        penalty: &P,
+        W: &mut Array2<F>,
+        XW: &mut Array2<F>,
         ws: ArrayView1<usize>,
     );
 }
@@ -57,6 +75,41 @@ where
     );
 }
 
+pub trait WorkingSet<F, DF, P, DM, T, I>
+where
+    F: Float,
+    DF: Datafit<F, DM, T, I>,
+    P: Penalty<F, I>,
+    DM: DesignMatrix<Elem = F>,
+    T: Targets<Elem = F>,
+    I: Dimension,
+{
+    fn construct_grad_from_ws(
+        &self,
+        dataset: &DatasetBase<DM, T>,
+        Xw: ArrayBase<ViewRepr<&F>, I>,
+        ws: ArrayView1<usize>,
+        datafit: &DF,
+    ) -> ArrayBase<OwnedRepr<F>, I>;
+
+    fn kkt_violation(
+        &self,
+        dataset: &DatasetBase<DM, T>,
+        w: ArrayBase<ViewRepr<&F>, I>,
+        Xw: ArrayBase<ViewRepr<&F>, I>,
+        ws: ArrayView1<usize>,
+        datafit: &DF,
+        penalty: &P,
+    ) -> (Array1<F>, F);
+
+    fn construct_ws_from_kkt(
+        &self,
+        kkt: &mut Array1<F>,
+        w: ArrayBase<ViewRepr<&F>, I>,
+        p0: usize,
+    ) -> (Array1<usize>, usize);
+}
+
 /// This implementation block implements the coordinate descent epoch for dense
 /// design matrices.
 
@@ -64,8 +117,8 @@ impl<F, D, DF, P, T> CDSolver<F, DF, P, ArrayBase<D, Ix2>, T> for Solver
 where
     F: Float,
     D: Data<Elem = F>,
-    DF: Datafit<F, ArrayBase<D, Ix2>, T>,
-    P: Penalty<F>,
+    DF: Datafit<F, ArrayBase<D, Ix2>, T, Ix1, Output = F>,
+    P: Penalty<F, Ix1, Input = F, Output = F>,
     T: Targets<Elem = F>,
 {
     fn cd_epoch(
@@ -103,8 +156,8 @@ where
 impl<'a, F, DF, P, T> CDSolver<F, DF, P, CSCArray<'a, F>, T> for Solver
 where
     F: Float,
-    DF: Datafit<F, CSCArray<'a, F>, T>,
-    P: Penalty<F>,
+    DF: Datafit<F, CSCArray<'a, F>, T, Ix1, Output = F>,
+    P: Penalty<F, Ix1, Input = F, Output = F>,
     T: Targets<Elem = F>,
 {
     fn cd_epoch(
@@ -185,25 +238,6 @@ where
     }
 }
 
-pub trait BCDSolver<F, DF, P, DM, T>
-where
-    F: Float,
-    DF: MultiTaskDatafit<F, DM, T>,
-    P: PenaltyMultiTask<F>,
-    DM: DesignMatrix<Elem = F>,
-    T: Targets<Elem = F>,
-{
-    fn bcd_epoch(
-        &self,
-        dataset: &DatasetBase<DM, T>,
-        datafit: &DF,
-        penalty: &P,
-        W: &mut Array2<F>,
-        XW: &mut Array2<F>,
-        ws: ArrayView1<usize>,
-    );
-}
-
 /// This implementation block implements the coordinate descent epoch for dense
 /// design matrices.
 
@@ -211,8 +245,13 @@ impl<F, D, DF, P, T> BCDSolver<F, DF, P, ArrayBase<D, Ix2>, T> for Solver
 where
     F: Float,
     D: Data<Elem = F>,
-    DF: MultiTaskDatafit<F, ArrayBase<D, Ix2>, T>,
-    P: PenaltyMultiTask<F>,
+    DF: Datafit<F, ArrayBase<D, Ix2>, T, Ix2, Output = ArrayBase<OwnedRepr<F>, Ix1>>,
+    P: Penalty<
+        F,
+        Ix2,
+        Input = ArrayBase<ViewRepr<&'static F>, Ix1>,
+        Output = ArrayBase<OwnedRepr<F>, Ix1>,
+    >,
     T: Targets<Elem = F>,
 {
     fn bcd_epoch(
@@ -274,8 +313,13 @@ where
 impl<'a, F, DF, P, T> BCDSolver<F, DF, P, CSCArray<'a, F>, T> for Solver
 where
     F: Float,
-    DF: MultiTaskDatafit<F, CSCArray<'a, F>, T>,
-    P: PenaltyMultiTask<F>,
+    DF: Datafit<F, CSCArray<'a, F>, T, Ix2, Output = ArrayBase<OwnedRepr<F>, Ix1>>,
+    P: Penalty<
+        F,
+        Ix2,
+        Input = ArrayBase<ViewRepr<&'static F>, Ix1>,
+        Output = ArrayBase<OwnedRepr<F>, Ix1>,
+    >,
     T: Targets<Elem = F>,
 {
     fn bcd_epoch(
@@ -383,5 +427,152 @@ where
                 }
             }
         }
+    }
+}
+
+/// This implementation block implements the working set construction methods
+/// for single-task solvers.
+///
+
+impl<F, DF, P, DM, T> WorkingSet<F, DF, P, DM, T, Ix1> for Solver
+where
+    F: Float,
+    DF: Datafit<F, DM, T, Ix1, Output = F>,
+    P: Penalty<F, Ix1, Input = F, Output = F>,
+    DM: DesignMatrix<Elem = F>,
+    T: Targets<Elem = F>,
+{
+    fn construct_grad_from_ws(
+        &self,
+        dataset: &DatasetBase<DM, T>,
+        Xw: ArrayBase<ViewRepr<&F>, Ix1>,
+        ws: ArrayView1<usize>,
+        datafit: &DF,
+    ) -> ArrayBase<OwnedRepr<F>, Ix1> {
+        let ws_size = ws.len();
+        let mut grad = Array1::<F>::zeros(ws_size);
+        for (idx, &j) in ws.iter().enumerate() {
+            grad[idx] = datafit.gradient_j(dataset, Xw, j);
+        }
+        grad
+    }
+
+    fn kkt_violation(
+        &self,
+        dataset: &DatasetBase<DM, T>,
+        w: ArrayBase<ViewRepr<&F>, Ix1>,
+        Xw: ArrayBase<ViewRepr<&F>, Ix1>,
+        ws: ArrayView1<usize>,
+        datafit: &DF,
+        penalty: &P,
+    ) -> (Array1<F>, F) {
+        let grad_ws = self.construct_grad_from_ws(dataset, Xw, ws, datafit);
+        let (kkt_ws, kkt_ws_max) = penalty.subdiff_distance(w, grad_ws.view(), ws);
+        (kkt_ws, kkt_ws_max)
+    }
+
+    fn construct_ws_from_kkt(
+        &self,
+        kkt: &mut Array1<F>,
+        w: ArrayBase<ViewRepr<&F>, Ix1>,
+        p0: usize,
+    ) -> (Array1<usize>, usize) {
+        let n_features = w.len();
+        let mut nnz_features: usize = 0;
+
+        for j in 0..n_features {
+            if w[j] != F::zero() {
+                nnz_features += 1;
+                kkt[j] = F::infinity();
+            }
+        }
+        let ws_size = usize::max(p0, usize::min(2 * nnz_features, n_features));
+
+        let mut sorted_indices = argsort_by(&kkt, |a, b| {
+            // Swapped order for sorting in descending order
+            b.partial_cmp(a).expect("Elements must not be NaN.")
+        });
+        sorted_indices.truncate(ws_size);
+
+        let ws = Array1::from_shape_vec(ws_size, sorted_indices).unwrap();
+        (ws, ws_size)
+    }
+}
+
+/// This implementation block implements the working set construction methods
+/// for multi-task solvers.
+///
+impl<F, DF, P, DM, T> WorkingSet<F, DF, P, DM, T, Ix2> for Solver
+where
+    F: Float,
+    DF: Datafit<F, DM, T, Ix2, Output = ArrayBase<OwnedRepr<F>, Ix1>>,
+    P: Penalty<
+        F,
+        Ix2,
+        Input = ArrayBase<ViewRepr<&'static F>, Ix1>,
+        Output = ArrayBase<OwnedRepr<F>, Ix1>,
+    >,
+    DM: DesignMatrix<Elem = F>,
+    T: Targets<Elem = F>,
+{
+    fn construct_grad_from_ws(
+        &self,
+        dataset: &DatasetBase<DM, T>,
+        Xw: ArrayBase<ViewRepr<&F>, Ix2>,
+        ws: ArrayView1<usize>,
+        datafit: &DF,
+    ) -> ArrayBase<OwnedRepr<F>, Ix2> {
+        let ws_size = ws.len();
+        let n_tasks = dataset.n_tasks();
+        let mut grad = Array2::<F>::zeros((ws_size, n_tasks));
+        for (idx, &j) in ws.iter().enumerate() {
+            let grad_j = datafit.gradient_j(&dataset, Xw, j);
+            for t in 0..n_tasks {
+                grad[[idx, t]] = grad_j[t];
+            }
+        }
+        grad
+    }
+
+    fn kkt_violation(
+        &self,
+        dataset: &DatasetBase<DM, T>,
+        w: ArrayBase<ViewRepr<&F>, Ix2>,
+        Xw: ArrayBase<ViewRepr<&F>, Ix2>,
+        ws: ArrayView1<usize>,
+        datafit: &DF,
+        penalty: &P,
+    ) -> (Array1<F>, F) {
+        let grad_ws = self.construct_grad_from_ws(dataset, Xw, ws, datafit);
+        let (kkt_ws, kkt_ws_max) = penalty.subdiff_distance(w, grad_ws.view(), ws);
+        (kkt_ws, kkt_ws_max)
+    }
+
+    fn construct_ws_from_kkt(
+        &self,
+        kkt: &mut Array1<F>,
+        w: ArrayBase<ViewRepr<&F>, Ix2>,
+        p0: usize,
+    ) -> (Array1<usize>, usize) {
+        let n_features = w.shape()[0];
+        let mut nnz_features: usize = 0;
+
+        for j in 0..n_features {
+            if w.slice(s![j, ..]).map(|&x| x.abs()).sum() != F::zero() {
+                nnz_features += 1;
+                kkt[j] = F::infinity();
+            }
+        }
+
+        let ws_size = usize::max(p0, usize::min(2 * nnz_features, n_features));
+
+        let mut sorted_indices = argsort_by(&kkt, |a, b| {
+            // Swapped order for sorting in descending order
+            b.partial_cmp(a).expect("Elements must not be NaN.")
+        });
+        sorted_indices.truncate(ws_size);
+
+        let ws = Array1::from_shape_vec(ws_size, sorted_indices).unwrap();
+        (ws, ws_size)
     }
 }

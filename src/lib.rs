@@ -56,10 +56,8 @@ impl Float for f64 {
 pub mod bcd;
 pub mod cd;
 pub mod datafits;
-pub mod datafits_multitask;
 pub mod datasets;
 pub mod estimators;
 pub mod helpers;
 pub mod penalties;
-pub mod penalties_multitask;
 pub mod solvers;

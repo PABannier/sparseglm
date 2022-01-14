@@ -5,11 +5,9 @@ use ndarray::{Array, ArrayBase, Data, Dimension, Ix1, Ix2};
 use super::Float;
 use crate::bcd::block_coordinate_descent;
 use crate::cd::coordinate_descent;
-use crate::datafits::Quadratic;
-use crate::datafits_multitask::QuadraticMultiTask;
+use crate::datafits::{Quadratic, QuadraticMultiTask};
 use crate::datasets::{csc_array::CSCArray, DatasetBase, DesignMatrix, Targets};
-use crate::penalties::L1;
-use crate::penalties_multitask::L21;
+use crate::penalties::{L1, L21};
 use crate::solvers::Solver;
 
 #[cfg(test)]
