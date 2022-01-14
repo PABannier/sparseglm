@@ -8,8 +8,8 @@ from rustylasso.estimators import Lasso
 
 from rustylasso.utils import make_correlated_data, compute_alpha_max
 
-n_samples = 300
-n_features = 1000
+n_samples = 3_000
+n_features = 10_000
 
 snr = 2
 corr = 0.6
@@ -17,7 +17,7 @@ density = 0.5
 
 tol = 1e-9
 
-reg = 0.1
+reg = 0.05
 
 X, y, _ = make_correlated_data(
     n_samples=n_samples, n_features=n_features, corr=corr, snr=snr,
@@ -38,7 +38,7 @@ alpha_max = compute_alpha_max(X, y)
 
 estimator_sk = Lasso_sk(alpha_max * reg, fit_intercept=False, tol=tol,
                         max_iter=10**6)
-estimator_rl = Lasso(alpha_max * reg, tol=tol, verbose=False)
+estimator_rl = Lasso(alpha_max * reg, tol=tol, verbose=True)
 
 print("Fitting dense matrices...")
 
