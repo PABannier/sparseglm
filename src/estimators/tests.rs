@@ -21,7 +21,8 @@ macro_rules! kkt_check_tests {
                 let alpha_max = compute_alpha_max(X.view(), y.view());
                 let alpha = alpha_max * 0.5;
 
-                let w = Lasso::params().alpha(alpha).fit(&dataset);
+                let clf = Lasso::params().alpha(alpha).fit(&dataset).unwrap();
+                let w = clf.coefficients();
 
                 let r = y - X.dot(&w);
                 let xr = X.t().dot(&r) / (n_samples as f64);
@@ -47,7 +48,8 @@ macro_rules! kkt_check_mtl_tests {
                 let alpha_max = compute_alpha_max_mtl(X.view(), Y.view());
                 let alpha = alpha_max * 0.5;
 
-                let W = MultiTaskLasso::params().alpha(alpha).fit(&dataset);
+                let clf = MultiTaskLasso::params().alpha(alpha).fit(&dataset).unwrap();
+                let W = clf.coefficients();
 
                 let mut XW = Array2::<f64>::zeros((n_samples, n_tasks));
                 general_mat_mul(1., &X, &W, 1., &mut XW);
@@ -86,7 +88,8 @@ fn test_null_weight() {
     let dataset = DenseDatasetView::from((X.view(), y.view()));
     let alpha_max = compute_alpha_max(X.view(), y.view());
 
-    let w = Lasso::params().alpha(alpha_max).fit(&dataset);
+    let clf = Lasso::params().alpha(alpha_max).fit(&dataset).unwrap();
+    let w = clf.coefficients();
 
-    assert_array_all_close(w.view(), Array1::<f64>::zeros(w.len()).view(), 1e-9);
+    assert_array_all_close(w, Array1::<f64>::zeros(w.len()).view(), 1e-9);
 }

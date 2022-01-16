@@ -2,11 +2,12 @@ extern crate ndarray;
 
 use ndarray::{ArrayBase, Data, Ix2, OwnedRepr, ViewRepr};
 
+use super::error::{LassoError, Result};
+use super::hyperparams::{MultiTaskLassoParams, MultiTaskLassoValidParams};
 use super::traits::Fit;
 use crate::bcd::block_coordinate_descent;
 use crate::datafits_multitask::QuadraticMultiTask;
 use crate::datasets::{csc_array::CSCArray, DatasetBase};
-use crate::hyperparams::{MultiTaskLassoParams, MultiTaskLassoValidParams};
 use crate::penalties_multitask::L21;
 use crate::solver_multitask::MultiTaskSolver;
 use crate::Float;
@@ -31,14 +32,17 @@ impl<F: Float> MultiTaskLasso<F> {
     }
 }
 
-impl<F, D> Fit<ArrayBase<D, Ix2>, ArrayBase<D, Ix2>> for MultiTaskLassoValidParams<F>
+impl<F, D> Fit<ArrayBase<D, Ix2>, ArrayBase<D, Ix2>, LassoError> for MultiTaskLassoValidParams<F>
 where
     F: Float,
     D: Data<Elem = F>,
 {
     type Object = MultiTaskLasso<F>;
     /// Fits the MultiTaskLasso estimator to a dense design matrix
-    fn fit(&mut self, dataset: &DatasetBase<ArrayBase<D, Ix2>, ArrayBase<D, Ix2>>) -> Self::Object {
+    fn fit(
+        &self,
+        dataset: &DatasetBase<ArrayBase<D, Ix2>, ArrayBase<D, Ix2>>,
+    ) -> Result<Self::Object> {
         let solver = MultiTaskSolver {};
         let mut datafit = QuadraticMultiTask::default();
         let penalty = L21::new(self.alpha());
@@ -55,18 +59,21 @@ where
             self.K(),
             self.verbose(),
         );
-        MultiTaskLasso { coefficients: W }
+        Ok(MultiTaskLasso { coefficients: W })
     }
 }
 
-impl<F, D> Fit<CSCArray<'_, F>, ArrayBase<D, Ix2>> for MultiTaskLassoValidParams<F>
+impl<F, D> Fit<CSCArray<'_, F>, ArrayBase<D, Ix2>, LassoError> for MultiTaskLassoValidParams<F>
 where
     F: Float,
     D: Data<Elem = F>,
 {
     type Object = MultiTaskLasso<F>;
     /// Fits the MultiTask estimator to a sparse design matrix
-    fn fit(&mut self, dataset: &DatasetBase<CSCArray<'_, F>, ArrayBase<D, Ix2>>) -> Self::Object {
+    fn fit(
+        &self,
+        dataset: &DatasetBase<CSCArray<'_, F>, ArrayBase<D, Ix2>>,
+    ) -> Result<Self::Object> {
         let solver = MultiTaskSolver {};
         let mut datafit = QuadraticMultiTask::default();
         let penalty = L21::new(self.alpha());
@@ -84,6 +91,6 @@ where
             self.K(),
             self.verbose(),
         );
-        MultiTaskLasso { coefficients: W }
+        Ok(MultiTaskLasso { coefficients: W })
     }
 }

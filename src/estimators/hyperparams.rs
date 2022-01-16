@@ -1,3 +1,5 @@
+use super::error::{LassoError, Result};
+use super::param_guard::ParamGuard;
 use super::Float;
 
 /// A verified hyperparameter set ready for the fitting of a Lasso regression model
@@ -145,6 +147,35 @@ impl<F: Float> LassoParams<F> {
     }
 }
 
+impl<F: Float> ParamGuard for LassoParams<F> {
+    type Checked = LassoValidParams<F>;
+    type Error = LassoError;
+
+    /// Validate the hyper parameters
+    fn check_ref(&self) -> Result<&Self::Checked> {
+        if self.0.alpha.is_negative() {
+            Err(LassoError::InvalidRegularization(
+                self.0.alpha.to_f32().unwrap(),
+            ))
+        } else if self.0.tolerance.is_negative() {
+            Err(LassoError::InvalidTolerance(
+                self.0.tolerance.to_f32().unwrap(),
+            ))
+        } else if self.0.K <= 0 {
+            Err(LassoError::InvalidK(self.0.K))
+        } else if self.0.p0 <= 0 {
+            Err(LassoError::InvalidP0(self.0.p0))
+        } else {
+            Ok(&self.0)
+        }
+    }
+
+    fn check(self) -> Result<Self::Checked> {
+        self.check_ref()?;
+        Ok(self.0)
+    }
+}
+
 /// Configure a MultiTaskLasso model.
 pub struct MultiTaskLassoValidParams<F> {
     alpha: F,
@@ -285,5 +316,34 @@ impl<F: Float> MultiTaskLassoParams<F> {
     pub fn verbose(mut self, verbose: bool) -> Self {
         self.0.verbose = verbose;
         self
+    }
+}
+
+impl<F: Float> ParamGuard for MultiTaskLassoParams<F> {
+    type Checked = MultiTaskLassoValidParams<F>;
+    type Error = LassoError;
+
+    /// Validate the hyper parameters
+    fn check_ref(&self) -> Result<&Self::Checked> {
+        if self.0.alpha.is_negative() {
+            Err(LassoError::InvalidRegularization(
+                self.0.alpha.to_f32().unwrap(),
+            ))
+        } else if self.0.tolerance.is_negative() {
+            Err(LassoError::InvalidTolerance(
+                self.0.tolerance.to_f32().unwrap(),
+            ))
+        } else if self.0.K <= 0 {
+            Err(LassoError::InvalidK(self.0.K))
+        } else if self.0.p0 <= 0 {
+            Err(LassoError::InvalidP0(self.0.p0))
+        } else {
+            Ok(&self.0)
+        }
+    }
+
+    fn check(self) -> Result<Self::Checked> {
+        self.check_ref()?;
+        Ok(self.0)
     }
 }

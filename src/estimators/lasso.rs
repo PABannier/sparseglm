@@ -2,11 +2,12 @@ extern crate ndarray;
 
 use ndarray::{ArrayBase, Data, Ix1, Ix2, OwnedRepr, ViewRepr};
 
+use super::error::{LassoError, Result};
+use super::hyperparams::{LassoParams, LassoValidParams};
 use super::traits::Fit;
 use crate::cd::coordinate_descent;
 use crate::datafits::Quadratic;
 use crate::datasets::{csc_array::CSCArray, DatasetBase};
-use crate::hyperparams::{LassoParams, LassoValidParams};
 use crate::penalties::L1;
 use crate::solver::Solver;
 use crate::Float;
@@ -30,14 +31,17 @@ impl<F: Float> Lasso<F> {
     }
 }
 
-impl<F, D> Fit<ArrayBase<D, Ix2>, ArrayBase<D, Ix1>> for LassoValidParams<F>
+impl<F, D> Fit<ArrayBase<D, Ix2>, ArrayBase<D, Ix1>, LassoError> for LassoValidParams<F>
 where
     F: Float,
     D: Data<Elem = F>,
 {
     type Object = Lasso<F>;
     /// Fits the Lasso estimator to a dense design matrix
-    fn fit(&mut self, dataset: &DatasetBase<ArrayBase<D, Ix2>, ArrayBase<D, Ix1>>) -> Self::Object {
+    fn fit(
+        &self,
+        dataset: &DatasetBase<ArrayBase<D, Ix2>, ArrayBase<D, Ix1>>,
+    ) -> Result<Self::Object> {
         let solver = Solver {};
         let mut datafit = Quadratic::default();
         let penalty = L1::new(self.alpha());
@@ -55,18 +59,18 @@ where
             self.K(),
             self.verbose(),
         );
-        Lasso { coefficients: w }
+        Ok(Lasso { coefficients: w })
     }
 }
 
-impl<F, D> Fit<CSCArray<'_, F>, ArrayBase<D, Ix1>> for LassoValidParams<F>
+impl<F, D> Fit<CSCArray<'_, F>, ArrayBase<D, Ix1>, LassoError> for LassoValidParams<F>
 where
     F: Float,
     D: Data<Elem = F>,
 {
     type Object = Lasso<F>;
     /// Fits the Lasso estimator to a sparse design matrix
-    fn fit(&mut self, dataset: &DatasetBase<CSCArray<F>, ArrayBase<D, Ix1>>) -> Self::Object {
+    fn fit(&self, dataset: &DatasetBase<CSCArray<F>, ArrayBase<D, Ix1>>) -> Result<Self::Object> {
         let solver = Solver {};
         let mut datafit = Quadratic::default();
         let penalty = L1::new(self.alpha());
@@ -84,6 +88,6 @@ where
             self.K(),
             self.verbose(),
         );
-        Lasso { coefficients: w }
+        Ok(Lasso { coefficients: w })
     }
 }
