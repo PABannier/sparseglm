@@ -6,10 +6,10 @@ use super::error::{LassoError, Result};
 use super::hyperparams::{MultiTaskLassoParams, MultiTaskLassoValidParams};
 use super::traits::Fit;
 use crate::bcd::block_coordinate_descent;
-use crate::datafits_multitask::QuadraticMultiTask;
+use crate::datafits::QuadraticMultiTask;
 use crate::datasets::{csc_array::CSCArray, DatasetBase};
-use crate::penalties_multitask::L21;
-use crate::solver_multitask::MultiTaskSolver;
+use crate::penalties::L21;
+use crate::solvers::Solver;
 use crate::Float;
 
 /// MultiTask Lasso
@@ -43,7 +43,7 @@ where
         &self,
         dataset: &DatasetBase<ArrayBase<D, Ix2>, ArrayBase<D, Ix2>>,
     ) -> Result<Self::Object> {
-        let solver = MultiTaskSolver {};
+        let solver = Solver {};
         let mut datafit = QuadraticMultiTask::default();
         let penalty = L21::new(self.alpha());
         let W = block_coordinate_descent(
@@ -74,7 +74,7 @@ where
         &self,
         dataset: &DatasetBase<CSCArray<'_, F>, ArrayBase<D, Ix2>>,
     ) -> Result<Self::Object> {
-        let solver = MultiTaskSolver {};
+        let solver = Solver {};
         let mut datafit = QuadraticMultiTask::default();
         let penalty = L21::new(self.alpha());
 
