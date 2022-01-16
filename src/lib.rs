@@ -60,6 +60,7 @@ pub mod datafits_multitask;
 pub mod datasets;
 pub mod estimators;
 pub mod helpers;
+pub mod hyperparams;
 pub mod penalties;
 pub mod penalties_multitask;
 pub mod solver;
