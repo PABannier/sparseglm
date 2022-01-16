@@ -28,8 +28,8 @@ pub trait Datafit<'a, F: Float, DM: DesignMatrix, T: Targets, I: Dimension> {
         Xw: ArrayBase<ViewRepr<&'a F>, I>,
     ) -> ArrayBase<OwnedRepr<F>, I>;
 
-    fn lipschitz(&self) -> ArrayBase<ViewRepr<&'a F>, Ix1>;
-    fn Xty(&self) -> ArrayBase<ViewRepr<&'a F>, I>;
+    fn lipschitz(&self) -> ArrayBase<ViewRepr<&F>, Ix1>;
+    fn Xty(&self) -> ArrayBase<ViewRepr<&F>, I>;
 }
 
 /// Quadratic datafit
@@ -107,7 +107,7 @@ where
     }
 
     // Getter for Lipschitz constants
-    fn lipschitz(&self) -> ArrayBase<ViewRepr<&'a F>, Ix1> {
+    fn lipschitz(&self) -> ArrayBase<ViewRepr<&F>, Ix1> {
         self.lipschitz.view()
     }
 
@@ -188,12 +188,12 @@ where
     }
 
     // Getter for Lipschitz constants
-    fn lipschitz(&self) -> ArrayBase<ViewRepr<&'a F>, Ix1> {
+    fn lipschitz(&self) -> ArrayBase<ViewRepr<&F>, Ix1> {
         self.lipschitz.view()
     }
 
     // Getter for Xty
-    fn Xty(&self) -> ArrayBase<ViewRepr<&'a F>, Ix1> {
+    fn Xty(&self) -> ArrayBase<ViewRepr<&F>, Ix1> {
         self.Xty.view()
     }
 }
@@ -308,12 +308,12 @@ where
     }
 
     // Getter for Lipschitz
-    fn lipschitz(&self) -> ArrayBase<ViewRepr<&'a F>, Ix1> {
+    fn lipschitz(&self) -> ArrayBase<ViewRepr<&F>, Ix1> {
         self.lipschitz.view()
     }
 
     // Getter for Xty
-    fn Xty(&self) -> ArrayBase<ViewRepr<&'a F>, Ix2> {
+    fn Xty(&self) -> ArrayBase<ViewRepr<&F>, Ix2> {
         self.XtY.view()
     }
 }
@@ -432,12 +432,12 @@ where
     }
 
     // Getter for Lipschitz
-    fn lipschitz(&self) -> ArrayBase<ViewRepr<&'a F>, Ix1> {
+    fn lipschitz(&self) -> ArrayBase<ViewRepr<&F>, Ix1> {
         self.lipschitz.view()
     }
 
     // Getter for Xty
-    fn Xty(&self) -> ArrayBase<ViewRepr<&'a F>, Ix2> {
+    fn Xty(&self) -> ArrayBase<ViewRepr<&F>, Ix2> {
         self.XtY.view()
     }
 }

@@ -29,9 +29,9 @@ pub fn anderson_accel<'a, F, DM, T, DF, P, S>(
     F: Float,
     DM: DesignMatrix<Elem = F>,
     T: Targets<Elem = F>,
-    DF: Datafit<F, DM, T, Ix1>,
+    DF: Datafit<'a, F, DM, T, Ix1>,
     P: Penalty<'a, F, Ix1>,
-    S: Extrapolator<F, DM, T, Ix1>,
+    S: Extrapolator<'a, F, DM, T, Ix1>,
 {
     let n_samples = dataset.n_samples();
     let n_features = dataset.n_features();
@@ -118,10 +118,10 @@ where
     F: Float,
     DM: DesignMatrix<Elem = F>,
     T: Targets<Elem = F>,
-    DF: Datafit<F, DM, T, Ix1>,
+    DF: Datafit<'a, F, DM, T, Ix1>,
     P: Penalty<'a, F, Ix1>,
     S: CDSolver<'a, F, DF, P, DM, T>
-        + Extrapolator<F, DM, T, Ix1>
+        + Extrapolator<'a, F, DM, T, Ix1>
         + WorkingSet<'a, F, DF, P, DM, T, Ix1>,
 {
     let n_samples = dataset.n_samples();

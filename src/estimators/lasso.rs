@@ -31,7 +31,7 @@ impl<F: Float> Lasso<F> {
     }
 }
 
-impl<F, D> Fit<ArrayBase<D, Ix2>, ArrayBase<D, Ix1>, LassoError> for LassoValidParams<F>
+impl<'a, F, D> Fit<'a, ArrayBase<D, Ix2>, ArrayBase<D, Ix1>, LassoError> for LassoValidParams<F>
 where
     F: Float,
     D: Data<Elem = F>,
@@ -40,7 +40,7 @@ where
     /// Fits the Lasso estimator to a dense design matrix
     fn fit(
         &self,
-        dataset: &DatasetBase<ArrayBase<D, Ix2>, ArrayBase<D, Ix1>>,
+        dataset: &'a DatasetBase<ArrayBase<D, Ix2>, ArrayBase<D, Ix1>>,
     ) -> Result<Self::Object> {
         let solver = Solver {};
         let mut datafit = Quadratic::default();
@@ -63,14 +63,17 @@ where
     }
 }
 
-impl<F, D> Fit<CSCArray<'_, F>, ArrayBase<D, Ix1>, LassoError> for LassoValidParams<F>
+impl<'a, F, D> Fit<'a, CSCArray<'a, F>, ArrayBase<D, Ix1>, LassoError> for LassoValidParams<F>
 where
     F: Float,
     D: Data<Elem = F>,
 {
     type Object = Lasso<F>;
     /// Fits the Lasso estimator to a sparse design matrix
-    fn fit(&self, dataset: &DatasetBase<CSCArray<F>, ArrayBase<D, Ix1>>) -> Result<Self::Object> {
+    fn fit(
+        &self,
+        dataset: &'a DatasetBase<CSCArray<'a, F>, ArrayBase<D, Ix1>>,
+    ) -> Result<Self::Object> {
         let solver = Solver {};
         let mut datafit = Quadratic::default();
         let penalty = L1::new(self.alpha());

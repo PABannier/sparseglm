@@ -8,27 +8,22 @@ use crate::helpers::prox::{block_soft_thresholding, soft_thresholding};
 #[cfg(test)]
 mod tests;
 
-pub trait Penalty<'a, F, I>
-where
-    F: Float,
-    I: Dimension,
-{
+pub trait Penalty<'a, F: Float, I: Dimension> {
     type Input;
     type Output;
 
-    fn value(&self, w: ArrayBase<ViewRepr<&F>, I>) -> F;
+    fn value(&self, w: ArrayBase<ViewRepr<&'a F>, I>) -> F;
     fn prox_op(&self, value: Self::Input, step_size: F) -> Self::Output;
     fn subdiff_distance(
         &self,
-        w: ArrayBase<ViewRepr<&F>, I>,
-        grad: ArrayBase<ViewRepr<&F>, I>,
-        ws: ArrayView1<usize>,
+        w: ArrayBase<ViewRepr<&'a F>, I>,
+        grad: ArrayBase<ViewRepr<&'a F>, I>,
+        ws: ArrayView1<'a, usize>,
     ) -> (ArrayBase<OwnedRepr<F>, Ix1>, F);
 }
 
 /// L1 penalty
 ///
-
 pub struct L1<F: Float> {
     alpha: F,
 }
@@ -45,7 +40,7 @@ impl<'a, F: Float> Penalty<'a, F, Ix1> for L1<F> {
     type Output = F;
 
     /// Gets the current value of the penalty
-    fn value(&self, w: ArrayBase<ViewRepr<&F>, Ix1>) -> F {
+    fn value(&self, w: ArrayBase<ViewRepr<&'a F>, Ix1>) -> F {
         self.alpha * w.map(|x| (*x).abs()).sum()
     }
     /// Computes the value of the proximal operator
@@ -55,9 +50,9 @@ impl<'a, F: Float> Penalty<'a, F, Ix1> for L1<F> {
     /// Computes the distance of the gradient to the subdifferential
     fn subdiff_distance(
         &self,
-        w: ArrayBase<ViewRepr<&F>, Ix1>,
-        grad: ArrayBase<ViewRepr<&F>, Ix1>,
-        ws: ArrayView1<usize>,
+        w: ArrayBase<ViewRepr<&'a F>, Ix1>,
+        grad: ArrayBase<ViewRepr<&'a F>, Ix1>,
+        ws: ArrayView1<'a, usize>,
     ) -> (ArrayBase<OwnedRepr<F>, Ix1>, F) {
         let ws_size = ws.len();
         let mut subdiff_dist = Array1::<F>::zeros(ws_size);
@@ -79,7 +74,6 @@ impl<'a, F: Float> Penalty<'a, F, Ix1> for L1<F> {
 
 /// L21 penalty
 ///
-
 pub struct L21<F: Float> {
     alpha: F,
 }
@@ -96,7 +90,7 @@ impl<'a, F: Float> Penalty<'a, F, Ix2> for L21<F> {
     type Output = ArrayBase<OwnedRepr<F>, Ix1>;
 
     /// Gets the current value of the penalty
-    fn value(&self, W: ArrayBase<ViewRepr<&F>, Ix2>) -> F {
+    fn value(&self, W: ArrayBase<ViewRepr<&'a F>, Ix2>) -> F {
         self.alpha * W.map_axis(Axis(1), |Wj| (Wj.dot(&Wj).sqrt())).sum()
     }
     /// Computes the value of the proximal operator
@@ -106,8 +100,8 @@ impl<'a, F: Float> Penalty<'a, F, Ix2> for L21<F> {
     /// Computes the distance of the gradient to the subdifferential
     fn subdiff_distance(
         &self,
-        W: ArrayBase<ViewRepr<&F>, Ix2>,
-        grad: ArrayBase<ViewRepr<&F>, Ix2>,
+        W: ArrayBase<ViewRepr<&'a F>, Ix2>,
+        grad: ArrayBase<ViewRepr<&'a F>, Ix2>,
         ws: ArrayView1<usize>,
     ) -> (ArrayBase<OwnedRepr<F>, Ix1>, F) {
         let ws_size = ws.len();

@@ -32,7 +32,8 @@ impl<F: Float> MultiTaskLasso<F> {
     }
 }
 
-impl<F, D> Fit<ArrayBase<D, Ix2>, ArrayBase<D, Ix2>, LassoError> for MultiTaskLassoValidParams<F>
+impl<'a, F, D> Fit<'a, ArrayBase<D, Ix2>, ArrayBase<D, Ix2>, LassoError>
+    for MultiTaskLassoValidParams<F>
 where
     F: Float,
     D: Data<Elem = F>,
@@ -41,7 +42,7 @@ where
     /// Fits the MultiTaskLasso estimator to a dense design matrix
     fn fit(
         &self,
-        dataset: &DatasetBase<ArrayBase<D, Ix2>, ArrayBase<D, Ix2>>,
+        dataset: &'a DatasetBase<ArrayBase<D, Ix2>, ArrayBase<D, Ix2>>,
     ) -> Result<Self::Object> {
         let solver = Solver {};
         let mut datafit = QuadraticMultiTask::default();
@@ -63,7 +64,8 @@ where
     }
 }
 
-impl<F, D> Fit<CSCArray<'_, F>, ArrayBase<D, Ix2>, LassoError> for MultiTaskLassoValidParams<F>
+impl<'a, F, D> Fit<'a, CSCArray<'a, F>, ArrayBase<D, Ix2>, LassoError>
+    for MultiTaskLassoValidParams<F>
 where
     F: Float,
     D: Data<Elem = F>,
@@ -72,7 +74,7 @@ where
     /// Fits the MultiTask estimator to a sparse design matrix
     fn fit(
         &self,
-        dataset: &DatasetBase<CSCArray<'_, F>, ArrayBase<D, Ix2>>,
+        dataset: &'a DatasetBase<CSCArray<'a, F>, ArrayBase<D, Ix2>>,
     ) -> Result<Self::Object> {
         let solver = Solver {};
         let mut datafit = QuadraticMultiTask::default();

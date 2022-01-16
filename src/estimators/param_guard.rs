@@ -33,14 +33,14 @@ pub trait ParamGuard {
 
 /// Performs checking step and calls `fit` on the checked hyperparameters. If checking failed, the
 /// checking error is converted to the original error type of `Fit` and returned.
-impl<DM: DesignMatrix, T: Targets, E, P: ParamGuard> Fit<DM, T, E> for P
+impl<'a, DM: DesignMatrix, T: Targets, E, P: ParamGuard> Fit<'a, DM, T, E> for P
 where
-    P::Checked: Fit<DM, T, E>,
+    P::Checked: Fit<'a, DM, T, E>,
     E: Error + From<P::Error>,
 {
-    type Object = <<P as ParamGuard>::Checked as Fit<DM, T, E>>::Object;
+    type Object = <<P as ParamGuard>::Checked as Fit<'a, DM, T, E>>::Object;
 
-    fn fit(&self, dataset: &DatasetBase<DM, T>) -> Result<Self::Object, E> {
+    fn fit(&self, dataset: &'a DatasetBase<DM, T>) -> Result<Self::Object, E> {
         let checked = self.check_ref()?;
         checked.fit(dataset)
     }

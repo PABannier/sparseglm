@@ -24,42 +24,42 @@ impl Solver {
 pub trait CDSolver<'a, F, DF, P, DM, T>
 where
     F: Float,
-    DF: Datafit<F, DM, T, Ix1>,
+    DF: Datafit<'a, F, DM, T, Ix1>,
     P: Penalty<'a, F, Ix1>,
     DM: DesignMatrix<Elem = F>,
     T: Targets<Elem = F>,
 {
     fn cd_epoch(
         &self,
-        dataset: &DatasetBase<DM, T>,
-        datafit: &DF,
-        penalty: &P,
-        w: &mut Array1<F>,
-        Xw: &mut Array1<F>,
-        ws: ArrayView1<usize>,
+        dataset: &'a DatasetBase<DM, T>,
+        datafit: &'a DF,
+        penalty: &'a P,
+        w: &'a mut Array1<F>,
+        Xw: &'a mut Array1<F>,
+        ws: ArrayView1<'a, usize>,
     );
 }
 
 pub trait BCDSolver<'a, F, DF, P, DM, T>
 where
     F: Float,
-    DF: Datafit<F, DM, T, Ix2>,
+    DF: Datafit<'a, F, DM, T, Ix2>,
     P: Penalty<'a, F, Ix2>,
     DM: DesignMatrix<Elem = F>,
     T: Targets<Elem = F>,
 {
     fn bcd_epoch(
         &self,
-        dataset: &DatasetBase<DM, T>,
-        datafit: &DF,
-        penalty: &P,
-        W: &mut Array2<F>,
-        XW: &mut Array2<F>,
-        ws: ArrayView1<usize>,
+        dataset: &'a DatasetBase<DM, T>,
+        datafit: &'a DF,
+        penalty: &'a P,
+        W: &'a mut Array2<F>,
+        XW: &'a mut Array2<F>,
+        ws: ArrayView1<'a, usize>,
     );
 }
 
-pub trait Extrapolator<F, DM, T, I>
+pub trait Extrapolator<'a, F, DM, T, I>
 where
     F: Float,
     DM: DesignMatrix<Elem = F>,
@@ -68,17 +68,17 @@ where
 {
     fn extrapolate(
         &self,
-        dataset: &DatasetBase<DM, T>,
-        Xw_acc: &mut ArrayBase<OwnedRepr<F>, I>,
-        w_acc: ArrayBase<ViewRepr<&F>, I>,
-        ws: ArrayView1<usize>,
+        dataset: &'a DatasetBase<DM, T>,
+        Xw_acc: &'a mut ArrayBase<OwnedRepr<F>, I>,
+        w_acc: ArrayBase<ViewRepr<&'a F>, I>,
+        ws: ArrayView1<'a, usize>,
     );
 }
 
 pub trait WorkingSet<'a, F, DF, P, DM, T, I>
 where
     F: Float,
-    DF: Datafit<F, DM, T, I>,
+    DF: Datafit<'a, F, DM, T, I>,
     P: Penalty<'a, F, I>,
     DM: DesignMatrix<Elem = F>,
     T: Targets<Elem = F>,
@@ -86,18 +86,18 @@ where
 {
     fn kkt_violation(
         &self,
-        dataset: &DatasetBase<DM, T>,
-        w: ArrayBase<ViewRepr<&F>, I>,
-        Xw: ArrayBase<ViewRepr<&F>, I>,
-        ws: ArrayView1<usize>,
-        datafit: &DF,
-        penalty: &P,
+        dataset: &'a DatasetBase<DM, T>,
+        w: ArrayBase<ViewRepr<&'a F>, I>,
+        Xw: ArrayBase<ViewRepr<&'a F>, I>,
+        ws: ArrayView1<'a, usize>,
+        datafit: &'a DF,
+        penalty: &'a P,
     ) -> (Array1<F>, F);
 
     fn construct_ws_from_kkt(
         &self,
-        kkt: &mut Array1<F>,
-        w: ArrayBase<ViewRepr<&F>, I>,
+        kkt: &'a mut Array1<F>,
+        w: ArrayBase<ViewRepr<&'a F>, I>,
         p0: usize,
     ) -> (Array1<usize>, usize);
 }
@@ -109,18 +109,18 @@ impl<'a, F, D, DF, P, T> CDSolver<'a, F, DF, P, ArrayBase<D, Ix2>, T> for Solver
 where
     F: Float,
     D: Data<Elem = F>,
-    DF: Datafit<F, ArrayBase<D, Ix2>, T, Ix1, Output = F>,
+    DF: Datafit<'a, F, ArrayBase<D, Ix2>, T, Ix1, Output = F>,
     P: Penalty<'a, F, Ix1, Input = F, Output = F>,
     T: Targets<Elem = F>,
 {
     fn cd_epoch(
         &self,
-        dataset: &DatasetBase<ArrayBase<D, Ix2>, T>,
-        datafit: &DF,
-        penalty: &P,
-        w: &mut Array1<F>,
-        Xw: &mut Array1<F>,
-        ws: ArrayView1<usize>,
+        dataset: &'a DatasetBase<ArrayBase<D, Ix2>, T>,
+        datafit: &'a DF,
+        penalty: &'a P,
+        w: &'a mut Array1<F>,
+        Xw: &'a mut Array1<F>,
+        ws: ArrayView1<'a, usize>,
     ) {
         let n_samples = dataset.n_samples();
         let X = dataset.design_matrix();
@@ -148,18 +148,18 @@ where
 impl<'a, F, DF, P, T> CDSolver<'a, F, DF, P, CSCArray<'a, F>, T> for Solver
 where
     F: Float,
-    DF: Datafit<F, CSCArray<'a, F>, T, Ix1, Output = F>,
+    DF: Datafit<'a, F, CSCArray<'a, F>, T, Ix1, Output = F>,
     P: Penalty<'a, F, Ix1, Input = F, Output = F>,
     T: Targets<Elem = F>,
 {
     fn cd_epoch(
         &self,
-        dataset: &DatasetBase<CSCArray<'a, F>, T>,
-        datafit: &DF,
-        penalty: &P,
-        w: &mut Array1<F>,
-        Xw: &mut Array1<F>,
-        ws: ArrayView1<usize>,
+        dataset: &'a DatasetBase<CSCArray<'a, F>, T>,
+        datafit: &'a DF,
+        penalty: &'a P,
+        w: &'a mut Array1<F>,
+        Xw: &'a mut Array1<F>,
+        ws: ArrayView1<'a, usize>,
     ) {
         let lipschitz = datafit.lipschitz();
         let X = dataset.design_matrix();
@@ -184,7 +184,7 @@ where
 /// This implementation block implements the extrapolation method for coordinate
 /// descent solvers, using dense matrices.
 ///
-impl<F, D, T> Extrapolator<F, ArrayBase<D, Ix2>, T, Ix1> for Solver
+impl<'a, F, D, T> Extrapolator<'a, F, ArrayBase<D, Ix2>, T, Ix1> for Solver
 where
     F: Float,
     D: Data<Elem = F>,
@@ -192,10 +192,10 @@ where
 {
     fn extrapolate(
         &self,
-        dataset: &DatasetBase<ArrayBase<D, Ix2>, T>,
-        Xw_acc: &mut ArrayBase<OwnedRepr<F>, Ix1>,
-        w_acc: ArrayBase<ViewRepr<&F>, Ix1>,
-        ws: ArrayView1<usize>,
+        dataset: &'a DatasetBase<ArrayBase<D, Ix2>, T>,
+        Xw_acc: &'a mut ArrayBase<OwnedRepr<F>, Ix1>,
+        w_acc: ArrayBase<ViewRepr<&'a F>, Ix1>,
+        ws: ArrayView1<'a, usize>,
     ) {
         let X = dataset.design_matrix();
         for i in 0..Xw_acc.len() {
@@ -209,17 +209,17 @@ where
 /// This implementation block implements the extrapolation method for coordinate
 /// descent solvers, using sparse matrices.
 ///
-impl<'a, F, T> Extrapolator<F, CSCArray<'a, F>, T, Ix1> for Solver
+impl<'a, F, T> Extrapolator<'a, F, CSCArray<'a, F>, T, Ix1> for Solver
 where
     F: Float,
     T: Targets<Elem = F>,
 {
     fn extrapolate(
         &self,
-        dataset: &DatasetBase<CSCArray<'a, F>, T>,
-        Xw_acc: &mut ArrayBase<OwnedRepr<F>, Ix1>,
-        w_acc: ArrayBase<ViewRepr<&F>, Ix1>,
-        ws: ArrayView1<usize>,
+        dataset: &'a DatasetBase<CSCArray<'a, F>, T>,
+        Xw_acc: &'a mut ArrayBase<OwnedRepr<F>, Ix1>,
+        w_acc: ArrayBase<ViewRepr<&'a F>, Ix1>,
+        ws: ArrayView1<'a, usize>,
     ) {
         let X = dataset.design_matrix();
         for &j in ws {
@@ -237,24 +237,24 @@ impl<'a, F, D, DF, P, T> BCDSolver<'a, F, DF, P, ArrayBase<D, Ix2>, T> for Solve
 where
     F: Float,
     D: Data<Elem = F>,
-    DF: Datafit<F, ArrayBase<D, Ix2>, T, Ix2, Output = ArrayBase<OwnedRepr<F>, Ix1>>,
+    DF: Datafit<'a, F, ArrayBase<D, Ix2>, T, Ix2, Output = ArrayBase<OwnedRepr<F>, Ix1>>,
     P: Penalty<
         'a,
         F,
         Ix2,
-        Input = ArrayBase<ViewRepr<&'static F>, Ix1>,
+        Input = ArrayBase<ViewRepr<&'a F>, Ix1>,
         Output = ArrayBase<OwnedRepr<F>, Ix1>,
     >,
     T: Targets<Elem = F>,
 {
     fn bcd_epoch(
         &self,
-        dataset: &DatasetBase<ArrayBase<D, Ix2>, T>,
-        datafit: &DF,
-        penalty: &P,
-        W: &mut Array2<F>,
-        XW: &mut Array2<F>,
-        ws: ArrayView1<usize>,
+        dataset: &'a DatasetBase<ArrayBase<D, Ix2>, T>,
+        datafit: &'a DF,
+        penalty: &'a P,
+        W: &'a mut Array2<F>,
+        XW: &'a mut Array2<F>,
+        ws: ArrayView1<'a, usize>,
     ) {
         let n_samples = dataset.n_samples();
         let n_tasks = dataset.n_tasks();
@@ -306,24 +306,24 @@ where
 impl<'a, F, DF, P, T> BCDSolver<'a, F, DF, P, CSCArray<'a, F>, T> for Solver
 where
     F: Float,
-    DF: Datafit<F, CSCArray<'a, F>, T, Ix2, Output = ArrayBase<OwnedRepr<F>, Ix1>>,
+    DF: Datafit<'a, F, CSCArray<'a, F>, T, Ix2, Output = ArrayBase<OwnedRepr<F>, Ix1>>,
     P: Penalty<
         'a,
         F,
         Ix2,
-        Input = ArrayBase<ViewRepr<&'static F>, Ix1>,
+        Input = ArrayBase<ViewRepr<&'a F>, Ix1>,
         Output = ArrayBase<OwnedRepr<F>, Ix1>,
     >,
     T: Targets<Elem = F>,
 {
     fn bcd_epoch(
         &self,
-        dataset: &DatasetBase<CSCArray<'a, F>, T>,
-        datafit: &DF,
-        penalty: &P,
-        W: &mut Array2<F>,
-        XW: &mut Array2<F>,
-        ws: ArrayView1<usize>,
+        dataset: &'a DatasetBase<CSCArray<'a, F>, T>,
+        datafit: &'a DF,
+        penalty: &'a P,
+        W: &'a mut Array2<F>,
+        XW: &'a mut Array2<F>,
+        ws: ArrayView1<'a, usize>,
     ) {
         let n_tasks = dataset.n_tasks();
 
@@ -370,7 +370,7 @@ where
 /// This implementation block implements the extrapolation method for coordinate
 /// descent solvers, using dense matrices.
 ///
-impl<F, D, T> Extrapolator<F, ArrayBase<D, Ix2>, T, Ix2> for Solver
+impl<'a, F, D, T> Extrapolator<'a, F, ArrayBase<D, Ix2>, T, Ix2> for Solver
 where
     F: Float,
     D: Data<Elem = F>,
@@ -378,10 +378,10 @@ where
 {
     fn extrapolate(
         &self,
-        dataset: &DatasetBase<ArrayBase<D, Ix2>, T>,
-        XW_acc: &mut ArrayBase<OwnedRepr<F>, Ix2>,
-        W_acc: ArrayBase<ViewRepr<&F>, Ix2>,
-        ws: ArrayView1<usize>,
+        dataset: &'a DatasetBase<ArrayBase<D, Ix2>, T>,
+        XW_acc: &'a mut ArrayBase<OwnedRepr<F>, Ix2>,
+        W_acc: ArrayBase<ViewRepr<&'a F>, Ix2>,
+        ws: ArrayView1<'a, usize>,
     ) {
         let X = dataset.design_matrix();
         let n_samples = dataset.n_samples();
@@ -399,17 +399,17 @@ where
 /// This implementation block implements the extrapolation method for coordinate
 /// descent solvers, using sparse matrices.
 ///
-impl<'a, F, T> Extrapolator<F, CSCArray<'a, F>, T, Ix2> for Solver
+impl<'a, F, T> Extrapolator<'a, F, CSCArray<'a, F>, T, Ix2> for Solver
 where
     F: Float,
     T: Targets<Elem = F>,
 {
     fn extrapolate(
         &self,
-        dataset: &DatasetBase<CSCArray<'a, F>, T>,
-        XW_acc: &mut ArrayBase<OwnedRepr<F>, Ix2>,
-        W_acc: ArrayBase<ViewRepr<&F>, Ix2>,
-        ws: ArrayView1<usize>,
+        dataset: &'a DatasetBase<CSCArray<'a, F>, T>,
+        XW_acc: &'a mut ArrayBase<OwnedRepr<F>, Ix2>,
+        W_acc: ArrayBase<ViewRepr<&'a F>, Ix2>,
+        ws: ArrayView1<'a, usize>,
     ) {
         let X = dataset.design_matrix();
         let n_tasks = dataset.n_tasks();
@@ -431,19 +431,19 @@ where
 impl<'a, F, DF, P, DM, T> WorkingSet<'a, F, DF, P, DM, T, Ix1> for Solver
 where
     F: Float,
-    DF: Datafit<F, DM, T, Ix1, Output = F>,
+    DF: Datafit<'a, F, DM, T, Ix1, Output = F>,
     P: Penalty<'a, F, Ix1, Input = F, Output = F>,
     DM: DesignMatrix<Elem = F>,
     T: Targets<Elem = F>,
 {
     fn kkt_violation(
         &self,
-        dataset: &DatasetBase<DM, T>,
-        w: ArrayBase<ViewRepr<&F>, Ix1>,
-        Xw: ArrayBase<ViewRepr<&F>, Ix1>,
-        ws: ArrayView1<usize>,
-        datafit: &DF,
-        penalty: &P,
+        dataset: &'a DatasetBase<DM, T>,
+        w: ArrayBase<ViewRepr<&'a F>, Ix1>,
+        Xw: ArrayBase<ViewRepr<&'a F>, Ix1>,
+        ws: ArrayView1<'a, usize>,
+        datafit: &'a DF,
+        penalty: &'a P,
     ) -> (Array1<F>, F) {
         // Contruct grad restricted to working set
         let ws_size = ws.len();
@@ -458,8 +458,8 @@ where
 
     fn construct_ws_from_kkt(
         &self,
-        kkt: &mut Array1<F>,
-        w: ArrayBase<ViewRepr<&F>, Ix1>,
+        kkt: &'a mut Array1<F>,
+        w: ArrayBase<ViewRepr<&'a F>, Ix1>,
         p0: usize,
     ) -> (Array1<usize>, usize) {
         let n_features = w.len();
@@ -490,12 +490,12 @@ where
 impl<'a, F, DF, P, DM, T> WorkingSet<'a, F, DF, P, DM, T, Ix2> for Solver
 where
     F: Float,
-    DF: Datafit<F, DM, T, Ix2, Output = ArrayBase<OwnedRepr<F>, Ix1>>,
+    DF: Datafit<'a, F, DM, T, Ix2, Output = ArrayBase<OwnedRepr<F>, Ix1>>,
     P: Penalty<
         'a,
         F,
         Ix2,
-        Input = ArrayBase<ViewRepr<&'static F>, Ix1>,
+        Input = ArrayBase<ViewRepr<&'a F>, Ix1>,
         Output = ArrayBase<OwnedRepr<F>, Ix1>,
     >,
     DM: DesignMatrix<Elem = F>,
@@ -503,12 +503,12 @@ where
 {
     fn kkt_violation(
         &self,
-        dataset: &DatasetBase<DM, T>,
-        w: ArrayBase<ViewRepr<&F>, Ix2>,
-        Xw: ArrayBase<ViewRepr<&F>, Ix2>,
-        ws: ArrayView1<usize>,
-        datafit: &DF,
-        penalty: &P,
+        dataset: &'a DatasetBase<DM, T>,
+        w: ArrayBase<ViewRepr<&'a F>, Ix2>,
+        Xw: ArrayBase<ViewRepr<&'a F>, Ix2>,
+        ws: ArrayView1<'a, usize>,
+        datafit: &'a DF,
+        penalty: &'a P,
     ) -> (Array1<F>, F) {
         // Compute gradient restricted to working set
         let ws_size = ws.len();
@@ -527,8 +527,8 @@ where
 
     fn construct_ws_from_kkt(
         &self,
-        kkt: &mut Array1<F>,
-        w: ArrayBase<ViewRepr<&F>, Ix2>,
+        kkt: &'a mut Array1<F>,
+        w: ArrayBase<ViewRepr<&'a F>, Ix2>,
         p0: usize,
     ) -> (Array1<usize>, usize) {
         let n_features = w.shape()[0];
