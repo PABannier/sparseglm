@@ -13,20 +13,20 @@ use crate::solvers::{CDSolver, Extrapolator, WorkingSet};
 mod tests;
 
 pub fn anderson_accel<'a, F, DM, T, DF, P, S>(
-    dataset: &DatasetBase<DM, T>,
-    datafit: &DF,
-    penalty: &P,
-    solver: &S,
-    last_K_w: &mut Array2<F>,
-    U: &mut Array2<F>,
-    w: &mut Array1<F>,
-    Xw: &mut Array1<F>,
-    ws: ArrayView1<usize>,
+    dataset: &'a DatasetBase<DM, T>,
+    datafit: &'a DF,
+    penalty: &'a P,
+    solver: &'a S,
+    last_K_w: &'a mut Array2<F>,
+    U: &'a mut Array2<F>,
+    w: &'a mut Array1<F>,
+    Xw: &'a mut Array1<F>,
+    ws: ArrayView1<'a, usize>,
     epoch: usize,
     K: usize,
     verbose: bool,
 ) where
-    F: 'static + Float,
+    F: Float,
     DM: DesignMatrix<Elem = F>,
     T: Targets<Elem = F>,
     DF: Datafit<F, DM, T, Ix1>,
@@ -102,10 +102,10 @@ pub fn anderson_accel<'a, F, DM, T, DF, P, S>(
 }
 
 pub fn coordinate_descent<'a, F, DM, T, DF, P, S>(
-    dataset: &DatasetBase<DM, T>,
-    datafit: &mut DF,
-    solver: &S,
-    penalty: &P,
+    dataset: &'a DatasetBase<DM, T>,
+    datafit: &'a mut DF,
+    solver: &'a S,
+    penalty: &'a P,
     max_iter: usize,
     max_epochs: usize,
     _p0: usize,
@@ -115,7 +115,7 @@ pub fn coordinate_descent<'a, F, DM, T, DF, P, S>(
     verbose: bool,
 ) -> Array1<F>
 where
-    F: 'static + Float,
+    F: Float,
     DM: DesignMatrix<Elem = F>,
     T: Targets<Elem = F>,
     DF: Datafit<F, DM, T, Ix1>,

@@ -9,7 +9,7 @@ use crate::cd::coordinate_descent;
 use crate::datafits::Quadratic;
 use crate::datasets::{csc_array::CSCArray, DatasetBase};
 use crate::penalties::L1;
-use crate::solver::Solver;
+use crate::solvers::Solver;
 use crate::Float;
 
 /// Lasso

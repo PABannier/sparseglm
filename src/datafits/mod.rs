@@ -11,48 +11,34 @@ use crate::datasets::{csc_array::CSCArray, DatasetBase, DesignMatrix, Targets};
 #[cfg(test)]
 mod tests;
 
-pub trait Datafit<F, DM, T, I>
-where
-    F: Float,
-    DM: DesignMatrix<Elem = F>,
-    T: Targets<Elem = F>,
-    I: Dimension,
-{
+pub trait Datafit<'a, F: Float, DM: DesignMatrix, T: Targets, I: Dimension> {
     type Output;
 
-    fn initialize(&mut self, dataset: &DatasetBase<DM, T>);
-    fn value(&self, dataset: &DatasetBase<DM, T>, Xw: ArrayBase<ViewRepr<&F>, I>) -> F;
+    fn initialize(&mut self, dataset: &'a DatasetBase<DM, T>);
+    fn value(&self, dataset: &'a DatasetBase<DM, T>, Xw: ArrayBase<ViewRepr<&'a F>, I>) -> F;
     fn gradient_j(
         &self,
-        dataset: &DatasetBase<DM, T>,
-        Xw: ArrayBase<ViewRepr<&F>, I>,
+        dataset: &'a DatasetBase<DM, T>,
+        Xw: ArrayBase<ViewRepr<&'a F>, I>,
         j: usize,
     ) -> Self::Output;
     fn full_grad(
         &self,
-        dataset: &DatasetBase<DM, T>,
-        Xw: ArrayBase<ViewRepr<&F>, I>,
+        dataset: &'a DatasetBase<DM, T>,
+        Xw: ArrayBase<ViewRepr<&'a F>, I>,
     ) -> ArrayBase<OwnedRepr<F>, I>;
 
-    fn lipschitz(&self) -> ArrayBase<ViewRepr<&F>, Ix1>;
-    fn Xty(&self) -> ArrayBase<ViewRepr<&F>, I>;
+    fn lipschitz(&self) -> ArrayBase<ViewRepr<&'a F>, Ix1>;
+    fn Xty(&self) -> ArrayBase<ViewRepr<&'a F>, I>;
 }
 
 /// Quadratic datafit
-///
-
-pub struct Quadratic<F>
-where
-    F: Float,
-{
+pub struct Quadratic<F: Float> {
     lipschitz: ArrayBase<OwnedRepr<F>, Ix1>,
     Xty: ArrayBase<OwnedRepr<F>, Ix1>,
 }
 
-impl<F> Default for Quadratic<F>
-where
-    F: Float,
-{
+impl<F: Float> Default for Quadratic<F> {
     fn default() -> Quadratic<F> {
         Quadratic {
             lipschitz: Array1::<F>::zeros(1),
@@ -61,7 +47,7 @@ where
     }
 }
 
-impl<F, D> Datafit<F, ArrayBase<D, Ix2>, ArrayBase<D, Ix1>, Ix1> for Quadratic<F>
+impl<'a, F, D> Datafit<'a, F, ArrayBase<D, Ix2>, ArrayBase<D, Ix1>, Ix1> for Quadratic<F>
 where
     F: Float,
     D: Data<Elem = F>,
@@ -69,7 +55,7 @@ where
     type Output = F;
 
     /// Initializes the datafit by pre-computing useful quantities
-    fn initialize(&mut self, dataset: &DatasetBase<ArrayBase<D, Ix2>, ArrayBase<D, Ix1>>) {
+    fn initialize(&mut self, dataset: &'a DatasetBase<ArrayBase<D, Ix2>, ArrayBase<D, Ix1>>) {
         let n_samples = F::cast(dataset.n_samples());
         let X = dataset.design_matrix();
         let y = dataset.targets();
@@ -80,8 +66,8 @@ where
     /// Computes the value of the gradient at some point w for coordinate j
     fn gradient_j(
         &self,
-        dataset: &DatasetBase<ArrayBase<D, Ix2>, ArrayBase<D, Ix1>>,
-        Xw: ArrayBase<ViewRepr<&F>, Ix1>,
+        dataset: &'a DatasetBase<ArrayBase<D, Ix2>, ArrayBase<D, Ix1>>,
+        Xw: ArrayBase<ViewRepr<&'a F>, Ix1>,
         j: usize,
     ) -> Self::Output {
         let n_samples = dataset.n_samples();
@@ -96,8 +82,8 @@ where
     /// Compute the gradient at some point w
     fn full_grad(
         &self,
-        dataset: &DatasetBase<ArrayBase<D, Ix2>, ArrayBase<D, Ix1>>,
-        Xw: ArrayBase<ViewRepr<&F>, Ix1>,
+        dataset: &'a DatasetBase<ArrayBase<D, Ix2>, ArrayBase<D, Ix1>>,
+        Xw: ArrayBase<ViewRepr<&'a F>, Ix1>,
     ) -> ArrayBase<OwnedRepr<F>, Ix1> {
         let n_features = dataset.n_features();
         let mut grad = Array1::<F>::zeros(n_features);
@@ -110,8 +96,8 @@ where
     /// Computes the value of the datafit
     fn value(
         &self,
-        dataset: &DatasetBase<ArrayBase<D, Ix2>, ArrayBase<D, Ix1>>,
-        Xw: ArrayBase<ViewRepr<&F>, Ix1>,
+        dataset: &'a DatasetBase<ArrayBase<D, Ix2>, ArrayBase<D, Ix1>>,
+        Xw: ArrayBase<ViewRepr<&'a F>, Ix1>,
     ) -> F {
         let n_samples = dataset.n_samples();
         let y = dataset.targets();
@@ -121,7 +107,7 @@ where
     }
 
     // Getter for Lipschitz constants
-    fn lipschitz(&self) -> ArrayBase<ViewRepr<&F>, Ix1> {
+    fn lipschitz(&self) -> ArrayBase<ViewRepr<&'a F>, Ix1> {
         self.lipschitz.view()
     }
 
@@ -131,7 +117,7 @@ where
     }
 }
 
-impl<F, D> Datafit<F, CSCArray<'_, F>, ArrayBase<D, Ix1>, Ix1> for Quadratic<F>
+impl<'a, F, D> Datafit<'a, F, CSCArray<'_, F>, ArrayBase<D, Ix1>, Ix1> for Quadratic<F>
 where
     F: Float,
     D: Data<Elem = F>,
@@ -139,7 +125,7 @@ where
     type Output = F;
 
     /// Initializes the datafit by pre-computing useful quantities with sparse matrices
-    fn initialize(&mut self, dataset: &DatasetBase<CSCArray<'_, F>, ArrayBase<D, Ix1>>) {
+    fn initialize(&mut self, dataset: &'a DatasetBase<CSCArray<'_, F>, ArrayBase<D, Ix1>>) {
         let n_samples = dataset.n_samples();
         let n_features = dataset.n_features();
         let X = dataset.design_matrix();
@@ -161,8 +147,8 @@ where
     /// Computes the value of the gradient at some point w for coordinate j using sparse matrices
     fn gradient_j(
         &self,
-        dataset: &DatasetBase<CSCArray<'_, F>, ArrayBase<D, Ix1>>,
-        Xw: ArrayBase<ViewRepr<&F>, Ix1>,
+        dataset: &'a DatasetBase<CSCArray<'_, F>, ArrayBase<D, Ix1>>,
+        Xw: ArrayBase<ViewRepr<&'a F>, Ix1>,
         j: usize,
     ) -> Self::Output {
         let n_samples = dataset.n_samples();
@@ -177,8 +163,8 @@ where
     /// Computes the gradient at some point w using sparse matrices
     fn full_grad(
         &self,
-        dataset: &DatasetBase<CSCArray<'_, F>, ArrayBase<D, Ix1>>,
-        Xw: ArrayBase<ViewRepr<&F>, Ix1>,
+        dataset: &'a DatasetBase<CSCArray<'_, F>, ArrayBase<D, Ix1>>,
+        Xw: ArrayBase<ViewRepr<&'a F>, Ix1>,
     ) -> ArrayBase<OwnedRepr<F>, Ix1> {
         let n_features = dataset.n_features();
         let mut grad = Array1::<F>::zeros(n_features);
@@ -191,8 +177,8 @@ where
     /// Computes the value of the datafit
     fn value(
         &self,
-        dataset: &DatasetBase<CSCArray<'_, F>, ArrayBase<D, Ix1>>,
-        Xw: ArrayView1<F>,
+        dataset: &'a DatasetBase<CSCArray<'_, F>, ArrayBase<D, Ix1>>,
+        Xw: ArrayView1<'a, F>,
     ) -> F {
         let n_samples = dataset.n_samples();
         let y = dataset.targets();
@@ -202,31 +188,24 @@ where
     }
 
     // Getter for Lipschitz constants
-    fn lipschitz(&self) -> ArrayBase<ViewRepr<&F>, Ix1> {
+    fn lipschitz(&self) -> ArrayBase<ViewRepr<&'a F>, Ix1> {
         self.lipschitz.view()
     }
 
     // Getter for Xty
-    fn Xty(&self) -> ArrayBase<ViewRepr<&F>, Ix1> {
+    fn Xty(&self) -> ArrayBase<ViewRepr<&'a F>, Ix1> {
         self.Xty.view()
     }
 }
 
 /// Multi-Task Quadratic datafit
 ///
-
-pub struct QuadraticMultiTask<F>
-where
-    F: Float,
-{
+pub struct QuadraticMultiTask<F: Float> {
     lipschitz: ArrayBase<OwnedRepr<F>, Ix1>,
     XtY: ArrayBase<OwnedRepr<F>, Ix2>,
 }
 
-impl<F> Default for QuadraticMultiTask<F>
-where
-    F: Float,
-{
+impl<F: Float> Default for QuadraticMultiTask<F> {
     fn default() -> QuadraticMultiTask<F> {
         QuadraticMultiTask {
             lipschitz: Array1::zeros(1),
@@ -235,7 +214,7 @@ where
     }
 }
 
-impl<F, D> Datafit<F, ArrayBase<D, Ix2>, ArrayBase<D, Ix2>, Ix2> for QuadraticMultiTask<F>
+impl<'a, F, D> Datafit<'a, F, ArrayBase<D, Ix2>, ArrayBase<D, Ix2>, Ix2> for QuadraticMultiTask<F>
 where
     F: Float,
     D: Data<Elem = F>,
@@ -243,7 +222,7 @@ where
     type Output = ArrayBase<OwnedRepr<F>, Ix1>;
 
     /// Initializes the datafit by pre-computing useful quantities
-    fn initialize(&mut self, dataset: &DatasetBase<ArrayBase<D, Ix2>, ArrayBase<D, Ix2>>) {
+    fn initialize(&mut self, dataset: &'a DatasetBase<ArrayBase<D, Ix2>, ArrayBase<D, Ix2>>) {
         let n_samples = F::cast(dataset.n_samples());
         let n_features = dataset.n_features();
         let n_tasks = dataset.n_tasks();
@@ -260,8 +239,8 @@ where
     /// Computes the value of the datafit
     fn value(
         &self,
-        dataset: &DatasetBase<ArrayBase<D, Ix2>, ArrayBase<D, Ix2>>,
-        XW: ArrayBase<ViewRepr<&F>, Ix2>,
+        dataset: &'a DatasetBase<ArrayBase<D, Ix2>, ArrayBase<D, Ix2>>,
+        XW: ArrayBase<ViewRepr<&'a F>, Ix2>,
     ) -> F {
         let n_samples = dataset.n_samples();
         let n_tasks = dataset.n_tasks();
@@ -281,8 +260,8 @@ where
     /// Computes the value of the gradient at some point w for coordinate j
     fn gradient_j(
         &self,
-        dataset: &DatasetBase<ArrayBase<D, Ix2>, ArrayBase<D, Ix2>>,
-        XW: ArrayBase<ViewRepr<&F>, Ix2>,
+        dataset: &'a DatasetBase<ArrayBase<D, Ix2>, ArrayBase<D, Ix2>>,
+        XW: ArrayBase<ViewRepr<&'a F>, Ix2>,
         j: usize,
     ) -> Self::Output {
         let n_samples = F::cast(dataset.n_samples());
@@ -301,8 +280,8 @@ where
     /// Computes the value of the gradient at some point w
     fn full_grad(
         &self,
-        dataset: &DatasetBase<ArrayBase<D, Ix2>, ArrayBase<D, Ix2>>,
-        XW: ArrayBase<ViewRepr<&F>, Ix2>,
+        dataset: &'a DatasetBase<ArrayBase<D, Ix2>, ArrayBase<D, Ix2>>,
+        XW: ArrayBase<ViewRepr<&'a F>, Ix2>,
     ) -> ArrayBase<OwnedRepr<F>, Ix2> {
         let n_samples = F::cast(dataset.n_samples());
         let n_features = dataset.n_features();
@@ -329,17 +308,17 @@ where
     }
 
     // Getter for Lipschitz
-    fn lipschitz(&self) -> ArrayBase<ViewRepr<&F>, Ix1> {
+    fn lipschitz(&self) -> ArrayBase<ViewRepr<&'a F>, Ix1> {
         self.lipschitz.view()
     }
 
     // Getter for Xty
-    fn Xty(&self) -> ArrayBase<ViewRepr<&F>, Ix2> {
+    fn Xty(&self) -> ArrayBase<ViewRepr<&'a F>, Ix2> {
         self.XtY.view()
     }
 }
 
-impl<F, D> Datafit<F, CSCArray<'_, F>, ArrayBase<D, Ix2>, Ix2> for QuadraticMultiTask<F>
+impl<'a, F, D> Datafit<'a, F, CSCArray<'_, F>, ArrayBase<D, Ix2>, Ix2> for QuadraticMultiTask<F>
 where
     F: Float,
     D: Data<Elem = F>,
@@ -347,7 +326,7 @@ where
     type Output = ArrayBase<OwnedRepr<F>, Ix1>;
 
     /// Initializes the datafit by pre-computing useful quantities
-    fn initialize(&mut self, dataset: &DatasetBase<CSCArray<'_, F>, ArrayBase<D, Ix2>>) {
+    fn initialize(&mut self, dataset: &'a DatasetBase<CSCArray<'_, F>, ArrayBase<D, Ix2>>) {
         let n_samples = F::cast(dataset.n_samples());
         let n_features = dataset.n_features();
         let n_tasks = dataset.n_tasks();
@@ -375,8 +354,8 @@ where
     /// Computes the value of the datafit
     fn value(
         &self,
-        dataset: &DatasetBase<CSCArray<'_, F>, ArrayBase<D, Ix2>>,
-        XW: ArrayBase<ViewRepr<&F>, Ix2>,
+        dataset: &'a DatasetBase<CSCArray<'_, F>, ArrayBase<D, Ix2>>,
+        XW: ArrayBase<ViewRepr<&'a F>, Ix2>,
     ) -> F {
         let n_samples = dataset.n_samples();
         let n_tasks = dataset.n_tasks();
@@ -396,8 +375,8 @@ where
     /// Computes the value of the gradient at some point w for coordinate j
     fn gradient_j(
         &self,
-        dataset: &DatasetBase<CSCArray<'_, F>, ArrayBase<D, Ix2>>,
-        XW: ArrayBase<ViewRepr<&F>, Ix2>,
+        dataset: &'a DatasetBase<CSCArray<'_, F>, ArrayBase<D, Ix2>>,
+        XW: ArrayBase<ViewRepr<&'a F>, Ix2>,
         j: usize,
     ) -> Self::Output {
         let n_samples = F::cast(dataset.n_samples());
@@ -421,8 +400,8 @@ where
     /// Computes the value of the gradient at some point w
     fn full_grad(
         &self,
-        dataset: &DatasetBase<CSCArray<'_, F>, ArrayBase<D, Ix2>>,
-        XW: ArrayBase<ViewRepr<&F>, Ix2>,
+        dataset: &'a DatasetBase<CSCArray<'_, F>, ArrayBase<D, Ix2>>,
+        XW: ArrayBase<ViewRepr<&'a F>, Ix2>,
     ) -> ArrayBase<OwnedRepr<F>, Ix2> {
         let n_samples = F::cast(dataset.n_samples());
         let n_features = dataset.n_features();
@@ -453,12 +432,12 @@ where
     }
 
     // Getter for Lipschitz
-    fn lipschitz(&self) -> ArrayBase<ViewRepr<&F>, Ix1> {
+    fn lipschitz(&self) -> ArrayBase<ViewRepr<&'a F>, Ix1> {
         self.lipschitz.view()
     }
 
     // Getter for Xty
-    fn Xty(&self) -> ArrayBase<ViewRepr<&F>, Ix2> {
+    fn Xty(&self) -> ArrayBase<ViewRepr<&'a F>, Ix2> {
         self.XtY.view()
     }
 }
