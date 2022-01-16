@@ -50,7 +50,9 @@ np.testing.assert_allclose(coef_sk, coef_rl, atol=1e-5)
 
 print("Fitting sparse matrices...")
 
-coef_sk_sparse, duration_sk_sparse = time_estimator(estimator_sk, X_sparse.toarray(), Y)
+coef_sk_sparse, duration_sk_sparse = time_estimator(
+    estimator_sk, X_sparse.toarray(), Y
+)
 coef_rl_sparse, duration_rl_sparse = time_estimator(estimator_rl, X_sparse, Y)
 
 np.testing.assert_allclose(coef_sk_sparse, coef_rl_sparse, atol=1e-5)

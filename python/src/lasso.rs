@@ -1,36 +1,39 @@
 use numpy::{PyArray, PyArray1, PyArray2};
 use pyo3::prelude::*;
-use rustylasso;
-use rustylasso::datasets::csc_array::CSCArray;
-use rustylasso::datasets::{DenseDatasetView, SparseDatasetView};
-use rustylasso::estimators::{Fit, Lasso, SolverParams};
+use rustylasso::{
+    datasets::{csc_array::CSCArray, DenseDatasetView, SparseDatasetView},
+    estimators::hyperparams::LassoParams,
+    estimators::traits::Fit,
+};
 
 #[pyclass]
-pub struct LassoWrapperF32 {
-    inner: rustylasso::estimators::Lasso<f32>,
-}
-
-#[pyclass]
-pub struct LassoWrapperF64 {
-    inner: rustylasso::estimators::Lasso<f64>,
+pub struct LassoWrapper {
+    inner: LassoParams<f64>,
 }
 
 #[pymethods]
-impl LassoWrapperF64 {
+impl LassoWrapper {
     #[new]
     fn new(
         alpha: f64,
-        max_iter: usize,
+        max_iterations: usize,
         max_epochs: usize,
-        tol: f64,
+        tolerance: f64,
         p0: usize,
-        use_accel: bool,
+        use_acceleration: bool,
         K: usize,
         verbose: bool,
     ) -> PyResult<Self> {
-        let params = SolverParams::new(max_epochs, max_iter, p0, tol, K, use_accel, verbose);
-        let estimator = Lasso::new(alpha, Some(params));
-        Ok(LassoWrapperF64 { inner: estimator })
+        let _estimator = LassoParams::new()
+            .alpha(alpha)
+            .max_iterations(max_iterations)
+            .max_epochs(max_epochs)
+            .tolerance(tolerance)
+            .p0(p0)
+            .use_acceleration(use_acceleration)
+            .K(K)
+            .verbose(verbose);
+        Ok(LassoWrapper { inner: _estimator })
     }
 
     unsafe fn fit<'py>(
@@ -40,7 +43,8 @@ impl LassoWrapperF64 {
         y: &PyArray1<f64>,
     ) -> PyResult<&'py PyArray1<f64>> {
         let dataset = DenseDatasetView::from((X.as_array(), y.as_array()));
-        Ok(PyArray::from_array(py, &self.inner.fit(&dataset)))
+        let _estimator = self.inner.fit(&dataset).unwrap();
+        Ok(PyArray::from_array(py, &_estimator.coefficients()))
     }
 
     unsafe fn fit_sparse<'py>(
@@ -51,50 +55,9 @@ impl LassoWrapperF64 {
         X_indptr: &PyArray1<i32>,
         y: &PyArray1<f64>,
     ) -> PyResult<&'py PyArray1<f64>> {
-        let X_sparse = CSCArray::new(X_data.as_array(), X_indices.as_array(), X_indptr.as_array());
-        let dataset = SparseDatasetView::from((X_sparse, y.as_array()));
-        Ok(PyArray::from_array(py, &self.inner.fit(&dataset)))
-    }
-}
-
-#[pymethods]
-impl LassoWrapperF32 {
-    #[new]
-    fn new(
-        alpha: f32,
-        max_iter: usize,
-        max_epochs: usize,
-        tol: f32,
-        p0: usize,
-        use_accel: bool,
-        K: usize,
-        verbose: bool,
-    ) -> PyResult<Self> {
-        let params = SolverParams::new(max_epochs, max_iter, p0, tol, K, use_accel, verbose);
-        let estimator = Lasso::new(alpha, Some(params));
-        Ok(LassoWrapperF32 { inner: estimator })
-    }
-
-    unsafe fn fit<'py>(
-        &mut self,
-        py: Python<'py>,
-        X: &PyArray2<f32>,
-        y: &PyArray1<f32>,
-    ) -> PyResult<&'py PyArray1<f32>> {
-        let dataset = DenseDatasetView::from((X.as_array(), y.as_array()));
-        Ok(PyArray::from_array(py, &self.inner.fit(&dataset)))
-    }
-
-    unsafe fn fit_sparse<'py>(
-        &mut self,
-        py: Python<'py>,
-        X_data: &PyArray1<f32>,
-        X_indices: &PyArray1<i32>,
-        X_indptr: &PyArray1<i32>,
-        y: &PyArray1<f32>,
-    ) -> PyResult<&'py PyArray1<f32>> {
-        let X_sparse = CSCArray::new(X_data.as_array(), X_indices.as_array(), X_indptr.as_array());
-        let dataset = SparseDatasetView::from((X_sparse, y.as_array()));
-        Ok(PyArray::from_array(py, &self.inner.fit(&dataset)))
+        let X = CSCArray::new(X_data.as_array(), X_indices.as_array(), X_indptr.as_array());
+        let dataset = SparseDatasetView::from((X, y.as_array()));
+        let _estimator = self.inner.fit(&dataset).unwrap();
+        Ok(PyArray::from_array(py, &_estimator.coefficients()))
     }
 }
