@@ -21,8 +21,14 @@ tol = 1e-9
 reg = 0.1
 
 X, Y, _ = make_correlated_data(
-    n_samples=n_samples, n_features=n_features, n_tasks=n_tasks, corr=corr,
-    snr=snr, density=density, random_state=0)
+    n_samples=n_samples,
+    n_features=n_features,
+    n_tasks=n_tasks,
+    corr=corr,
+    snr=snr,
+    density=density,
+    random_state=0,
+)
 
 X_sparse = sp.csc_matrix(X * np.random.binomial(1, 0.1, X.shape))
 
@@ -36,8 +42,9 @@ def time_estimator(clf, X, y):
 
 alpha_max = compute_alpha_max(X, Y)
 
-estimator_sk = MultiTaskLasso_sk(alpha_max * reg, fit_intercept=False, tol=tol,
-                                 max_iter=10**6)
+estimator_sk = MultiTaskLasso_sk(
+    alpha_max * reg, fit_intercept=False, tol=tol, max_iter=10 ** 6
+)
 estimator_rl = MultiTaskLasso(alpha_max * reg, tol=tol, verbose=False)
 
 print("Fitting dense matrices...")
@@ -49,7 +56,9 @@ np.testing.assert_allclose(coef_sk, coef_rl, atol=1e-5)
 
 print("Fitting sparse matrices...")
 
-coef_sk_sparse, duration_sk_sparse = time_estimator(estimator_sk, X_sparse.toarray(), Y)
+coef_sk_sparse, duration_sk_sparse = time_estimator(
+    estimator_sk, X_sparse.toarray(), Y
+)
 coef_rl_sparse, duration_rl_sparse = time_estimator(estimator_rl, X_sparse, Y)
 
 np.testing.assert_allclose(coef_sk_sparse, coef_rl_sparse, atol=1e-5)

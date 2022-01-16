@@ -32,7 +32,7 @@ tol = 1e-10
 
 
 @pytest.mark.parametrize('X', [X, X_sparse])
-@pytest.mark.parametrize('type', [np.float32, np.float64])
+@pytest.mark.parametrize('type', [np.float64])
 def test_lasso(X, type):
     clf = Lasso(alpha, tol=tol)
     clf_sk = Lasso_sk(alpha, tol=tol, fit_intercept=False)
@@ -50,7 +50,7 @@ def test_lasso(X, type):
 
 
 @pytest.mark.parametrize('X', [X, X_sparse])
-@pytest.mark.parametrize('type', [np.float32, np.float64])
+@pytest.mark.parametrize('type', [np.float64])
 def test_multitasklasso(X, type):
     clf = MultiTaskLasso(alpha, tol=tol)
     clf_sk = MultiTaskLasso_sk(alpha, tol=tol, fit_intercept=False)

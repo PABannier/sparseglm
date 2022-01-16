@@ -84,16 +84,10 @@ class Lasso(Estimator):
         y = check_array(y, 'csc', dtype=X.dtype.type, order='F', copy=False,
                         ensure_2d=False)
 
-        if (X.dtype, y.dtype) == (np.float32, np.float32):
-            self._inner = rustylassopy.LassoWrapperF32(
-                alpha=self.alpha, max_iter=self.max_iter, p0=self.p0, K=self.K,
-                max_epochs=self.max_epochs, tol=self.tol, verbose=self.verbose,
-                use_accel=self.use_accel)
-        else:
-            self._inner = rustylassopy.LassoWrapperF64(
-                alpha=self.alpha, max_iter=self.max_iter, p0=self.p0, K=self.K,
-                max_epochs=self.max_epochs, tol=self.tol, verbose=self.verbose,
-                use_accel=self.use_accel)
+        self._inner = rustylassopy.LassoWrapper(
+            alpha=self.alpha, max_iterations=self.max_iter, p0=self.p0,
+            K=self.K, max_epochs=self.max_epochs, tolerance=self.tol,
+            use_acceleration=self.use_accel, verbose=self.verbose)
 
         if sp.issparse(X):
             coefs = self._inner.fit_sparse(X.data, X.indices, X.indptr, y)
@@ -157,16 +151,10 @@ class MultiTaskLasso(Estimator):
             raise ValueError("X and Y have inconsistent dimensions (%d != %d)"
                              % (n_samples, Y.shape[0]))
 
-        if (X.dtype, Y.dtype) == (np.float32, np.float32):
-            self._inner = rustylassopy.MultiTaskLassoWrapperF32(
-                alpha=self.alpha, max_iter=self.max_iter, p0=self.p0, K=self.K,
-                max_epochs=self.max_epochs, tol=self.tol, verbose=self.verbose,
-                use_accel=self.use_accel)
-        else:
-            self._inner = rustylassopy.MultiTaskLassoWrapperF64(
-                alpha=self.alpha, max_iter=self.max_iter, p0=self.p0, K=self.K,
-                max_epochs=self.max_epochs, tol=self.tol, verbose=self.verbose,
-                use_accel=self.use_accel)
+        self._inner = rustylassopy.MultiTaskLassoWrapper(
+            alpha=self.alpha, max_iterations=self.max_iter, p0=self.p0,
+            K=self.K, max_epochs=self.max_epochs, tolerance=self.tol,
+            use_acceleration=self.use_accel, verbose=self.verbose)
 
         if sp.issparse(X):
             coefs = self._inner.fit_sparse(X.data, X.indices, X.indptr, Y)
