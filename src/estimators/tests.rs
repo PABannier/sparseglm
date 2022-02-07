@@ -1,7 +1,6 @@
 extern crate ndarray;
 extern crate rand;
 
-use ndarray::linalg::general_mat_mul;
 use ndarray::{Array1, Array2};
 
 use crate::datasets::*;
@@ -50,14 +49,10 @@ macro_rules! kkt_check_mtl_tests {
 
                 let clf = MultiTaskLasso::params().alpha(alpha).fit(&dataset).unwrap();
                 let W = clf.coefficients();
-
-                let mut XW = Array2::<f64>::zeros((n_samples, n_tasks));
-                general_mat_mul(1., &X, &W, 1., &mut XW);
+                let XW = X.dot(&W);
 
                 let R = Y - XW;
-
-                let mut XR = Array2::<f64>::zeros((n_features, n_tasks));
-                general_mat_mul(1., &X.t(), &R, 1., &mut XR);
+                let XR = X.t().dot(&R);
 
                 assert_array2d_all_close(
                     XR.view(),
