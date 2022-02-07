@@ -1,6 +1,6 @@
 extern crate ndarray;
 
-use ndarray::{Array1, ArrayBase, ArrayView1, Axis, Data, Ix1, Ix2, OwnedRepr};
+use ndarray::{s, Array1, ArrayBase, ArrayView1, Axis, Data, Ix1, Ix2, OwnedRepr};
 
 use super::Float;
 use crate::datasets::{csc_array::CSCArray, DatasetBase, DesignMatrix, Targets};
@@ -73,10 +73,7 @@ where
     ) -> F {
         let n_samples = dataset.n_samples();
         let X = dataset.design_matrix();
-        let mut _res = F::zero();
-        for i in 0..n_samples {
-            _res += X[[i, j]] * Xw[i];
-        }
+        let _res = X.slice(s![.., j]).dot(&Xw);
         (_res - self.Xty[j]) / F::cast(n_samples)
     }
 
@@ -103,8 +100,7 @@ where
         let n_samples = dataset.n_samples();
         let y = dataset.targets();
         let r = y - &Xw;
-        let val = r.dot(&r) / F::cast(2 * n_samples);
-        val
+        r.dot(&r) / F::cast(2 * n_samples)
     }
 
     // Getter for Lipschitz constants
@@ -182,8 +178,7 @@ where
         let n_samples = dataset.n_samples();
         let y = dataset.targets();
         let r = y - &Xw;
-        let val = r.dot(&r) / F::cast(2 * n_samples);
-        val
+        r.dot(&r) / F::cast(2 * n_samples)
     }
 
     // Getter for Lipschitz constants

@@ -1,6 +1,5 @@
 extern crate ndarray;
 
-use ndarray::linalg::general_mat_mul;
 use ndarray::{
     s, Array1, Array2, ArrayBase, ArrayView1, ArrayView2, Axis, Data, Ix1, Ix2, OwnedRepr,
 };
@@ -66,14 +65,9 @@ where
     /// Initializes the datafit by pre-computing useful quantities
     fn initialize(&mut self, dataset: &DatasetBase<ArrayBase<D, Ix2>, ArrayBase<D, Ix2>>) {
         let n_samples = F::cast(dataset.n_samples());
-        let n_features = dataset.n_features();
-        let n_tasks = dataset.n_tasks();
-
         let X = dataset.design_matrix();
         let Y = dataset.targets();
-
-        let mut xty = Array2::<F>::zeros((n_features, n_tasks));
-        general_mat_mul(F::one(), &X.t(), &Y, F::one(), &mut xty);
+        let xty = X.t().dot(Y);
         self.lipschitz = X.map_axis(Axis(0), |Xj| Xj.dot(&Xj) / n_samples);
         self.XtY = xty;
     }
@@ -85,18 +79,11 @@ where
         XW: ArrayView2<F>,
     ) -> F {
         let n_samples = dataset.n_samples();
-        let n_tasks = dataset.n_tasks();
 
         let Y = dataset.targets();
-
         let R = Y - &XW;
-        let mut val = F::zero();
-        for i in 0..n_samples {
-            for j in 0..n_tasks {
-                val += R[[i, j]] * R[[i, j]];
-            }
-        }
-        val / F::cast(2 * n_samples)
+
+        R.map(|&rij| rij * rij).sum() / F::cast(2 * n_samples)
     }
 
     /// Computes the value of the gradient at some point w for coordinate j
@@ -107,16 +94,12 @@ where
         j: usize,
     ) -> ArrayBase<OwnedRepr<F>, Ix1> {
         let n_samples = F::cast(dataset.n_samples());
-        let n_tasks = dataset.n_tasks();
 
         let X = dataset.design_matrix();
 
         let Xj: ArrayView1<F> = X.slice(s![.., j]);
-        let mut grad = Xj.dot(&XW) - self.XtY.slice(s![j, ..]);
-        for t in 0..n_tasks {
-            grad[t] /= n_samples;
-        }
-        grad
+        let grad = Xj.dot(&XW) - self.XtY.slice(s![j, ..]);
+        grad / n_samples
     }
 
     /// Computes the value of the gradient at some point w
@@ -136,14 +119,8 @@ where
         for j in 0..n_features {
             let Xj: ArrayView1<F> = X.slice(s![.., j]);
             let mut grad_j = Xj.dot(&XW) - self.XtY.slice(s![j, ..]);
-            for t in 0..n_tasks {
-                grad_j[t] /= n_samples;
-            }
-
-            // Assign
-            for t in 0..n_tasks {
-                grad[[j, t]] = grad_j[t];
-            }
+            grad_j /= n_samples;
+            grad.slice_mut(s![j, ..]).assign(&grad_j);
         }
 
         grad
@@ -198,18 +175,10 @@ where
         XW: ArrayView2<F>,
     ) -> F {
         let n_samples = dataset.n_samples();
-        let n_tasks = dataset.n_tasks();
 
         let Y = dataset.targets();
         let R = Y - &XW;
-
-        let mut val = F::zero();
-        for i in 0..n_samples {
-            for j in 0..n_tasks {
-                val += R[[i, j]] * R[[i, j]];
-            }
-        }
-        val / F::cast(2 * n_samples)
+        R.map(|&rij| rij * rij).sum() / F::cast(2 * n_samples)
     }
 
     /// Computes the value of the gradient at some point w for coordinate j
@@ -231,9 +200,7 @@ where
             }
         }
         let mut grad_j = XjTXW - self.XtY.slice(s![j, ..]);
-        for t in 0..n_tasks {
-            grad_j[t] = grad_j[t] / n_samples;
-        }
+        grad_j /= n_samples;
         grad_j
     }
 
@@ -259,14 +226,8 @@ where
                 }
             }
             let mut grad_j = XjTXW - self.XtY.slice(s![j, ..]);
-            for t in 0..n_tasks {
-                grad_j[t] /= n_samples;
-            }
-
-            // Assign
-            for t in 0..n_tasks {
-                grad[[j, t]] = grad_j[t];
-            }
+            grad_j /= n_samples;
+            grad.slice_mut(s![j, ..]).assign(&grad_j);
         }
         grad
     }
