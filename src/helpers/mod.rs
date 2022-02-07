@@ -20,16 +20,14 @@ pub mod prox {
         }
     }
 
-    pub fn block_soft_thresholding<T: Float>(x: ArrayView1<T>, threshold: T) -> Array1<T> {
-        let norm_x = x.map(|&i| i * i).sum().sqrt();
-        let mut prox_val = Array1::<T>::zeros(x.len());
+    pub fn block_soft_thresholding<F: Float>(x: ArrayView1<F>, threshold: F) -> Array1<F> {
+        let norm_x = x.fold(F::zero(), |sum, &x_i| sum + x_i * x_i).sqrt();
+        let mut prox_val = Array1::<F>::zeros(x.len());
         if norm_x < threshold {
             return prox_val;
         }
-        let scale = T::one() - threshold / norm_x;
-        for i in 0..x.len() {
-            prox_val[i] = x[i] * scale;
-        }
+        let scale = F::one() - threshold / norm_x;
+        prox_val.scaled_add(scale, &x);
         prox_val
     }
 }
