@@ -83,9 +83,14 @@ where
             }
             let grad_j = datafit.gradient_j(dataset, XW.view(), j);
 
-            old_W_j.scaled_add(-F::one() / lipschitz[j], &grad_j);
-            let upd = penalty.prox_op(old_W_j.view(), F::one() / lipschitz[j]);
-            W.slice_mut(s![j, ..]).assign(&upd);
+            let mut upd = Array1::<F>::zeros(n_tasks);
+            for t in 0..n_tasks {
+                upd[t] = old_W_j[t] - grad_j[t] / lipschitz[j];
+            }
+            let upd = penalty.prox_op(upd.view(), F::one() / lipschitz[j]);
+            for t in 0..n_tasks {
+                W[[j, t]] = upd[t];
+            }
 
             let mut diff = Array1::<F>::zeros(n_tasks);
             let mut sum_diff = F::zero();

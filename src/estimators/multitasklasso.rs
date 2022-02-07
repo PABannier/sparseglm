@@ -4,12 +4,12 @@ use ndarray::{ArrayBase, Data, Ix2, OwnedRepr, ViewRepr};
 
 use super::error::{LassoError, Result};
 use super::hyperparams::{MultiTaskLassoParams, MultiTaskLassoValidParams};
-use super::traits::Fit;
 use crate::bcd::block_coordinate_descent;
 use crate::datafits_multitask::QuadraticMultiTask;
 use crate::datasets::{csc_array::CSCArray, DatasetBase};
 use crate::penalties_multitask::L21;
 use crate::solver_multitask::MultiTaskSolver;
+use crate::traits::Fit;
 use crate::Float;
 
 /// MultiTask Lasso

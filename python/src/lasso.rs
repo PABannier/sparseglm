@@ -3,7 +3,7 @@ use pyo3::prelude::*;
 use rustylasso::{
     datasets::{csc_array::CSCArray, DenseDatasetView, SparseDatasetView},
     estimators::hyperparams::LassoParams,
-    estimators::traits::Fit,
+    traits::Fit,
 };
 
 #[pyclass]

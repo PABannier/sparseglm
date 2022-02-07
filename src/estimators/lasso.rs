@@ -4,12 +4,12 @@ use ndarray::{ArrayBase, Data, Ix1, Ix2, OwnedRepr, ViewRepr};
 
 use super::error::{LassoError, Result};
 use super::hyperparams::{LassoParams, LassoValidParams};
-use super::traits::Fit;
 use crate::cd::coordinate_descent;
 use crate::datafits::Quadratic;
 use crate::datasets::{csc_array::CSCArray, DatasetBase};
 use crate::penalties::L1;
 use crate::solver::Solver;
+use crate::traits::Fit;
 use crate::Float;
 
 /// Lasso

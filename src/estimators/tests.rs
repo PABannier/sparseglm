@@ -4,9 +4,11 @@ extern crate rand;
 use ndarray::{Array1, Array2};
 
 use crate::datasets::*;
-use crate::estimators::{lasso::*, multitasklasso::*, traits::*};
+use crate::estimators::{lasso::*, multitasklasso::*};
 use crate::helpers::helpers::*;
 use crate::helpers::test_helpers::*;
+
+use crate::traits::*;
 
 macro_rules! kkt_check_tests {
     ($($name:ident: $value:expr,)*) => {

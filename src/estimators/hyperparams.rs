@@ -1,6 +1,6 @@
 use super::error::{LassoError, Result};
-use super::param_guard::ParamGuard;
 use super::Float;
+use crate::param_guard::ParamGuard;
 
 /// A verified hyperparameter set ready for the fitting of a Lasso regression model
 ///
