@@ -139,7 +139,17 @@ impl<F: Float> Penalty<F> for MCP<F> {
         let mut subdiff_dist = Array1::<F>::zeros(ws_size);
         let mut max_subdiff_dist = F::neg_infinity();
         for (idx, &j) in ws.iter().enumerate() {
-            // TODO
+            if w[j] == F::zero() {
+                // Distance of -grad to alpha * [-1, 1]
+                subdiff_dist[idx] = F::max(F::zero(), grad[idx].abs() - self.alpha)
+            } else if w[j].abs() < self.alpha * self.gamma {
+                // Distance of -grad_j to (alpha - abs(w[j])/gamma) * sign(w[j])
+                subdiff_dist[idx] =
+                    (grad[idx] + self.alpha * w[j].signum() - w[j] / self.gamma).abs();
+            } else {
+                // Distance of grad to zero
+                subdiff_dist[idx] = grad[idx].abs();
+            }
 
             if subdiff_dist[idx] > max_subdiff_dist {
                 max_subdiff_dist = subdiff_dist[idx];
