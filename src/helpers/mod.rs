@@ -38,9 +38,16 @@ pub mod prox {
         if x.abs() < t {
             return F::zero();
         }
-
-        // x * (2./3.) * (1 + np.cos((2./3.) * np.arccos(
-        //     -(3.**(3./2.)/4.) * u * np.abs(x)**(-3./2.))))
+        x * F::cast(2. / 3.)
+            * (F::one()
+                + F::cos(
+                    F::cast(2. / 3.)
+                        * F::acos(
+                            -F::cast(F::cast(3).powf(F::cast(3. / 2.)) / F::cast(4.))
+                                * threshold
+                                * x.abs().powf(F::cast(-3. / 2.)),
+                        ),
+                ))
     }
 }
 
