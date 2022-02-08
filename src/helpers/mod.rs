@@ -10,27 +10,37 @@ pub mod prox {
     use crate::Float;
     use ndarray::{Array1, ArrayView1};
 
-    pub fn soft_thresholding<T: Float>(x: T, threshold: T) -> T {
+    pub fn soft_thresholding<F: Float>(x: F, threshold: F) -> F {
         if x > threshold {
             x - threshold
         } else if x < -threshold {
             x + threshold
         } else {
-            T::zero()
+            F::zero()
         }
     }
 
-    pub fn block_soft_thresholding<T: Float>(x: ArrayView1<T>, threshold: T) -> Array1<T> {
+    pub fn block_soft_thresholding<F: Float>(x: ArrayView1<F>, threshold: F) -> Array1<F> {
         let norm_x = x.map(|&i| i * i).sum().sqrt();
-        let mut prox_val = Array1::<T>::zeros(x.len());
+        let mut prox_val = Array1::<F>::zeros(x.len());
         if norm_x < threshold {
             return prox_val;
         }
-        let scale = T::one() - threshold / norm_x;
+        let scale = F::one() - threshold / norm_x;
         for i in 0..x.len() {
             prox_val[i] = x[i] * scale;
         }
         prox_val
+    }
+
+    pub fn prox_05<F: Float>(x: F, threshold: F) -> F {
+        let t = F::cast(F::cast(3. / 2.) * threshold.powf(F::cast(2. / 3.)));
+        if x.abs() < t {
+            return F::zero();
+        }
+
+        // x * (2./3.) * (1 + np.cos((2./3.) * np.arccos(
+        //     -(3.**(3./2.)/4.) * u * np.abs(x)**(-3./2.))))
     }
 }
 

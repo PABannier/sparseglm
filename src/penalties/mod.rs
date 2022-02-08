@@ -3,7 +3,7 @@ extern crate ndarray;
 use ndarray::{Array1, ArrayBase, ArrayView1, Ix1, OwnedRepr};
 
 use super::Float;
-use crate::helpers::prox::soft_thresholding;
+use crate::helpers::prox::{prox_05, soft_thresholding};
 
 #[cfg(test)]
 mod tests;
@@ -149,6 +149,59 @@ impl<F: Float> Penalty<F> for MCP<F> {
             } else {
                 // Distance of grad to zero
                 subdiff_dist[idx] = grad[idx].abs();
+            }
+
+            if subdiff_dist[idx] > max_subdiff_dist {
+                max_subdiff_dist = subdiff_dist[idx];
+            }
+        }
+        (subdiff_dist, max_subdiff_dist)
+    }
+}
+
+/// L05 penalty
+///
+
+pub struct L05<F: Float> {
+    alpha: F,
+}
+
+impl<F: Float> L05<F> {
+    /// Constructor
+    ///
+    pub fn new(alpha: F) -> Self {
+        L05 { alpha }
+    }
+}
+
+impl<F: Float> Penalty<F> for L05<F> {
+    /// Gets the current value of the penalty
+    fn value(&self, w: ArrayView1<F>) -> F {
+        self.alpha * w.fold(F::zero(), |sum, &wj| sum + wj.abs().sqrt())
+    }
+
+    /// Proximal operator
+    fn prox_op(&self, value: F, stepsize: F) -> F {
+        prox_05(value, stepsize * self.alpha)
+    }
+
+    /// Computes the distance of the gradient to the subdifferential
+    fn subdiff_distance(
+        &self,
+        w: ArrayView1<F>,
+        grad: ArrayView1<F>,
+        ws: ArrayView1<usize>,
+    ) -> (ArrayBase<OwnedRepr<F>, Ix1>, F) {
+        let ws_size = ws.len();
+        let mut subdiff_dist = Array1::<F>::zeros(ws_size);
+        let mut max_subdiff_dist = F::neg_infinity();
+        for (idx, &j) in ws.iter().enumerate() {
+            if w[j] == F::zero() {
+                subdiff_dist[idx] = F::zero();
+            } else {
+                subdiff_dist[idx] = (-grad[idx]
+                    - w[j].signum() * self.alpha / (F::cast(2.) * w[j].abs().sqrt()))
+                .abs();
             }
 
             if subdiff_dist[idx] > max_subdiff_dist {
