@@ -78,3 +78,73 @@ where
         (subdiff_dist, max_subdiff_dist)
     }
 }
+
+/// MCP penalty
+///
+
+pub struct MCP<F: Float> {
+    alpha: F,
+    gamma: F,
+}
+
+impl<F: Float> MCP<F> {
+    /// Constructor
+    ///
+    pub fn new(alpha: F, gamma: F) -> Self {
+        MCP { alpha, gamma }
+    }
+}
+
+impl<F: Float> Penalty<F> for MCP<F> {
+    /// Gets the current value of the penalty
+    fn value(&self, w: ArrayView1<F>) -> F {
+        // With x >= 0
+        // pen(x) = alpha * x - x^2 / (2 * gamma) if x =< gamma * alpha
+        //          gamma * alpha 2 / 2           if x > gamma * alpha
+        // value = sum_{j=1}^{n_features} pen(|w_j|)
+        let mut s0 = Array1::from_elem(w.len(), false);
+        for (idx, &wj) in w.iter().enumerate() {
+            if wj.abs() < self.gamma * self.alpha {
+                s0[idx] = true;
+            }
+        }
+        let mut value = Array1::from_elem(w.len(), self.gamma * self.alpha.powi(2) / F::cast(2));
+        for idx in 0..w.len() {
+            value[idx] = self.alpha * w[idx].abs() - w[idx].powi(2) / (F::cast(2) * self.gamma);
+        }
+        value.fold(F::zero(), |sum, &valuej| sum + valuej)
+    }
+
+    /// Proximal operator
+    fn prox_op(&self, value: F, stepsize: F) -> F {
+        let tau = self.alpha * stepsize;
+        let g = self.gamma / stepsize;
+        if value.abs() <= tau {
+            return F::zero();
+        }
+        if value.abs() > g * tau {
+            return value;
+        }
+        return value.signum() * (value.abs() - tau) / (F::one() - F::one() / g);
+    }
+
+    /// Computes the distance of the gradient to the subdifferential
+    fn subdiff_distance(
+        &self,
+        w: ArrayView1<F>,
+        grad: ArrayView1<F>,
+        ws: ArrayView1<usize>,
+    ) -> (ArrayBase<OwnedRepr<F>, Ix1>, F) {
+        let ws_size = ws.len();
+        let mut subdiff_dist = Array1::<F>::zeros(ws_size);
+        let mut max_subdiff_dist = F::neg_infinity();
+        for (idx, &j) in ws.iter().enumerate() {
+            // TODO
+
+            if subdiff_dist[idx] > max_subdiff_dist {
+                max_subdiff_dist = subdiff_dist[idx];
+            }
+        }
+        (subdiff_dist, max_subdiff_dist)
+    }
+}
