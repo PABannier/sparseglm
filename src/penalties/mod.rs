@@ -214,86 +214,84 @@ impl<F: Float> Penalty<F> for L05<F> {
     }
 }
 
-/// SCAD penalty
-///
+// SCAD penalty
+// pub struct SCAD<F: Float> {
+//     alpha: F,
+//     gamma: F,
+// }
 
-pub struct SCAD<F: Float> {
-    alpha: F,
-    gamma: F,
-}
+// impl<F: Float> SCAD<F> {
+//     /// Constructor
+//     ///
+//     pub fn new(alpha: F, gamma: F) -> Self {
+//         SCAD { alpha, gamma }
+//     }
+// }
 
-impl<F: Float> SCAD<F> {
-    /// Constructor
-    ///
-    pub fn new(alpha: F, gamma: F) -> Self {
-        SCAD { alpha, gamma }
-    }
-}
+// impl<F: Float> Penalty<F> for SCAD<F> {
+//     /// Gets the current value of the penalty
+//     fn value(&self, w: ArrayView1<F>) -> F {
+//         // With x >= 0
+//         // pen(x) = alpha * x                                                   if x =< alpha
+//         //          (2 * gamma * alpha * x - x^2 - alpha^2) / (2 * (gamma - 1)) if gamma < x < gamma * lambda
+//         //          alpha^2 * (gamma + 1) / 2                                   if x >= gamma * alpha
+//         let mut s0 = Array1::from_elem(w.len(), false);
+//         let mut s1 = Array1::from_elem(w.len(), false);
+//         for (idx, &wj) in w.iter().enumerate() {
+//             if wj.abs() <= self.alpha {
+//                 s0[idx] = true;
+//             }
+//             if wj.abs() >= self.alpha * self.gamma {
+//                 s1[idx] = true;
+//             }
+//         }
+//         let mut value = Array1::from_elem(
+//             w.len(),
+//             self.alpha * self.alpha * (self.gamma + F::one()) * F::cast(0.5),
+//         );
+//         for idx in 0..w.len() {
+//             if s0[idx] {
+//                 value[idx] = self.alpha * w[idx].abs();
+//             }
+//             if !s0[idx] && !s1[idx] {
+//                 value[idx] = (F::cast(2) * self.alpha * self.gamma * w[idx].abs()
+//                     - w[idx].powi(2)
+//                     - self.alpha.powi(2))
+//                     / (F::cast(2) * (self.gamma - F::one()));
+//             }
+//         }
+//         value.fold(F::zero(), |sum, &valuej| sum + valuej)
+//     }
 
-impl<F: Float> Penalty<F> for SCAD<F> {
-    /// Gets the current value of the penalty
-    fn value(&self, w: ArrayView1<F>) -> F {
-        // With x >= 0
-        // pen(x) = alpha * x                                                   if x =< alpha
-        //          (2 * gamma * alpha * x - x^2 - alpha^2) / (2 * (gamma - 1)) if gamma < x < gamma * lambda
-        //          alpha^2 * (gamma + 1) / 2                                   if x >= gamma * alpha
-        let mut s0 = Array1::from_elem(w.len(), false);
-        let mut s1 = Array1::from_elem(w.len(), false);
-        for (idx, &wj) in w.iter().enumerate() {
-            if wj.abs() <= self.alpha {
-                s0[idx] = true;
-            }
-            if wj.abs() >= self.alpha * self.gamma {
-                s1[idx] = true;
-            }
-        }
-        let mut value = Array1::from_elem(
-            w.len(),
-            self.alpha * self.alpha * (self.gamma + F::one()) * F::cast(0.5),
-        );
-        for idx in 0..w.len() {
-            if s0[idx] {
-                value[idx] = self.alpha * w[idx].abs();
-            }
-            if !s0[idx] && !s1[idx] {
-                value[idx] = (F::cast(2) * self.alpha * self.gamma * w[idx].abs()
-                    - w[idx].powi(2)
-                    - self.alpha.powi(2))
-                    / (F::cast(2) * (self.gamma - F::one()));
-            }
-        }
-        value.fold(F::zero(), |sum, &valuej| sum + valuej)
-    }
+//     /// Proximal operator
+//     fn prox_op(&self, value: F, stepsize: F) -> F {
+//         let tau = self.alpha * stepsize;
+//         let g = self.gamma / stepsize;
+//         if value.abs() <= F::cast(2) * tau {
+//             return soft_thresholding(value, tau);
+//         } else if value.abs() > g * tau {
+//             return value;
+//         } else {
+//             return (g - F::one()) / (g - F::cast(2))
+//                 * soft_thresholding(value, g * tau / (g - F::one()));
+//         }
+//     }
 
-    /// Proximal operator
-    fn prox_op(&self, value: F, stepsize: F) -> F {
-        let tau = self.alpha * stepsize;
-        let g = self.gamma / stepsize;
-        if value.abs() <= F::cast(2) * tau {
-            return soft_thresholding(value, tau);
-        } else if value.abs() > g * tau {
-            return value;
-        } else {
-            return (g - F::one()) / (g - F::cast(2))
-                * soft_thresholding(value, g * tau / (g - F::one()));
-        }
-    }
-
-    /// Computes the distance of the gradient to the subdifferential
-    fn subdiff_distance(
-        &self,
-        w: ArrayView1<F>,
-        grad: ArrayView1<F>,
-        ws: ArrayView1<usize>,
-    ) -> (ArrayBase<OwnedRepr<F>, Ix1>, F) {
-        let ws_size = ws.len();
-        let mut subdiff_dist = Array1::<F>::zeros(ws_size);
-        let mut max_subdiff_dist = F::neg_infinity();
-        for (idx, &j) in ws.iter().enumerate() {
-            if subdiff_dist[idx] > max_subdiff_dist {
-                max_subdiff_dist = subdiff_dist[idx];
-            }
-        }
-        (subdiff_dist, max_subdiff_dist)
-    }
-}
+//     /// Computes the distance of the gradient to the subdifferential
+//     fn subdiff_distance(
+//         &self,
+//         w: ArrayView1<F>,
+//         grad: ArrayView1<F>,
+//         ws: ArrayView1<usize>,
+//     ) -> (ArrayBase<OwnedRepr<F>, Ix1>, F) {
+//         let ws_size = ws.len();
+//         let mut subdiff_dist = Array1::<F>::zeros(ws_size);
+//         let mut max_subdiff_dist = F::neg_infinity();
+//         for (idx, &j) in ws.iter().enumerate() {
+//             if subdiff_dist[idx] > max_subdiff_dist {
+//                 max_subdiff_dist = subdiff_dist[idx];
+//             }
+//         }
+//         (subdiff_dist, max_subdiff_dist)
+//     }
+// }
