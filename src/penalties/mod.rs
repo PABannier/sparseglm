@@ -8,10 +8,7 @@ use crate::helpers::prox::{prox_05, soft_thresholding};
 #[cfg(test)]
 mod tests;
 
-pub trait Penalty<F>
-where
-    F: Float,
-{
+pub trait Penalty<F: Float> {
     fn value(&self, w: ArrayView1<F>) -> F;
     fn prox_op(&self, value: F, step_size: F) -> F;
     fn subdiff_distance(
@@ -25,30 +22,21 @@ where
 /// L1 penalty
 ///
 
-pub struct L1<F>
-where
-    F: Float,
-{
+pub struct L1<F: Float> {
     alpha: F,
 }
 
-impl<F> L1<F>
-where
-    F: Float,
-{
+impl<F: Float> L1<F> {
     // Constructor
     pub fn new(alpha: F) -> Self {
         L1 { alpha }
     }
 }
 
-impl<F> Penalty<F> for L1<F>
-where
-    F: Float,
-{
+impl<F: Float> Penalty<F> for L1<F> {
     /// Gets the current value of the penalty
     fn value(&self, w: ArrayView1<F>) -> F {
-        self.alpha * w.map(|x| (*x).abs()).sum()
+        self.alpha * w.fold(F::zero(), |sum, &x| sum + x.abs())
     }
     /// Computes the value of the proximal operator
     fn prox_op(&self, value: F, stepsize: F) -> F {
