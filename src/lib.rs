@@ -1,6 +1,10 @@
 #![allow(non_snake_case)]
 
+#![feature(test)]
+extern crate test;
+
 use ndarray::ScalarOperand;
+use ndarray_linalg::{Scalar, Lapack};
 
 use num_traits::{AsPrimitive, FromPrimitive, NumAssignOps, NumCast, Signed};
 
@@ -35,10 +39,7 @@ pub trait Float:
     + ScalarOperand
     + approx::AbsDiffEq
 {
-    #[cfg(feature = "ndarray-linalg")]
     type Lapack: Float + Scalar + Lapack;
-    #[cfg(not(feature = "ndarray-linalg"))]
-    type Lapack: Float;
 
     fn cast<T: NumCast>(x: T) -> Self {
         NumCast::from(x).unwrap()

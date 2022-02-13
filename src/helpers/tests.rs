@@ -1,7 +1,9 @@
-extern crate ndarray;
-
 use crate::helpers::*;
 use ndarray::{Array1, Array2};
+use ndarray_linalg::Inverse;
+
+use test::Bencher;
+
 
 #[test]
 fn test_singular_matrix() {
@@ -43,3 +45,20 @@ fn test_linear_system_solver() {
         Err(e) => panic!("Unexpected error: {}", e),
     }
 }
+
+// #[bench]
+// fn bench_lu_factorization_solver(b: &mut Bencher) {
+//     b.iter(|| {
+//         let (a, b) = test_helpers::generate_random_data(5, 5);
+//         let _sol = helpers::solve_lin_sys(a.view(), b.view()).unwrap();
+//     });
+// }
+
+// #[bench]
+// fn bench_inv_lapack_solver(b: &mut Bencher) {
+//     b.iter(|| {
+//         let (a, b) = test_helpers::generate_random_data(5, 5);
+//         let a_inv = a.inv().unwrap();
+//         let _sol = a_inv.dot(&b);
+//     });
+// }
