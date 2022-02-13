@@ -1,8 +1,5 @@
 #![allow(non_snake_case)]
 
-#![feature(test)]
-extern crate test;
-
 use ndarray::ScalarOperand;
 
 use num_traits::{AsPrimitive, FromPrimitive, NumAssignOps, NumCast, Signed};
