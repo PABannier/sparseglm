@@ -119,23 +119,12 @@ pub fn anderson_accel<F, DM, T, DF, P, S>(
             }
         }
 
-        let mut C: Array2<F> = Array2::zeros((K, K));
-        // general_mat_mul is 20x slower than using plain for loops
-        // Complexity relatively low o(K^2 * ws_size) considering K usually is 5
-        for i in 0..K {
-            for j in 0..K {
-                for l in 0..ws.len() {
-                    C[[i, j]] += U[[i, l]] * U[[j, l]];
-                }
-            }
-        }
-
+        let C = U.t().dot(U);
         let _res = solve_lin_sys(C.view(), Array1::<F>::ones(K).view());
 
         match _res {
             Ok(z) => {
-                let denom = z.sum();
-                let c = z.map(|&x| x / denom);
+                let c = &z / z.sum();
 
                 let mut w_acc = Array1::<F>::zeros(n_features);
 
@@ -163,7 +152,7 @@ pub fn anderson_accel<F, DM, T, DF, P, S>(
             }
             Err(_) => {
                 if verbose {
-                    println!("----LinAlg error");
+                    println!("---- Warning: Singular extrapolation matrix.");
                 }
             }
         }

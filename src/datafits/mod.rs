@@ -1,6 +1,6 @@
 extern crate ndarray;
 
-use ndarray::{Array1, ArrayBase, ArrayView1, Axis, Data, Ix1, Ix2, OwnedRepr};
+use ndarray::{s, Array1, ArrayBase, ArrayView1, Axis, Data, Ix1, Ix2, OwnedRepr};
 
 use super::Float;
 use crate::datasets::{csc_array::CSCArray, DatasetBase, DesignMatrix, Targets};
@@ -30,18 +30,12 @@ where
 /// Quadratic datafit
 ///
 
-pub struct Quadratic<F>
-where
-    F: Float,
-{
+pub struct Quadratic<F: Float> {
     lipschitz: ArrayBase<OwnedRepr<F>, Ix1>,
     Xty: ArrayBase<OwnedRepr<F>, Ix1>,
 }
 
-impl<F> Default for Quadratic<F>
-where
-    F: Float,
-{
+impl<F: Float> Default for Quadratic<F> {
     fn default() -> Quadratic<F> {
         Quadratic {
             lipschitz: Array1::<F>::zeros(1),
@@ -73,10 +67,7 @@ where
     ) -> F {
         let n_samples = dataset.n_samples();
         let X = dataset.design_matrix();
-        let mut _res = F::zero();
-        for i in 0..n_samples {
-            _res += X[[i, j]] * Xw[i];
-        }
+        let _res = X.slice(s![.., j]).dot(&Xw);
         (_res - self.Xty[j]) / F::cast(n_samples)
     }
 

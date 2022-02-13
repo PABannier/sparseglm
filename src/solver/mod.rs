@@ -1,6 +1,6 @@
 extern crate ndarray;
 
-use ndarray::{Array1, ArrayBase, ArrayView1, Data, Ix2};
+use ndarray::{s, Array1, ArrayBase, ArrayView1, Data, Ix2};
 
 use super::Float;
 use crate::datafits::Datafit;
@@ -66,10 +66,8 @@ where
         Xw: &mut Array1<F>,
         ws: ArrayView1<usize>,
     ) {
-        let n_samples = dataset.n_samples();
         let X = dataset.design_matrix();
         let lipschitz = datafit.lipschitz();
-
         for &j in ws {
             if lipschitz[j] == F::zero() {
                 continue;
@@ -78,9 +76,7 @@ where
             let grad_j = datafit.gradient_j(dataset, Xw.view(), j);
             w[j] = penalty.prox_op(old_w_j - grad_j / lipschitz[j], F::one() / lipschitz[j]);
             if w[j] != old_w_j {
-                for i in 0..n_samples {
-                    Xw[i] += (w[j] - old_w_j) * X[[i, j]];
-                }
+                Xw.scaled_add(w[j] - old_w_j, &X.slice(s![.., j]));
             }
         }
     }
@@ -107,7 +103,6 @@ where
     ) {
         let lipschitz = datafit.lipschitz();
         let X = dataset.design_matrix();
-
         for &j in ws {
             if lipschitz[j] == F::zero() {
                 continue;

@@ -77,20 +77,12 @@ where
                 continue;
             }
             let Xj: ArrayView1<F> = X.slice(s![.., j]);
-            let mut old_W_j = Array1::<F>::zeros(n_tasks);
-            for t in 0..n_tasks {
-                old_W_j[t] = W[[j, t]];
-            }
+            let old_W_j = W.slice(s![j, ..]).to_owned();
             let grad_j = datafit.gradient_j(dataset, XW.view(), j);
 
-            let mut upd = Array1::<F>::zeros(n_tasks);
-            for t in 0..n_tasks {
-                upd[t] = old_W_j[t] - grad_j[t] / lipschitz[j];
-            }
-            let upd = penalty.prox_op(upd.view(), F::one() / lipschitz[j]);
-            for t in 0..n_tasks {
-                W[[j, t]] = upd[t];
-            }
+            let step = &old_W_j - grad_j / lipschitz[j];
+            let upd = penalty.prox_op(step.view(), F::one() / lipschitz[j]);
+            W.slice_mut(s![j, ..]).assign(&upd);
 
             let mut diff = Array1::<F>::zeros(n_tasks);
             let mut sum_diff = F::zero();
@@ -138,20 +130,12 @@ where
             if lipschitz[j] == F::zero() {
                 continue;
             }
-            let mut old_W_j = Array1::<F>::zeros(n_tasks);
-            for t in 0..n_tasks {
-                old_W_j[t] = W[[j, t]];
-            }
+            let old_W_j = W.slice(s![j, ..]).to_owned();
             let grad_j = datafit.gradient_j(dataset, XW.view(), j);
 
-            let mut upd = Array1::<F>::zeros(n_tasks);
-            for t in 0..n_tasks {
-                upd[t] = old_W_j[t] - grad_j[t] / lipschitz[j];
-            }
-            let upd = penalty.prox_op(upd.view(), F::one() / lipschitz[j]);
-            for t in 0..n_tasks {
-                W[[j, t]] = upd[t];
-            }
+            let step = &old_W_j - grad_j / lipschitz[j];
+            let upd = penalty.prox_op(step.view(), F::one() / lipschitz[j]);
+            W.slice_mut(s![j, ..]).assign(&upd);
 
             let mut diff = Array1::<F>::zeros(n_tasks);
             let mut sum_diff = F::zero();

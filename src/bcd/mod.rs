@@ -30,9 +30,7 @@ where
     let mut grad = Array2::<F>::zeros((ws_size, n_tasks));
     for (idx, &j) in ws.iter().enumerate() {
         let grad_j = datafit.gradient_j(&dataset, XW, j);
-        for t in 0..n_tasks {
-            grad[[idx, t]] = grad_j[t];
-        }
+        grad.slice_mut(s![idx, ..]).assign(&grad_j);
     }
     grad
 }
@@ -69,7 +67,7 @@ where
     let mut nnz_features: usize = 0;
 
     for j in 0..n_features {
-        if W.slice(s![j, ..]).map(|&x| x.abs()).sum() != F::zero() {
+        if W.slice(s![j, ..]).fold(F::zero(), |sum, &x| sum + x.abs()) != F::zero() {
             nnz_features += 1;
             kkt[j] = F::infinity();
         }
@@ -126,23 +124,12 @@ pub fn anderson_accel<F, DM, T, DF, P, S>(
             }
         }
 
-        let mut C: Array2<F> = Array2::zeros((K, K));
-        // general_mat_mul is 20x slower than using plain for loops
-        // Complexity relatively low o(K^2 * ws_size) considering K usually is 5
-        for i in 0..K {
-            for j in 0..K {
-                for l in 0..ws.len() {
-                    C[[i, j]] += U[[i, l]] * U[[j, l]];
-                }
-            }
-        }
-
-        let _res = solve_lin_sys(C.view(), Array1::<F>::ones(K).view());
+        let C = U.t().dot(U);
+        let _res = solve_lin_sys(C.view(), Array1::<F>::ones(K).view()); // TODO: change into LAPACK inversion
 
         match _res {
             Ok(z) => {
-                let denom = z.sum();
-                let c = z.map(|&x| x / denom);
+                let c = &z / z.sum();
 
                 let mut W_acc = Array2::<F>::zeros((n_features, n_tasks));
 
@@ -172,7 +159,7 @@ pub fn anderson_accel<F, DM, T, DF, P, S>(
             }
             Err(_) => {
                 if verbose {
-                    println!("----LinAlg error");
+                    println!("---- Warning: Singular extrapolation matrix.");
                 }
             }
         }

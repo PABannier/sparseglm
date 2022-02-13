@@ -70,7 +70,7 @@ macro_rules! kkt_check_mtl_tests {
 }
 
 kkt_check_tests! {
-    kkt_check_small: (10, 30),
+    kkt_check_small: (15, 30),
     kkt_check_medium: (100, 300),
     kkt_check_large: (500, 1000),
 }
