@@ -1,5 +1,6 @@
 extern crate ndarray;
 
+use approx::abs_diff_ne;
 use ndarray::{s, Array1, ArrayBase, ArrayView1, Data, Ix2};
 
 use super::Float;
@@ -11,6 +12,35 @@ use crate::penalties::Penalty;
 mod tests;
 
 pub struct Solver {}
+
+pub trait SingleTaskSolver<F, DF, P, DM, T>:
+    CDSolver<F, DF, P, DM, T> + Extrapolator<F, DM, T> + FixedPointStrategy<F, DF, P, DM, T>
+where
+    F: Float,
+    DF: Datafit<F, DM, T>,
+    P: Penalty<F>,
+    DM: DesignMatrix<Elem = F>,
+    T: Targets<Elem = F>,
+{
+}
+
+pub trait FixedPointStrategy<F, DF, P, DM, T>
+where
+    F: Float,
+    DF: Datafit<F, DM, T>,
+    P: Penalty<F>,
+    DM: DesignMatrix<Elem = F>,
+    T: Targets<Elem = F>,
+{
+    fn dist_fix_point(
+        &self,
+        w: ArrayView1<F>,
+        grad: ArrayView1<F>,
+        datafit: &DF,
+        penalty: &P,
+        ws: ArrayView1<usize>,
+    ) -> Array1<F>;
+}
 
 pub trait CDSolver<F, DF, P, DM, T>
 where
@@ -166,5 +196,37 @@ where
                 Xw_acc[X.indices[idx as usize] as usize] += X.data[idx as usize] * w_acc[j];
             }
         }
+    }
+}
+
+/// This implementation block implements the distance to fixed point strategy
+/// to construct working set
+///
+impl<F, DF, P, DM, T> FixedPointStrategy<F, DF, P, DM, T> for Solver
+where
+    F: Float,
+    DF: Datafit<F, DM, T>,
+    P: Penalty<F>,
+    DM: DesignMatrix<Elem = F>,
+    T: Targets<Elem = F>,
+{
+    fn dist_fix_point(
+        &self,
+        w: ArrayView1<F>,
+        grad: ArrayView1<F>,
+        datafit: &DF,
+        penalty: &P,
+        ws: ArrayView1<usize>,
+    ) -> Array1<F> {
+        let mut dist_to_fix_point = Array1::<F>::zeros(ws.len());
+        for (idx, &j) in ws.iter().enumerate() {
+            let lipschitz_j = datafit.lipschitz()[j];
+            if abs_diff_ne!(lipschitz_j, F::zero()) {
+                dist_to_fix_point[idx] = <F as num_traits::Float>::abs(
+                    w[j] - penalty.prox_op(w[j] - grad[idx] / lipschitz_j, F::one() / lipschitz_j),
+                );
+            }
+        }
+        dist_to_fix_point
     }
 }

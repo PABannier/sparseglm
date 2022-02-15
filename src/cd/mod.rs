@@ -7,7 +7,7 @@ use crate::datafits::Datafit;
 use crate::datasets::{DatasetBase, DesignMatrix, Targets};
 use crate::helpers::helpers::{argsort_by, solve_lin_sys};
 use crate::penalties::Penalty;
-use crate::solver::{CDSolver, Extrapolator};
+use crate::solver::SingleTaskSolver;
 
 #[cfg(test)]
 mod tests;
@@ -100,7 +100,7 @@ pub fn anderson_accel<F, DM, T, DF, P, S>(
     T: Targets<Elem = F>,
     DF: Datafit<F, DM, T>,
     P: Penalty<F>,
-    S: Extrapolator<F, DM, T>,
+    S: SingleTaskSolver<F, DF, P, DM, T>,
 {
     let n_samples = dataset.n_samples();
     let n_features = dataset.n_features();
@@ -178,7 +178,7 @@ where
     T: Targets<Elem = F>,
     DF: Datafit<F, DM, T>,
     P: Penalty<F>,
-    S: CDSolver<F, DF, P, DM, T> + Extrapolator<F, DM, T>,
+    S: SingleTaskSolver<F, DF, P, DM, T>,
 {
     let n_samples = dataset.n_samples();
     let n_features = dataset.n_features();
