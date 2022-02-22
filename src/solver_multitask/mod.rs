@@ -12,6 +12,35 @@ mod tests;
 
 pub struct MultiTaskSolver {}
 
+// pub trait DistFixedPoint<F, DF, P, DM, T>
+// where
+//     F: Float,
+//     DF: Datafit<F, DM, T>,
+//     P: Penalty<F>,
+//     DM: DesignMatrix<Elem = F>,
+//     T: Targets<Elem = F>,
+// {
+//     fn dist_fix_point(
+//         &self,
+//         w: ArrayView2<F>,
+//         grad: ArrayView2<F>,
+//         datafit: &DF,
+//         penalty: &P,
+//         ws: ArrayView1<usize>,
+//     ) -> Array1<F> {
+//         let mut dist_to_fix_point = Array1::<F>::zeros(ws.len());
+//         for (idx, &j) in ws.iter().enumerate() {
+//             let lipschitz_j = datafit.lipschitz()[j];
+//             if abs_diff_ne!(lipschitz_j, F::zero()) {
+//                 dist_to_fix_point[idx] = <F as num_traits::Float>::abs(
+//                     w[j] - penalty.prox_op(w[j] - grad[idx] / lipschitz_j, F::one() / lipschitz_j),
+//                 );
+//             }
+//         }
+//         dist_to_fix_point
+//     }
+// }
+
 pub trait BCDSolver<F, DF, P, DM, T>
 where
     F: Float,
