@@ -4,7 +4,7 @@ use ndarray::{s, Array1, Array2, ArrayBase, ArrayView1, ArrayView2, Data, Ix2};
 
 use super::Float;
 use crate::datafits_multitask::MultiTaskDatafit;
-use crate::datasets::{csc_array::CSCArray, DatasetBase, DesignMatrix, Targets};
+use crate::datasets::{csc_array::CSCArray, AsMultiTargets, DatasetBase, DesignMatrix};
 use crate::penalties_multitask::PenaltyMultiTask;
 
 #[cfg(test)]
@@ -18,7 +18,7 @@ where
     DF: MultiTaskDatafit<F, DM, T>,
     P: PenaltyMultiTask<F>,
     DM: DesignMatrix<Elem = F>,
-    T: Targets<Elem = F>,
+    T: AsMultiTargets<Elem = F>,
 {
     fn bcd_epoch(
         &self,
@@ -31,12 +31,7 @@ where
     );
 }
 
-pub trait MultiTaskExtrapolator<F, DM, T>
-where
-    F: Float,
-    DM: DesignMatrix<Elem = F>,
-    T: Targets<Elem = F>,
-{
+pub trait MultiTaskExtrapolator<F: Float, DM: DesignMatrix<Elem = F>, T: AsMultiTargets<Elem = F>> {
     fn extrapolate(
         &self,
         dataset: &DatasetBase<DM, T>,
@@ -55,7 +50,7 @@ where
     D: Data<Elem = F>,
     DF: MultiTaskDatafit<F, ArrayBase<D, Ix2>, T>,
     P: PenaltyMultiTask<F>,
-    T: Targets<Elem = F>,
+    T: AsMultiTargets<Elem = F>,
 {
     fn bcd_epoch(
         &self,
@@ -110,7 +105,7 @@ where
     F: Float,
     DF: MultiTaskDatafit<F, CSCArray<'a, F>, T>,
     P: PenaltyMultiTask<F>,
-    T: Targets<Elem = F>,
+    T: AsMultiTargets<Elem = F>,
 {
     fn bcd_epoch(
         &self,
@@ -162,7 +157,7 @@ impl<F, D, T> MultiTaskExtrapolator<F, ArrayBase<D, Ix2>, T> for MultiTaskSolver
 where
     F: Float,
     D: Data<Elem = F>,
-    T: Targets<Elem = F>,
+    T: AsMultiTargets<Elem = F>,
 {
     fn extrapolate(
         &self,
@@ -190,7 +185,7 @@ where
 impl<'a, F, T> MultiTaskExtrapolator<F, CSCArray<'a, F>, T> for MultiTaskSolver
 where
     F: Float,
-    T: Targets<Elem = F>,
+    T: AsMultiTargets<Elem = F>,
 {
     fn extrapolate(
         &self,
