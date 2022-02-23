@@ -1,7 +1,7 @@
-use super::{MultiTargets, SingleTargets};
+use super::{AsMultiTargets, AsSingleTargets};
 use ndarray::{ArrayBase, ArrayView2, Axis, Data, Ix1, Ix2};
 
-impl<'a, F, S: Data<Elem = F>> MultiTargets for ArrayBase<S, Ix2> {
+impl<'a, F, S: Data<Elem = F>> AsMultiTargets for ArrayBase<S, Ix2> {
     type Elem = F;
 
     fn n_samples(&self) -> usize {
@@ -17,7 +17,7 @@ impl<'a, F, S: Data<Elem = F>> MultiTargets for ArrayBase<S, Ix2> {
     }
 }
 
-impl<'a, F, S: Data<Elem = F>> MultiTargets for ArrayBase<S, Ix1> {
+impl<'a, F, S: Data<Elem = F>> AsMultiTargets for ArrayBase<S, Ix1> {
     type Elem = F;
 
     fn n_samples(&self) -> usize {
@@ -33,9 +33,9 @@ impl<'a, F, S: Data<Elem = F>> MultiTargets for ArrayBase<S, Ix1> {
     }
 }
 
-impl<'a, F, S: Data<Elem = F>> SingleTargets for ArrayBase<S, Ix1> {}
+impl<'a, F, S: Data<Elem = F>> AsSingleTargets for ArrayBase<S, Ix1> {}
 
-impl<T: MultiTargets> MultiTargets for &T {
+impl<T: AsMultiTargets> AsMultiTargets for &T {
     type Elem = T::Elem;
 
     fn n_samples(&self) -> usize {

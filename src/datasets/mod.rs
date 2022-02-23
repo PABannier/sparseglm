@@ -9,7 +9,7 @@ mod impl_datasets;
 mod impl_design_matrix;
 mod impl_targets;
 
-pub struct DatasetBase<DM: DesignMatrix, T: MultiTargets> {
+pub struct DatasetBase<DM: DesignMatrix, T: AsMultiTargets> {
     pub design_matrix: DM,
     pub targets: T,
 }
@@ -26,7 +26,7 @@ pub trait DesignMatrix: Sized {
     fn matrix_type(&self) -> DesignMatrixType;
 }
 
-pub trait MultiTargets: Sized {
+pub trait AsMultiTargets: Sized {
     type Elem;
 
     fn n_samples(&self) -> usize;
@@ -36,7 +36,7 @@ pub trait MultiTargets: Sized {
     fn as_multi_tasks(&self) -> ArrayView2<Self::Elem>;
 }
 
-pub trait SingleTargets: MultiTargets {
+pub trait AsSingleTargets: AsMultiTargets {
     fn try_single_target(&self) -> Result<ArrayView1<Self::Elem>> {
         let multi_targets = self.as_multi_tasks();
 
