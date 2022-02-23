@@ -7,7 +7,7 @@ use super::hyperparams::{MultiTaskLassoParams, MultiTaskLassoValidParams};
 use super::traits::Fit;
 use crate::bcd::block_coordinate_descent;
 use crate::datafits_multitask::QuadraticMultiTask;
-use crate::datasets::{csc_array::CSCArray, DatasetBase};
+use crate::datasets::{csc_array::CSCArray, AsMultiTargets, DatasetBase};
 use crate::penalties_multitask::L21;
 use crate::solver_multitask::MultiTaskSolver;
 use crate::Float;
@@ -32,17 +32,12 @@ impl<F: Float> MultiTaskLasso<F> {
     }
 }
 
-impl<F, D> Fit<ArrayBase<D, Ix2>, ArrayBase<D, Ix2>, LassoError> for MultiTaskLassoValidParams<F>
-where
-    F: Float,
-    D: Data<Elem = F>,
+impl<F, D: Data<Elem = F>, T: AsMultiTargets> Fit<ArrayBase<D, Ix2>, T, LassoError>
+    for MultiTaskLassoValidParams<F>
 {
     type Object = MultiTaskLasso<F>;
     /// Fits the MultiTaskLasso estimator to a dense design matrix
-    fn fit(
-        &self,
-        dataset: &DatasetBase<ArrayBase<D, Ix2>, ArrayBase<D, Ix2>>,
-    ) -> Result<Self::Object> {
+    fn fit(&self, dataset: &DatasetBase<ArrayBase<D, Ix2>, T>) -> Result<Self::Object> {
         let solver = MultiTaskSolver {};
         let mut datafit = QuadraticMultiTask::default();
         let penalty = L21::new(self.alpha());
@@ -63,17 +58,12 @@ where
     }
 }
 
-impl<F, D> Fit<CSCArray<'_, F>, ArrayBase<D, Ix2>, LassoError> for MultiTaskLassoValidParams<F>
-where
-    F: Float,
-    D: Data<Elem = F>,
+impl<F, D: Data<Elem = F>, T: AsMultiTargets> Fit<CSCArray<'_, F>, T, LassoError>
+    for MultiTaskLassoValidParams<F>
 {
     type Object = MultiTaskLasso<F>;
     /// Fits the MultiTask estimator to a sparse design matrix
-    fn fit(
-        &self,
-        dataset: &DatasetBase<CSCArray<'_, F>, ArrayBase<D, Ix2>>,
-    ) -> Result<Self::Object> {
+    fn fit(&self, dataset: &DatasetBase<CSCArray<'_, F>, T>) -> Result<Self::Object> {
         let solver = MultiTaskSolver {};
         let mut datafit = QuadraticMultiTask::default();
         let penalty = L21::new(self.alpha());
