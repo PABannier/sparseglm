@@ -1,5 +1,5 @@
 use super::traits::Fit;
-use crate::datasets::{DatasetBase, DesignMatrix, Targets};
+use crate::datasets::{AsMultiTargets, DatasetBase, DesignMatrix};
 use std::error::Error;
 
 /// A set of hyperparameters whose values have not been checked for validity. A reference to the
@@ -33,8 +33,11 @@ pub trait ParamGuard {
 
 /// Performs checking step and calls `fit` on the checked hyperparameters. If checking failed, the
 /// checking error is converted to the original error type of `Fit` and returned.
-impl<DM: DesignMatrix, T: Targets, E, P: ParamGuard> Fit<DM, T, E> for P
+impl<DM, T, E, P> Fit<DM, T, E> for P
 where
+    DM: DesignMatrix,
+    T: AsMultiTargets,
+    P: ParamGuard,
     P::Checked: Fit<DM, T, E>,
     E: Error + From<P::Error>,
 {
