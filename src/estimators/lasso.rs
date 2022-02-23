@@ -31,8 +31,8 @@ impl<F: Float> Lasso<F> {
     }
 }
 
-impl<F, D: Data<Elem = F>, T: AsSingleTargets> Fit<ArrayBase<D, Ix2>, T, LassoError>
-    for LassoValidParams<F>
+impl<F: Float, D: Data<Elem = F>, T: AsSingleTargets<Elem = F>>
+    Fit<ArrayBase<D, Ix2>, T, LassoError> for LassoValidParams<F>
 {
     type Object = Lasso<F>;
     /// Fits the Lasso estimator to a dense design matrix
@@ -58,7 +58,7 @@ impl<F, D: Data<Elem = F>, T: AsSingleTargets> Fit<ArrayBase<D, Ix2>, T, LassoEr
     }
 }
 
-impl<F, D: Data<Elem = F>, T: AsSingleTargets> Fit<CSCArray<'_, F>, T, LassoError>
+impl<F: Float, T: AsSingleTargets<Elem = F>> Fit<CSCArray<'_, F>, T, LassoError>
     for LassoValidParams<F>
 {
     type Object = Lasso<F>;

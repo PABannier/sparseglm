@@ -4,6 +4,8 @@ use ndarray::{ArrayBase, ArrayView1, ArrayView2, Axis, Ix2, OwnedRepr};
 
 use self::csc_array::CSCArray;
 
+use thiserror::Error;
+
 pub mod csc_array;
 mod impl_datasets;
 mod impl_design_matrix;
@@ -37,11 +39,11 @@ pub trait AsMultiTargets: Sized {
 }
 
 pub trait AsSingleTargets: AsMultiTargets {
-    fn try_single_target(&self) -> Result<ArrayView1<Self::Elem>> {
+    fn try_single_target(&self) -> Result<ArrayView1<Self::Elem>, Error> {
         let multi_targets = self.as_multi_tasks();
 
         if multi_targets.len_of(Axis(1)) > 1 {
-            return Err("Unable to cast multi-dimensional array into 1d array");
+            return Err(Error::NonCastableSingleTargets);
         }
 
         Ok(multi_targets.index_axis_move(Axis(1), 0))
@@ -51,4 +53,10 @@ pub trait AsSingleTargets: AsMultiTargets {
 pub enum DesignMatrixType {
     Dense,
     Sparse,
+}
+
+#[derive(Error, Debug, Clone)]
+pub enum Error {
+    #[error("Unable to cast multi-dimensional array into 1d array")]
+    NonCastableSingleTargets,
 }

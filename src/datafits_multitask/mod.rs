@@ -5,7 +5,7 @@ use ndarray::{
 };
 
 use super::Float;
-use crate::datasets::{csc_array::CSCArray, DatasetBase, DesignMatrix, Targets};
+use crate::datasets::{csc_array::CSCArray, AsMultiTargets, DatasetBase, DesignMatrix};
 
 #[cfg(test)]
 mod tests;
@@ -14,7 +14,7 @@ pub trait MultiTaskDatafit<F, DM, T>
 where
     F: Float,
     DM: DesignMatrix<Elem = F>,
-    T: Targets<Elem = F>,
+    T: AsMultiTargets<Elem = F>,
 {
     fn initialize(&mut self, dataset: &DatasetBase<DM, T>);
     fn value(&self, dataset: &DatasetBase<DM, T>, XW: ArrayView2<F>) -> F;
@@ -58,7 +58,7 @@ where
 {
     /// Initializes the datafit by pre-computing useful quantities
     fn initialize(&mut self, dataset: &DatasetBase<ArrayBase<D, Ix2>, ArrayBase<D, Ix2>>) {
-        let n_samples = F::cast(dataset.n_samples());
+        let n_samples = F::cast(dataset.targets().n_samples());
         let X = dataset.design_matrix();
         let Y = dataset.targets();
         let xty = X.t().dot(Y);
@@ -72,7 +72,7 @@ where
         dataset: &DatasetBase<ArrayBase<D, Ix2>, ArrayBase<D, Ix2>>,
         XW: ArrayView2<F>,
     ) -> F {
-        let n_samples = dataset.n_samples();
+        let n_samples = dataset.targets().n_samples();
         let Y = dataset.targets();
         let R = Y - &XW;
         let frob = R.fold(F::zero(), |sum, &x| sum + x * x);
@@ -86,7 +86,7 @@ where
         XW: ArrayView2<F>,
         j: usize,
     ) -> ArrayBase<OwnedRepr<F>, Ix1> {
-        let n_samples = F::cast(dataset.n_samples());
+        let n_samples = F::cast(dataset.targets().n_samples());
         let X = dataset.design_matrix();
         let Xj: ArrayView1<F> = X.slice(s![.., j]);
         let grad = Xj.dot(&XW) - self.XtY.slice(s![j, ..]);
@@ -99,11 +99,12 @@ where
         dataset: &DatasetBase<ArrayBase<D, Ix2>, ArrayBase<D, Ix2>>,
         XW: ArrayView2<F>,
     ) -> ArrayBase<OwnedRepr<F>, Ix2> {
-        let n_features = dataset.n_features();
-        let n_tasks = dataset.n_tasks();
+        let n_features = dataset.design_matrix().n_features();
+        let n_tasks = dataset.targets().n_tasks();
         let mut grad = Array2::<F>::zeros((n_features, n_tasks));
         for j in 0..n_features {
-            grad.slice_mut(s![j, ..]).assign(&self.gradient_j(dataset, XW, j));
+            grad.slice_mut(s![j, ..])
+                .assign(&self.gradient_j(dataset, XW, j));
         }
         grad
     }
@@ -126,9 +127,9 @@ where
 {
     /// Initializes the datafit by pre-computing useful quantities
     fn initialize(&mut self, dataset: &DatasetBase<CSCArray<'_, F>, ArrayBase<D, Ix2>>) {
-        let n_samples = F::cast(dataset.n_samples());
-        let n_features = dataset.n_features();
-        let n_tasks = dataset.n_tasks();
+        let n_samples = F::cast(dataset.targets().n_samples());
+        let n_features = dataset.design_matrix().n_features();
+        let n_tasks = dataset.targets().n_tasks();
 
         let X = dataset.design_matrix();
         let Y = dataset.targets();
@@ -156,7 +157,7 @@ where
         dataset: &DatasetBase<CSCArray<'_, F>, ArrayBase<D, Ix2>>,
         XW: ArrayView2<F>,
     ) -> F {
-        let n_samples = dataset.n_samples();
+        let n_samples = dataset.targets().n_samples();
         let Y = dataset.targets();
         let R = Y - &XW;
         let frob = R.fold(F::zero(), |sum, &x| sum + x * x);
@@ -170,8 +171,8 @@ where
         XW: ArrayView2<F>,
         j: usize,
     ) -> ArrayBase<OwnedRepr<F>, Ix1> {
-        let n_samples = F::cast(dataset.n_samples());
-        let n_tasks = dataset.n_tasks();
+        let n_samples = F::cast(dataset.targets().n_samples());
+        let n_tasks = dataset.targets().n_tasks();
         let X = dataset.design_matrix();
         let mut XjTXW = Array1::<F>::zeros(n_tasks);
         for i in X.indptr[j]..X.indptr[j + 1] {
@@ -189,11 +190,12 @@ where
         dataset: &DatasetBase<CSCArray<'_, F>, ArrayBase<D, Ix2>>,
         XW: ArrayView2<F>,
     ) -> ArrayBase<OwnedRepr<F>, Ix2> {
-        let n_features = dataset.n_features();
-        let n_tasks = dataset.n_tasks();
+        let n_tasks = dataset.targets().n_tasks();
+        let n_features = dataset.design_matrix().n_features();
         let mut grad = Array2::<F>::zeros((n_features, n_tasks));
         for j in 0..n_features {
-            grad.slice_mut(s![j, ..]).assign(&self.gradient_j(dataset, XW, j));
+            grad.slice_mut(s![j, ..])
+                .assign(&self.gradient_j(dataset, XW, j));
         }
         grad
     }

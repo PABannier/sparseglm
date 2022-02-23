@@ -32,7 +32,7 @@ impl<F: Float> MultiTaskLasso<F> {
     }
 }
 
-impl<F, D: Data<Elem = F>, T: AsMultiTargets> Fit<ArrayBase<D, Ix2>, T, LassoError>
+impl<F: Float, D: Data<Elem = F>, T: AsMultiTargets<Elem = F>> Fit<ArrayBase<D, Ix2>, T, LassoError>
     for MultiTaskLassoValidParams<F>
 {
     type Object = MultiTaskLasso<F>;
@@ -58,7 +58,7 @@ impl<F, D: Data<Elem = F>, T: AsMultiTargets> Fit<ArrayBase<D, Ix2>, T, LassoErr
     }
 }
 
-impl<F, D: Data<Elem = F>, T: AsMultiTargets> Fit<CSCArray<'_, F>, T, LassoError>
+impl<F: Float, T: AsMultiTargets<Elem = F>> Fit<CSCArray<'_, F>, T, LassoError>
     for MultiTaskLassoValidParams<F>
 {
     type Object = MultiTaskLasso<F>;

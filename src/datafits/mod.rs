@@ -3,12 +3,12 @@ extern crate ndarray;
 use ndarray::{s, Array1, ArrayBase, ArrayView1, Axis, Data, Ix1, Ix2, OwnedRepr};
 
 use super::Float;
-use crate::datasets::{csc_array::CSCArray, DatasetBase, DesignMatrix, Targets};
+use crate::datasets::{csc_array::CSCArray, AsSingleTargets, DatasetBase, DesignMatrix};
 
 #[cfg(test)]
 mod tests;
 
-pub trait Datafit<F: Float, DM: DesignMatrix<Elem = F>, T: Targets<Elem = F>> {
+pub trait Datafit<F: Float, DM: DesignMatrix<Elem = F>, T: AsSingleTargets<Elem = F>> {
     fn initialize(&mut self, dataset: &DatasetBase<DM, T>);
     fn value(&self, dataset: &DatasetBase<DM, T>, Xw: ArrayView1<F>) -> F;
     fn gradient_j(&self, dataset: &DatasetBase<DM, T>, Xw: ArrayView1<F>, j: usize) -> F;
@@ -39,14 +39,12 @@ impl<F: Float> Default for Quadratic<F> {
     }
 }
 
-impl<F, D> Datafit<F, ArrayBase<D, Ix2>, ArrayBase<D, Ix1>> for Quadratic<F>
-where
-    F: Float,
-    D: Data<Elem = F>,
+impl<F: Float, D: Data<Elem = F>> Datafit<F, ArrayBase<D, Ix2>, ArrayBase<D, Ix1>>
+    for Quadratic<F>
 {
     /// Initializes the datafit by pre-computing useful quantities
     fn initialize(&mut self, dataset: &DatasetBase<ArrayBase<D, Ix2>, ArrayBase<D, Ix1>>) {
-        let n_samples = F::cast(dataset.n_samples());
+        let n_samples = F::cast(dataset.targets().len());
         let X = dataset.design_matrix();
         let y = dataset.targets();
         self.Xty = X.t().dot(y);
@@ -60,7 +58,7 @@ where
         Xw: ArrayView1<F>,
         j: usize,
     ) -> F {
-        let n_samples = dataset.n_samples();
+        let n_samples = dataset.targets().len();
         let X = dataset.design_matrix();
         let _res = X.slice(s![.., j]).dot(&Xw);
         (_res - self.Xty[j]) / F::cast(n_samples)
@@ -72,7 +70,7 @@ where
         dataset: &DatasetBase<ArrayBase<D, Ix2>, ArrayBase<D, Ix1>>,
         Xw: ArrayView1<F>,
     ) -> ArrayBase<OwnedRepr<F>, Ix1> {
-        let n_features = dataset.n_features();
+        let n_features = dataset.design_matrix().n_features();
         let mut grad = Array1::<F>::zeros(n_features);
         for j in 0..n_features {
             grad[j] = self.gradient_j(dataset, Xw, j);
@@ -86,7 +84,7 @@ where
         dataset: &DatasetBase<ArrayBase<D, Ix2>, ArrayBase<D, Ix1>>,
         Xw: ArrayView1<F>,
     ) -> F {
-        let n_samples = dataset.n_samples();
+        let n_samples = dataset.targets().len();
         let y = dataset.targets();
         let r = y - &Xw;
         let val = r.dot(&r) / F::cast(2 * n_samples);
@@ -104,15 +102,11 @@ where
     }
 }
 
-impl<F, D> Datafit<F, CSCArray<'_, F>, ArrayBase<D, Ix1>> for Quadratic<F>
-where
-    F: Float,
-    D: Data<Elem = F>,
-{
+impl<F: Float, D: Data<Elem = F>> Datafit<F, CSCArray<'_, F>, ArrayBase<D, Ix1>> for Quadratic<F> {
     /// Initializes the datafit by pre-computing useful quantities with sparse matrices
     fn initialize(&mut self, dataset: &DatasetBase<CSCArray<'_, F>, ArrayBase<D, Ix1>>) {
-        let n_samples = dataset.n_samples();
-        let n_features = dataset.n_features();
+        let n_samples = dataset.targets().len();
+        let n_features = dataset.design_matrix().n_features();
         let X = dataset.design_matrix();
         let y = dataset.targets();
         self.Xty = Array1::<F>::zeros(n_features);
@@ -136,7 +130,7 @@ where
         Xw: ArrayView1<F>,
         j: usize,
     ) -> F {
-        let n_samples = dataset.n_samples();
+        let n_samples = dataset.targets().len();
         let X = dataset.design_matrix();
         let mut XjTXw = F::zero();
         for i in X.indptr[j]..X.indptr[j + 1] {
@@ -151,7 +145,7 @@ where
         dataset: &DatasetBase<CSCArray<'_, F>, ArrayBase<D, Ix1>>,
         Xw: ArrayView1<F>,
     ) -> ArrayBase<OwnedRepr<F>, Ix1> {
-        let n_features = dataset.n_features();
+        let n_features = dataset.design_matrix().n_features();
         let mut grad = Array1::<F>::zeros(n_features);
         for j in 0..n_features {
             grad[j] = self.gradient_j(dataset, Xw, j);
@@ -165,7 +159,7 @@ where
         dataset: &DatasetBase<CSCArray<'_, F>, ArrayBase<D, Ix1>>,
         Xw: ArrayView1<F>,
     ) -> F {
-        let n_samples = dataset.n_samples();
+        let n_samples = dataset.targets().len();
         let y = dataset.targets();
         let r = y - &Xw;
         let val = r.dot(&r) / F::cast(2 * n_samples);

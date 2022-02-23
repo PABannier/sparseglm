@@ -19,9 +19,7 @@ impl<F, D: Data<Elem = F>, T: AsMultiTargets> From<(ArrayBase<D, Ix2>, T)>
 
 /// This implementation block provides a method for the creation of datasets
 /// from sparse matrices.
-impl<'a, F, D: Data<Elem = F>, T: AsMultiTargets> From<(CSCArray<'a, F>, T)>
-    for DatasetBase<CSCArray<'a, F>, T>
-{
+impl<'a, F, T: AsMultiTargets> From<(CSCArray<'a, F>, T)> for DatasetBase<CSCArray<'a, F>, T> {
     fn from(data: (CSCArray<'a, F>, T)) -> Self {
         DatasetBase {
             design_matrix: data.0,

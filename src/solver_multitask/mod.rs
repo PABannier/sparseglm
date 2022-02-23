@@ -61,8 +61,8 @@ where
         XW: &mut Array2<F>,
         ws: ArrayView1<usize>,
     ) {
-        let n_samples = dataset.n_samples();
-        let n_tasks = dataset.n_tasks();
+        let n_samples = dataset.targets().n_samples();
+        let n_tasks = dataset.targets().n_tasks();
 
         let X = dataset.design_matrix();
         let lipschitz = datafit.lipschitz();
@@ -116,7 +116,7 @@ where
         XW: &mut Array2<F>,
         ws: ArrayView1<usize>,
     ) {
-        let n_tasks = dataset.n_tasks();
+        let n_tasks = dataset.targets().n_tasks();
 
         let X = dataset.design_matrix();
         let lipschitz = datafit.lipschitz();
@@ -167,8 +167,8 @@ where
         ws: ArrayView1<usize>,
     ) {
         let X = dataset.design_matrix();
-        let n_samples = dataset.n_samples();
-        let n_tasks = dataset.n_tasks();
+        let n_samples = dataset.targets().n_samples();
+        let n_tasks = dataset.targets().n_tasks();
         for i in 0..n_samples {
             for &j in ws {
                 for t in 0..n_tasks {
@@ -195,7 +195,7 @@ where
         ws: ArrayView1<usize>,
     ) {
         let X = dataset.design_matrix();
-        let n_tasks = dataset.n_tasks();
+        let n_tasks = dataset.targets().n_tasks();
         for &j in ws {
             for idx in X.indptr[j]..X.indptr[j + 1] {
                 for t in 0..n_tasks {

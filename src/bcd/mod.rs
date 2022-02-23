@@ -5,7 +5,7 @@ use ndarray::{s, Array1, Array2, ArrayView1, ArrayView2};
 use super::Float;
 use crate::datafits_multitask::MultiTaskDatafit;
 use crate::datasets::DesignMatrix;
-use crate::datasets::{DatasetBase, Targets};
+use crate::datasets::{AsMultiTargets, DatasetBase};
 use crate::helpers::helpers::{argsort_by, solve_lin_sys};
 use crate::penalties_multitask::PenaltyMultiTask;
 use crate::solver_multitask::{BCDSolver, MultiTaskExtrapolator};
@@ -22,11 +22,11 @@ pub fn construct_grad<F, DF, DM, T>(
 where
     F: 'static + Float,
     DM: DesignMatrix<Elem = F>,
-    T: Targets<Elem = F>,
+    T: AsMultiTargets<Elem = F>,
     DF: MultiTaskDatafit<F, DM, T>,
 {
     let ws_size = ws.len();
-    let n_tasks = dataset.n_tasks();
+    let n_tasks = dataset.targets().n_tasks();
     let mut grad = Array2::<F>::zeros((ws_size, n_tasks));
     for (idx, &j) in ws.iter().enumerate() {
         let grad_j = datafit.gradient_j(&dataset, XW, j);
@@ -46,7 +46,7 @@ pub fn kkt_violation<F, DF, P, DM, T>(
 where
     F: 'static + Float,
     DM: DesignMatrix<Elem = F>,
-    T: Targets<Elem = F>,
+    T: AsMultiTargets<Elem = F>,
     DF: MultiTaskDatafit<F, DM, T>,
     P: PenaltyMultiTask<F>,
 {
@@ -101,14 +101,14 @@ pub fn anderson_accel<F, DM, T, DF, P, S>(
 ) where
     F: 'static + Float,
     DM: DesignMatrix<Elem = F>,
-    T: Targets<Elem = F>,
+    T: AsMultiTargets<Elem = F>,
     DF: MultiTaskDatafit<F, DM, T>,
     P: PenaltyMultiTask<F>,
     S: BCDSolver<F, DF, P, DM, T> + MultiTaskExtrapolator<F, DM, T>,
 {
-    let n_samples = dataset.n_samples();
-    let n_features = dataset.n_features();
-    let n_tasks = dataset.n_tasks();
+    let n_samples = dataset.targets().n_samples();
+    let n_features = dataset.design_matrix().n_features();
+    let n_tasks = dataset.targets().n_tasks();
 
     // last_K_w[epoch % (K + 1)] = w[ws]
     for (idx, &j) in ws.iter().enumerate() {
@@ -182,14 +182,14 @@ pub fn block_coordinate_descent<F, DM, T, DF, P, S>(
 where
     F: 'static + Float,
     DM: DesignMatrix<Elem = F>,
-    T: Targets<Elem = F>,
+    T: AsMultiTargets<Elem = F>,
     DF: MultiTaskDatafit<F, DM, T>,
     P: PenaltyMultiTask<F>,
     S: BCDSolver<F, DF, P, DM, T> + MultiTaskExtrapolator<F, DM, T>,
 {
-    let n_samples = dataset.n_samples();
-    let n_features = dataset.n_features();
-    let n_tasks = dataset.n_tasks();
+    let n_samples = dataset.targets().n_samples();
+    let n_features = dataset.design_matrix().n_features();
+    let n_tasks = dataset.targets().n_tasks();
 
     datafit.initialize(dataset);
 
