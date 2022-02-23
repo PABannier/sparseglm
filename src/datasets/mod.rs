@@ -1,6 +1,6 @@
 extern crate ndarray;
 
-use ndarray::{ArrayBase, ArrayView1, ArrayView2, Axis, Ix2, OwnedRepr};
+use ndarray::{ArrayBase, ArrayView1, ArrayView2, Axis, Ix2, OwnedRepr, ViewRepr};
 
 use self::csc_array::CSCArray;
 
@@ -17,6 +17,8 @@ pub struct DatasetBase<DM: DesignMatrix, T: AsMultiTargets> {
 }
 
 pub type DenseDataset<D, T> = DatasetBase<ArrayBase<OwnedRepr<D>, Ix2>, T>;
+
+pub type DenseDatasetView<D, T> = DatasetBase<ArrayBase<ViewRepr<D>, Ix2>, T>;
 
 pub type SparseDataset<'a, F, T> = DatasetBase<CSCArray<'a, F>, T>;
 
