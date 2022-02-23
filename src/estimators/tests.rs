@@ -16,7 +16,7 @@ macro_rules! kkt_check_tests {
             fn $name() {
                 let (n_samples, n_features) = $value;
                 let (X, y) = generate_random_data(n_samples, n_features);
-                let dataset = DenseDataset::from((X, y));
+                let dataset = DenseDataset::from((&X, &y));
 
                 let alpha_max = compute_alpha_max(X.view(), y.view());
                 let alpha = alpha_max * 0.5;
