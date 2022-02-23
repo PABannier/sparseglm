@@ -1,7 +1,6 @@
 extern crate ndarray;
 extern crate rand;
 
-use ndarray::linalg::general_mat_mul;
 use ndarray::{Array1, Array2};
 
 use crate::datasets::*;
@@ -16,15 +15,17 @@ macro_rules! kkt_check_tests {
             fn $name() {
                 let (n_samples, n_features) = $value;
                 let (X, y) = generate_random_data(n_samples, n_features);
-                let dataset = DenseDataset::from((&X, &y));
 
                 let alpha_max = compute_alpha_max(X.view(), y.view());
                 let alpha = alpha_max * 0.5;
 
+                let dataset = DenseDataset::new(X, y);
                 let clf = Lasso::params().alpha(alpha).fit(&dataset).unwrap();
                 let w = clf.coefficients();
 
-                let r = y - X.dot(&w);
+                let X = dataset.design_matrix();
+                let y = dataset.targets().try_single_target().unwrap();
+                let r = &y - &X.dot(&w);
                 let xr = X.t().dot(&r) / (n_samples as f64);
 
                 assert_array_all_close(
@@ -43,21 +44,20 @@ macro_rules! kkt_check_mtl_tests {
             fn $name() {
                 let (n_samples, n_features, n_tasks) = $value;
                 let (X, Y) = generate_random_data_mtl(n_samples, n_features, n_tasks);
-                let dataset = DenseDataset::from((X, Y));
 
                 let alpha_max = compute_alpha_max_mtl(X.view(), Y.view());
                 let alpha = alpha_max * 0.5;
 
+                let dataset = DenseDataset::from((X, Y));
                 let clf = MultiTaskLasso::params().alpha(alpha).fit(&dataset).unwrap();
                 let W = clf.coefficients();
 
-                let mut XW = Array2::<f64>::zeros((n_samples, n_tasks));
-                general_mat_mul(1., &X, &W, 1., &mut XW);
+                let X = dataset.design_matrix();
+                let Y = dataset.targets().as_multi_tasks();
+                let XW = X.dot(&W);
 
-                let R = Y - XW;
-
-                let mut XR = Array2::<f64>::zeros((n_features, n_tasks));
-                general_mat_mul(1., &X.t(), &R, 1., &mut XR);
+                let R = &Y - &XW;
+                let XR = X.t().dot(&R);
 
                 assert_array2d_all_close(
                     XR.view(),
@@ -85,9 +85,9 @@ fn test_null_weight() {
     let n_samples = 10;
     let n_features = 30;
     let (X, y) = generate_random_data(n_samples, n_features);
-    let dataset = DenseDataset::from((X, y));
     let alpha_max = compute_alpha_max(X.view(), y.view());
 
+    let dataset = DenseDataset::from((X, y));
     let clf = Lasso::params().alpha(alpha_max).fit(&dataset).unwrap();
     let w = clf.coefficients();
 

@@ -30,6 +30,7 @@ fn test_initialization_sparse_quadratic() {
     let y = Array1::from_shape_vec(3, vec![1., 3., 2.]).unwrap();
 
     let dataset = DenseDataset::from((X, y));
+    let y = dataset.targets();
     let dataset_sparse = SparseDataset::from((X_sparse, y));
 
     let mut df_sparse = Quadratic::default();

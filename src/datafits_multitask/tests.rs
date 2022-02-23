@@ -33,6 +33,7 @@ fn test_initialization_sparse_quadratic_mtl() {
     let Y = Array2::from_shape_vec((3, 2), vec![1., 3., 2., 2., 4., 1.]).unwrap();
 
     let dataset = DenseDataset::from((X, Y));
+    let Y = dataset.targets();
     let dataset_sparse = SparseDataset::from((X_sparse, Y.view()));
 
     let mut df_sparse = QuadraticMultiTask::default();
@@ -89,6 +90,7 @@ fn test_gradient_sparse_quadratic_mtl() {
     let XW = X.dot(&W);
 
     let dataset = DenseDataset::from((X, Y));
+    let Y = dataset.targets();
     let dataset_sparse = SparseDataset::from((X_sparse, Y));
 
     let mut df = QuadraticMultiTask::default();
