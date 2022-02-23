@@ -1,18 +1,15 @@
-use super::{csc_array::CSCArray, DatasetBase, DesignMatrix, Targets};
+use super::{csc_array::CSCArray, AsMultiTargets, DatasetBase, DesignMatrix};
 
-use ndarray::{ArrayBase, Data, Dimension, Ix2};
+use ndarray::{ArrayBase, Data, Ix2};
 
 /// Implementation without constraints on records and targets
 ///
 /// This implementation block provides a method for the creation of datasets
 /// from dense matrices.
-impl<F, D, I> From<(ArrayBase<D, Ix2>, ArrayBase<D, I>)>
-    for DatasetBase<ArrayBase<D, Ix2>, ArrayBase<D, I>>
-where
-    D: Data<Elem = F>,
-    I: Dimension,
+impl<F, D: Data<Elem = F>, T: AsMultiTargets> From<(ArrayBase<D, Ix2>, T)>
+    for DatasetBase<ArrayBase<D, Ix2>, T>
 {
-    fn from(data: (ArrayBase<D, Ix2>, ArrayBase<D, I>)) -> Self {
+    fn from(data: (ArrayBase<D, Ix2>, T)) -> Self {
         DatasetBase {
             design_matrix: data.0,
             targets: data.1,
@@ -22,13 +19,8 @@ where
 
 /// This implementation block provides a method for the creation of datasets
 /// from sparse matrices.
-impl<'a, F, D, I> From<(CSCArray<'a, F>, ArrayBase<D, I>)>
-    for DatasetBase<CSCArray<'a, F>, ArrayBase<D, I>>
-where
-    D: Data<Elem = F>,
-    I: Dimension,
-{
-    fn from(data: (CSCArray<'a, F>, ArrayBase<D, I>)) -> Self {
+impl<'a, F, T: AsMultiTargets> From<(CSCArray<'a, F>, T)> for DatasetBase<CSCArray<'a, F>, T> {
+    fn from(data: (CSCArray<'a, F>, T)) -> Self {
         DatasetBase {
             design_matrix: data.0,
             targets: data.1,
@@ -38,7 +30,7 @@ where
 
 /// This implementation block provides methods to get record and target objects
 /// from the dataset.
-impl<DM: DesignMatrix, T: Targets> DatasetBase<DM, T> {
+impl<DM: DesignMatrix, T: AsMultiTargets> DatasetBase<DM, T> {
     /// Create a new dataset from design matrix and targets
     pub fn new(design_matrix: DM, targets: T) -> DatasetBase<DM, T> {
         DatasetBase {

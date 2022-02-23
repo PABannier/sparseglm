@@ -7,7 +7,7 @@ use super::hyperparams::{LassoParams, LassoValidParams};
 use super::traits::Fit;
 use crate::cd::coordinate_descent;
 use crate::datafits::Quadratic;
-use crate::datasets::{csc_array::CSCArray, DatasetBase};
+use crate::datasets::{csc_array::CSCArray, AsSingleTargets, DatasetBase};
 use crate::penalties::L1;
 use crate::solver::Solver;
 use crate::Float;
@@ -31,17 +31,12 @@ impl<F: Float> Lasso<F> {
     }
 }
 
-impl<F, D> Fit<ArrayBase<D, Ix2>, ArrayBase<D, Ix1>, LassoError> for LassoValidParams<F>
-where
-    F: Float,
-    D: Data<Elem = F>,
+impl<F: Float, D: Data<Elem = F>, T: AsSingleTargets<Elem = F>>
+    Fit<ArrayBase<D, Ix2>, T, LassoError> for LassoValidParams<F>
 {
     type Object = Lasso<F>;
     /// Fits the Lasso estimator to a dense design matrix
-    fn fit(
-        &self,
-        dataset: &DatasetBase<ArrayBase<D, Ix2>, ArrayBase<D, Ix1>>,
-    ) -> Result<Self::Object> {
+    fn fit(&self, dataset: &DatasetBase<ArrayBase<D, Ix2>, T>) -> Result<Self::Object> {
         let solver = Solver {};
         let mut datafit = Quadratic::default();
         let penalty = L1::new(self.alpha());
@@ -63,14 +58,12 @@ where
     }
 }
 
-impl<F, D> Fit<CSCArray<'_, F>, ArrayBase<D, Ix1>, LassoError> for LassoValidParams<F>
-where
-    F: Float,
-    D: Data<Elem = F>,
+impl<F: Float, T: AsSingleTargets<Elem = F>> Fit<CSCArray<'_, F>, T, LassoError>
+    for LassoValidParams<F>
 {
     type Object = Lasso<F>;
     /// Fits the Lasso estimator to a sparse design matrix
-    fn fit(&self, dataset: &DatasetBase<CSCArray<F>, ArrayBase<D, Ix1>>) -> Result<Self::Object> {
+    fn fit(&self, dataset: &DatasetBase<CSCArray<F>, T>) -> Result<Self::Object> {
         let solver = Solver {};
         let mut datafit = Quadratic::default();
         let penalty = L1::new(self.alpha());

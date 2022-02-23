@@ -4,7 +4,7 @@ use ndarray::{Array1, Array2, ArrayView1};
 
 use super::Float;
 use crate::datafits::Datafit;
-use crate::datasets::{DatasetBase, DesignMatrix, Targets};
+use crate::datasets::{AsSingleTargets, DatasetBase, DesignMatrix};
 use crate::helpers::helpers::{argsort_by, solve_lin_sys};
 use crate::penalties::Penalty;
 use crate::solver::{CDSolver, Extrapolator};
@@ -21,7 +21,7 @@ pub fn construct_grad<F, DF, DM, T>(
 where
     F: 'static + Float,
     DM: DesignMatrix<Elem = F>,
-    T: Targets<Elem = F>,
+    T: AsSingleTargets<Elem = F>,
     DF: Datafit<F, DM, T>,
 {
     let ws_size = ws.len();
@@ -43,7 +43,7 @@ pub fn kkt_violation<F, DF, P, DM, T>(
 where
     F: 'static + Float,
     DM: DesignMatrix<Elem = F>,
-    T: Targets<Elem = F>,
+    T: AsSingleTargets<Elem = F>,
     DF: Datafit<F, DM, T>,
     P: Penalty<F>,
 {
@@ -97,13 +97,13 @@ pub fn anderson_accel<F, DM, T, DF, P, S>(
 ) where
     F: 'static + Float,
     DM: DesignMatrix<Elem = F>,
-    T: Targets<Elem = F>,
+    T: AsSingleTargets<Elem = F>,
     DF: Datafit<F, DM, T>,
     P: Penalty<F>,
     S: Extrapolator<F, DM, T>,
 {
-    let n_samples = dataset.n_samples();
-    let n_features = dataset.n_features();
+    let n_samples = dataset.targets().n_samples();
+    let n_features = dataset.design_matrix().n_features();
 
     // last_K_w[epoch % (K + 1)] = w[ws]
     // Note: from my experiments, loops are 4-5x faster than slice
@@ -175,13 +175,13 @@ pub fn coordinate_descent<F, DM, T, DF, P, S>(
 where
     F: 'static + Float,
     DM: DesignMatrix<Elem = F>,
-    T: Targets<Elem = F>,
+    T: AsSingleTargets<Elem = F>,
     DF: Datafit<F, DM, T>,
     P: Penalty<F>,
     S: CDSolver<F, DF, P, DM, T> + Extrapolator<F, DM, T>,
 {
-    let n_samples = dataset.n_samples();
-    let n_features = dataset.n_features();
+    let n_samples = dataset.targets().n_samples();
+    let n_features = dataset.design_matrix().n_features();
 
     datafit.initialize(dataset);
 

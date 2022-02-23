@@ -18,7 +18,7 @@ fn test_cd_epoch() {
     let mut w = Array1::from_shape_vec(3, vec![1.3, -1.4, 1.5]).unwrap();
     let mut Xw = X.dot(&w);
 
-    let dataset = DatasetBase::from((X, y));
+    let dataset = DenseDataset::from((X, y));
 
     let mut datafit = Quadratic::default();
     datafit.initialize(&dataset);
@@ -49,7 +49,7 @@ fn test_cd_epoch_sparse() {
     let mut w = Array1::from_shape_vec(3, vec![2.1, -0.9, 3.4]).unwrap();
     let mut Xw = X_full.dot(&w);
 
-    let dataset = DatasetBase::from((X, y));
+    let dataset = SparseDataset::from((X, y));
 
     let mut datafit = Quadratic::default();
     datafit.initialize(&dataset);

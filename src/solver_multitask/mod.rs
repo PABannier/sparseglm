@@ -4,7 +4,7 @@ use ndarray::{s, Array1, Array2, ArrayBase, ArrayView1, ArrayView2, Data, Ix2};
 
 use super::Float;
 use crate::datafits_multitask::MultiTaskDatafit;
-use crate::datasets::{csc_array::CSCArray, DatasetBase, DesignMatrix, Targets};
+use crate::datasets::{csc_array::CSCArray, AsMultiTargets, DatasetBase, DesignMatrix};
 use crate::penalties_multitask::PenaltyMultiTask;
 
 #[cfg(test)]
@@ -18,7 +18,7 @@ where
     DF: MultiTaskDatafit<F, DM, T>,
     P: PenaltyMultiTask<F>,
     DM: DesignMatrix<Elem = F>,
-    T: Targets<Elem = F>,
+    T: AsMultiTargets<Elem = F>,
 {
     fn bcd_epoch(
         &self,
@@ -31,12 +31,7 @@ where
     );
 }
 
-pub trait MultiTaskExtrapolator<F, DM, T>
-where
-    F: Float,
-    DM: DesignMatrix<Elem = F>,
-    T: Targets<Elem = F>,
-{
+pub trait MultiTaskExtrapolator<F: Float, DM: DesignMatrix<Elem = F>, T: AsMultiTargets<Elem = F>> {
     fn extrapolate(
         &self,
         dataset: &DatasetBase<DM, T>,
@@ -55,7 +50,7 @@ where
     D: Data<Elem = F>,
     DF: MultiTaskDatafit<F, ArrayBase<D, Ix2>, T>,
     P: PenaltyMultiTask<F>,
-    T: Targets<Elem = F>,
+    T: AsMultiTargets<Elem = F>,
 {
     fn bcd_epoch(
         &self,
@@ -66,8 +61,8 @@ where
         XW: &mut Array2<F>,
         ws: ArrayView1<usize>,
     ) {
-        let n_samples = dataset.n_samples();
-        let n_tasks = dataset.n_tasks();
+        let n_samples = dataset.targets().n_samples();
+        let n_tasks = dataset.targets().n_tasks();
 
         let X = dataset.design_matrix();
         let lipschitz = datafit.lipschitz();
@@ -110,7 +105,7 @@ where
     F: Float,
     DF: MultiTaskDatafit<F, CSCArray<'a, F>, T>,
     P: PenaltyMultiTask<F>,
-    T: Targets<Elem = F>,
+    T: AsMultiTargets<Elem = F>,
 {
     fn bcd_epoch(
         &self,
@@ -121,7 +116,7 @@ where
         XW: &mut Array2<F>,
         ws: ArrayView1<usize>,
     ) {
-        let n_tasks = dataset.n_tasks();
+        let n_tasks = dataset.targets().n_tasks();
 
         let X = dataset.design_matrix();
         let lipschitz = datafit.lipschitz();
@@ -162,7 +157,7 @@ impl<F, D, T> MultiTaskExtrapolator<F, ArrayBase<D, Ix2>, T> for MultiTaskSolver
 where
     F: Float,
     D: Data<Elem = F>,
-    T: Targets<Elem = F>,
+    T: AsMultiTargets<Elem = F>,
 {
     fn extrapolate(
         &self,
@@ -172,8 +167,8 @@ where
         ws: ArrayView1<usize>,
     ) {
         let X = dataset.design_matrix();
-        let n_samples = dataset.n_samples();
-        let n_tasks = dataset.n_tasks();
+        let n_samples = dataset.targets().n_samples();
+        let n_tasks = dataset.targets().n_tasks();
         for i in 0..n_samples {
             for &j in ws {
                 for t in 0..n_tasks {
@@ -190,7 +185,7 @@ where
 impl<'a, F, T> MultiTaskExtrapolator<F, CSCArray<'a, F>, T> for MultiTaskSolver
 where
     F: Float,
-    T: Targets<Elem = F>,
+    T: AsMultiTargets<Elem = F>,
 {
     fn extrapolate(
         &self,
@@ -200,7 +195,7 @@ where
         ws: ArrayView1<usize>,
     ) {
         let X = dataset.design_matrix();
-        let n_tasks = dataset.n_tasks();
+        let n_tasks = dataset.targets().n_tasks();
         for &j in ws {
             for idx in X.indptr[j]..X.indptr[j + 1] {
                 for t in 0..n_tasks {

@@ -10,7 +10,7 @@ use crate::helpers::test_helpers::*;
 fn test_initialization_quadratic() {
     let X = Array2::<f64>::from_shape_vec((2, 3), vec![3.4, 2.1, 2.3, 3.4, -1.2, 0.2]).unwrap();
     let y = Array1::<f64>::from_shape_vec(2, vec![-3.4, 2.1]).unwrap();
-    let dataset = DenseDatasetView::from((X.view(), y.view()));
+    let dataset = DenseDataset::from((X, y));
     let mut df = Quadratic::default();
     df.initialize(&dataset);
     let Xty = Array1::from_shape_vec(3, vec![-4.42, -9.66, -7.4]).unwrap();
@@ -29,8 +29,9 @@ fn test_initialization_sparse_quadratic() {
     let X = Array2::from_shape_vec((3, 3), vec![1., 0., 4., 0., 0., 5., 2., 3., 6.]).unwrap();
     let y = Array1::from_shape_vec(3, vec![1., 3., 2.]).unwrap();
 
-    let dataset = DenseDatasetView::from((X.view(), y.view()));
-    let dataset_sparse = SparseDatasetView::from((X_sparse, y.view()));
+    let dataset = DenseDataset::from((X, y));
+    let y = dataset.targets().try_single_target().unwrap();
+    let dataset_sparse = SparseDataset::from((X_sparse, y));
 
     let mut df_sparse = Quadratic::default();
     df_sparse.initialize(&dataset_sparse);
@@ -81,8 +82,9 @@ fn test_gradient_sparse_quadratic() {
 
     let Xw = X.dot(&w);
 
-    let dataset = DenseDatasetView::from((X.view(), y.view()));
-    let dataset_sparse = SparseDatasetView::from((X_sparse, y.view()));
+    let dataset = DenseDataset::from((X, y));
+    let y = dataset.targets().try_single_target().unwrap();
+    let dataset_sparse = SparseDataset::from((X_sparse, y));
 
     let mut df = Quadratic::default();
     let mut df_sparse = Quadratic::default();

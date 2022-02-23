@@ -4,7 +4,7 @@ use ndarray::{s, Array1, ArrayBase, ArrayView1, Data, Ix2};
 
 use super::Float;
 use crate::datafits::Datafit;
-use crate::datasets::{csc_array::CSCArray, DatasetBase, DesignMatrix, Targets};
+use crate::datasets::{csc_array::CSCArray, AsSingleTargets, DatasetBase, DesignMatrix};
 use crate::penalties::Penalty;
 
 #[cfg(test)]
@@ -18,7 +18,7 @@ where
     DF: Datafit<F, DM, T>,
     P: Penalty<F>,
     DM: DesignMatrix<Elem = F>,
-    T: Targets<Elem = F>,
+    T: AsSingleTargets<Elem = F>,
 {
     fn cd_epoch(
         &self,
@@ -31,12 +31,7 @@ where
     );
 }
 
-pub trait Extrapolator<F, DM, T>
-where
-    F: Float,
-    DM: DesignMatrix<Elem = F>,
-    T: Targets<Elem = F>,
-{
+pub trait Extrapolator<F: Float, DM: DesignMatrix<Elem = F>, T: AsSingleTargets<Elem = F>> {
     fn extrapolate(
         &self,
         dataset: &DatasetBase<DM, T>,
@@ -55,7 +50,7 @@ where
     D: Data<Elem = F>,
     DF: Datafit<F, ArrayBase<D, Ix2>, T>,
     P: Penalty<F>,
-    T: Targets<Elem = F>,
+    T: AsSingleTargets<Elem = F>,
 {
     fn cd_epoch(
         &self,
@@ -90,7 +85,7 @@ where
     F: Float,
     DF: Datafit<F, CSCArray<'a, F>, T>,
     P: Penalty<F>,
-    T: Targets<Elem = F>,
+    T: AsSingleTargets<Elem = F>,
 {
     fn cd_epoch(
         &self,
@@ -127,7 +122,7 @@ impl<F, D, T> Extrapolator<F, ArrayBase<D, Ix2>, T> for Solver
 where
     F: Float,
     D: Data<Elem = F>,
-    T: Targets<Elem = F>,
+    T: AsSingleTargets<Elem = F>,
 {
     fn extrapolate(
         &self,
@@ -148,11 +143,7 @@ where
 /// This implementation block implements the extrapolation method for coordinate
 /// descent solvers, using sparse matrices.
 ///
-impl<'a, F, T> Extrapolator<F, CSCArray<'a, F>, T> for Solver
-where
-    F: Float,
-    T: Targets<Elem = F>,
-{
+impl<'a, F: Float, T: AsSingleTargets<Elem = F>> Extrapolator<F, CSCArray<'a, F>, T> for Solver {
     fn extrapolate(
         &self,
         dataset: &DatasetBase<CSCArray<'a, F>, T>,

@@ -1,7 +1,7 @@
 use numpy::{PyArray, PyArray1, PyArray2};
 use pyo3::prelude::*;
 use rustylasso::{
-    datasets::{csc_array::CSCArray, DenseDatasetView, SparseDatasetView},
+    datasets::{csc_array::CSCArray, DenseDatasetView, SparseDataset},
     estimators::hyperparams::MultiTaskLassoParams,
     estimators::traits::Fit,
 };
@@ -56,7 +56,7 @@ impl MultiTaskLassoWrapper {
         Y: &PyArray2<f64>,
     ) -> PyResult<&'py PyArray2<f64>> {
         let X = CSCArray::new(X_data.as_array(), X_indices.as_array(), X_indptr.as_array());
-        let dataset = SparseDatasetView::from((X, Y.as_array()));
+        let dataset = SparseDataset::from((X, Y.as_array()));
         let _estimator = self.inner.fit(&dataset).unwrap();
         Ok(PyArray::from_array(py, &_estimator.coefficients()))
     }
