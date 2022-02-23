@@ -8,12 +8,7 @@ use crate::datasets::{csc_array::CSCArray, DatasetBase, DesignMatrix, Targets};
 #[cfg(test)]
 mod tests;
 
-pub trait Datafit<F, DM, T>
-where
-    F: Float,
-    DM: DesignMatrix<Elem = F>,
-    T: Targets<Elem = F>,
-{
+pub trait Datafit<F: Float, DM: DesignMatrix<Elem = F>, T: Targets<Elem = F>> {
     fn initialize(&mut self, dataset: &DatasetBase<DM, T>);
     fn value(&self, dataset: &DatasetBase<DM, T>, Xw: ArrayView1<F>) -> F;
     fn gradient_j(&self, dataset: &DatasetBase<DM, T>, Xw: ArrayView1<F>, j: usize) -> F;
