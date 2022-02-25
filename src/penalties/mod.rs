@@ -62,10 +62,8 @@ impl<F: Float> Penalty<F> for L1<F> {
                 })
                 .collect(),
         );
-        (
-            subdiff_dist,
-            subdiff_dist.fold(F::neg_infinity(), |max_val, &dist| F::max(max_val, dist)),
-        )
+        let max_dist = subdiff_dist.fold(F::neg_infinity(), |max_val, &dist| F::max(max_val, dist));
+        (subdiff_dist, max_dist)
     }
 }
 
@@ -135,10 +133,8 @@ impl<F: Float> Penalty<F> for MCP<F> {
                 })
                 .collect(),
         );
-        (
-            subdiff_dist,
-            subdiff_dist.fold(F::neg_infinity(), |max_val, &dist| F::max(max_val, dist)),
-        )
+        let max_dist = subdiff_dist.fold(F::neg_infinity(), |max_val, &dist| F::max(max_val, dist));
+        (subdiff_dist, max_dist)
     }
 }
 
@@ -188,10 +184,8 @@ impl<F: Float> Penalty<F> for L05<F> {
                 })
                 .collect(),
         );
-        (
-            subdiff_dist,
-            subdiff_dist.fold(F::neg_infinity(), |max_val, &dist| F::max(max_val, dist)),
-        )
+        let max_dist = subdiff_dist.fold(F::neg_infinity(), |max_val, &dist| F::max(max_val, dist));
+        (subdiff_dist, max_dist)
     }
 }
 

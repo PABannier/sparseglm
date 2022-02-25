@@ -56,21 +56,33 @@ impl<F: 'static + Float> PenaltyMultiTask<F> for L21<F> {
                     let W_j = W.slice(s![j, ..]);
                     match W_j.iter().any(|&wij| wij == F::zero()) {
                         true => {
-                            let norm_W_j = W_j.iter().map(|&W_ij| W_ij.powi(2)).sum().sqrt();
+                            // let norm_W_j = W_j.iter().map(|&W_ij| W_ij.powi(2)).sum().sqrt();
+                            // grad_idx
+                            //     .iter()
+                            //     .zip(W_j)
+                            //     .map(|(&grad_ij, &W_ij)| {
+                            //         (grad_ij + self.alpha * W_ij / norm_W_j).powi(2)
+                            //     })
+                            //     .sum()
+                            //     .sqrt()
+                            let norm_W_j =
+                                W_j.fold(F::zero(), |sum, &W_ij| sum + W_ij.powi(2)).sqrt();
                             grad_idx
                                 .iter()
                                 .zip(W_j)
-                                .map(|(&grad_ij, &W_ij)| {
-                                    (grad_ij + self.alpha * W_ij / norm_W_j).powi(2)
+                                .fold(F::zero(), |sum, (&grad_ij, &W_ij)| {
+                                    sum + (grad_ij + self.alpha * W_ij / norm_W_j).powi(2)
                                 })
-                                .sum()
                                 .sqrt()
                         }
                         false => {
+                            // let norm_grad_j = grad_idx
+                            //     .iter()
+                            //     .map(|&grad_ij| grad_ij * grad_ij)
+                            //     .sum()
+                            //     .sqrt();
                             let norm_grad_j = grad_idx
-                                .iter()
-                                .map(|&grad_ij| grad_ij * grad_ij)
-                                .sum()
+                                .fold(F::zero(), |sum, &grad_ij| sum + grad_ij.powi(2))
                                 .sqrt();
                             F::max(F::zero(), norm_grad_j - self.alpha)
                         }
@@ -78,10 +90,8 @@ impl<F: 'static + Float> PenaltyMultiTask<F> for L21<F> {
                 })
                 .collect(),
         );
-        (
-            subdiff_dist,
-            subdiff_dist.fold(F::neg_infinity(), |max_val, &dist| F::max(max_val, dist)),
-        )
+        let max_dist = subdiff_dist.fold(F::neg_infinity(), |max_val, &dist| F::max(max_val, dist));
+        (subdiff_dist, max_dist)
     }
 }
 
@@ -165,23 +175,29 @@ impl<F: Float> PenaltyMultiTask<F> for BlockMCP<F> {
 
                     if !W_j.iter().any(|&wij| wij == F::zero()) {
                         // distance of -grad_j to alpha * unit ball
-                        let norm_grad_j =
-                            grad_idx.iter().map(|&grad_ij| grad_ij.powi(2)).sum().sqrt();
-                        F::max(F::zero(), norm_grad_j - self.alpha);
+                        // let norm_grad_j =
+                        //     grad_idx.iter().map(|&grad_ij| grad_ij.powi(2)).sum().sqrt();
+                        let norm_grad_j = grad_idx
+                            .fold(F::zero(), |sum, &grad_ij| sum + grad_ij.powi(2))
+                            .sqrt();
+                        F::max(F::zero(), norm_grad_j - self.alpha)
                     } else if norm_W_j < self.alpha * self.gamma {
                         // distance of -grad_j to alpha * W[j] / ||W_j|| - W[j] / gamma
                         let scale = self.alpha / norm_W_j - F::one() / self.gamma;
-                        W_j.iter().map(|&W_ij| (W_ij * scale).powi(2)).sum().sqrt();
+                        // W_j.iter().map(|&W_ij| (W_ij * scale).powi(2)).sum().sqrt();
+                        W_j.fold(F::zero(), |sum, &W_ij| sum + (W_ij * scale).powi(2))
+                            .sqrt()
                     } else {
                         // distance of -grad to 0
-                        grad_idx.iter().map(|&grad_ij| grad_ij.powi(2)).sum().sqrt();
+                        // grad_idx.iter().map(|&grad_ij| grad_ij.powi(2)).sum().sqrt();
+                        grad_idx
+                            .fold(F::zero(), |sum, &grad_ij| sum + grad_ij.powi(2))
+                            .sqrt()
                     }
                 })
                 .collect(),
         );
-        (
-            subdiff_dist,
-            subdiff_dist.fold(F::neg_infinity(), |max_val, &dist| F::max(max_val, dist)),
-        )
+        let max_dist = subdiff_dist.fold(F::neg_infinity(), |max_val, &dist| F::max(max_val, dist));
+        (subdiff_dist, max_dist)
     }
 }
