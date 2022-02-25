@@ -16,7 +16,7 @@ pub trait Penalty<F: Float> {
         w: ArrayView1<F>,
         grad: ArrayView1<F>,
         ws: ArrayView1<usize>,
-    ) -> (ArrayBase<OwnedRepr<F>, Ix1>, F);
+    ) -> (Array1<F>, F);
 }
 
 /// L1 penalty
@@ -36,34 +36,36 @@ impl<F: Float> L1<F> {
 impl<F: Float> Penalty<F> for L1<F> {
     /// Gets the current value of the penalty
     fn value(&self, w: ArrayView1<F>) -> F {
-        self.alpha * w.fold(F::zero(), |sum, &x| sum + x.abs())
+        self.alpha * w.map(|&wj| wj.abs()).sum()
     }
+
     /// Computes the value of the proximal operator
     fn prox_op(&self, value: F, stepsize: F) -> F {
         soft_thresholding(value, self.alpha * stepsize)
     }
+
     /// Computes the distance of the gradient to the subdifferential
     fn subdiff_distance(
         &self,
         w: ArrayView1<F>,
         grad: ArrayView1<F>,
         ws: ArrayView1<usize>,
-    ) -> (ArrayBase<OwnedRepr<F>, Ix1>, F) {
-        let ws_size = ws.len();
-        let mut subdiff_dist = Array1::<F>::zeros(ws_size);
-        let mut max_subdiff_dist = F::neg_infinity();
-        for (idx, &j) in ws.iter().enumerate() {
-            if w[j] == F::zero() {
-                subdiff_dist[idx] = F::max(F::zero(), grad[idx].abs() - self.alpha);
-            } else {
-                subdiff_dist[idx] = (-grad[idx] - w[j].signum() * self.alpha).abs();
-            }
-
-            if subdiff_dist[idx] > max_subdiff_dist {
-                max_subdiff_dist = subdiff_dist[idx];
-            }
-        }
-        (subdiff_dist, max_subdiff_dist)
+    ) -> (Array1<F>, F) {
+        let subdiff_dist = Array1::from_vec(
+            grad.iter()
+                .zip(ws)
+                .map(|(&grad_idx, &j)| {
+                    if w[j] == F::zero() {
+                        return F::max(F::zero(), grad_idx.abs() - self.alpha);
+                    }
+                    return (-grad_idx - w[j].signum() * self.alpha).abs();
+                })
+                .collect(),
+        );
+        (
+            subdiff_dist,
+            subdiff_dist.fold(F::neg_infinity(), |max_val, &dist| F::max(max_val, dist)),
+        )
     }
 }
 
@@ -91,18 +93,10 @@ impl<F: Float> Penalty<F> for MCP<F> {
         //          gamma * alpha 2 / 2           if x > gamma * alpha
         // value = sum_{j=1}^{n_features} pen(|w_j|)
         let cast2 = F::cast(2.);
-        let s0: Vec<bool> = w
-            .iter()
-            .map(|&wj| wj.abs() < self.gamma * self.alpha)
-            .collect();
-
         w.iter()
-            .zip(s0)
-            .map(|(&wj, s0j)| {
-                if s0j {
-                    return self.alpha * wj.abs() - wj.powi(2) / (cast2 * self.gamma);
-                }
-                return self.gamma * self.alpha.powi(2) / cast2;
+            .map(|&wj| match wj.abs() < self.gamma * self.alpha {
+                true => self.alpha * wj.abs() - wj.powi(2) / (cast2 * self.gamma),
+                false => self.gamma * self.alpha.powi(2) / cast2,
             })
             .sum()
     }
@@ -112,12 +106,12 @@ impl<F: Float> Penalty<F> for MCP<F> {
         let tau = self.alpha * stepsize;
         let g = self.gamma / stepsize;
         if value.abs() <= tau {
-            return F::zero();
+            F::zero()
+        } else if value.abs() > g * tau {
+            value
+        } else {
+            value.signum() * (value.abs() - tau) / (F::one() - F::one() / g)
         }
-        if value.abs() > g * tau {
-            return value;
-        }
-        return value.signum() * (value.abs() - tau) / (F::one() - F::one() / g);
     }
 
     /// Computes the distance of the gradient to the subdifferential
@@ -127,27 +121,24 @@ impl<F: Float> Penalty<F> for MCP<F> {
         grad: ArrayView1<F>,
         ws: ArrayView1<usize>,
     ) -> (ArrayBase<OwnedRepr<F>, Ix1>, F) {
-        let ws_size = ws.len();
-        let mut subdiff_dist = Array1::<F>::zeros(ws_size);
-        let mut max_subdiff_dist = F::neg_infinity();
-        for (idx, &j) in ws.iter().enumerate() {
-            if w[j] == F::zero() {
-                // Distance of -grad to alpha * [-1, 1]
-                subdiff_dist[idx] = F::max(F::zero(), grad[idx].abs() - self.alpha)
-            } else if w[j].abs() < self.alpha * self.gamma {
-                // Distance of -grad_j to (alpha - abs(w[j])/gamma) * sign(w[j])
-                subdiff_dist[idx] =
-                    (grad[idx] + self.alpha * w[j].signum() - w[j] / self.gamma).abs();
-            } else {
-                // Distance of grad to zero
-                subdiff_dist[idx] = grad[idx].abs();
-            }
-
-            if subdiff_dist[idx] > max_subdiff_dist {
-                max_subdiff_dist = subdiff_dist[idx];
-            }
-        }
-        (subdiff_dist, max_subdiff_dist)
+        let subdiff_dist = Array1::from_vec(
+            grad.iter()
+                .zip(ws)
+                .map(|(&grad_idx, &j)| {
+                    if w[j] == F::zero() {
+                        F::max(F::zero(), grad_idx.abs() - self.alpha)
+                    } else if w[j].abs() < self.alpha * self.gamma {
+                        (grad_idx + self.alpha * w[j].signum() - w[j] / self.gamma).abs()
+                    } else {
+                        grad_idx.abs()
+                    }
+                })
+                .collect(),
+        );
+        (
+            subdiff_dist,
+            subdiff_dist.fold(F::neg_infinity(), |max_val, &dist| F::max(max_val, dist)),
+        )
     }
 }
 
@@ -183,24 +174,24 @@ impl<F: Float> Penalty<F> for L05<F> {
         w: ArrayView1<F>,
         grad: ArrayView1<F>,
         ws: ArrayView1<usize>,
-    ) -> (ArrayBase<OwnedRepr<F>, Ix1>, F) {
-        let ws_size = ws.len();
-        let mut subdiff_dist = Array1::<F>::zeros(ws_size);
-        let mut max_subdiff_dist = F::neg_infinity();
-        for (idx, &j) in ws.iter().enumerate() {
-            if w[j] == F::zero() {
-                subdiff_dist[idx] = F::zero();
-            } else {
-                subdiff_dist[idx] = (-grad[idx]
-                    - w[j].signum() * self.alpha / (F::cast(2.) * w[j].abs().sqrt()))
-                .abs();
-            }
-
-            if subdiff_dist[idx] > max_subdiff_dist {
-                max_subdiff_dist = subdiff_dist[idx];
-            }
-        }
-        (subdiff_dist, max_subdiff_dist)
+    ) -> (Array1<F>, F) {
+        let subdiff_dist = Array1::from_vec(
+            grad.iter()
+                .zip(ws)
+                .map(|(&grad_idx, &j)| {
+                    if w[j] == F::zero() {
+                        F::zero()
+                    } else {
+                        (-grad_idx - w[j].signum() * self.alpha / (F::cast(2.) * w[j].abs().sqrt()))
+                            .abs()
+                    }
+                })
+                .collect(),
+        );
+        (
+            subdiff_dist,
+            subdiff_dist.fold(F::neg_infinity(), |max_val, &dist| F::max(max_val, dist)),
+        )
     }
 }
 

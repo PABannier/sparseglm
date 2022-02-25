@@ -1,6 +1,6 @@
 extern crate ndarray;
 
-use ndarray::{s, Array1, ArrayBase, ArrayView1, ArrayView2, Axis, Ix1, OwnedRepr, Zip};
+use ndarray::{s, Array1, ArrayView1, ArrayView2, Axis};
 
 use super::Float;
 use crate::helpers::prox::block_soft_thresholding;
@@ -10,13 +10,13 @@ mod tests;
 
 pub trait PenaltyMultiTask<F: Float> {
     fn value(&self, W: ArrayView2<F>) -> F;
-    fn prox_op(&self, value: ArrayView1<F>, stepsize: F) -> ArrayBase<OwnedRepr<F>, Ix1>;
+    fn prox_op(&self, value: ArrayView1<F>, stepsize: F) -> Array1<F>;
     fn subdiff_distance(
         &self,
         W: ArrayView2<F>,
         grad: ArrayView2<F>,
         ws: ArrayView1<usize>,
-    ) -> (ArrayBase<OwnedRepr<F>, Ix1>, F);
+    ) -> (Array1<F>, F);
 }
 
 /// L21 penalty
@@ -39,7 +39,7 @@ impl<F: 'static + Float> PenaltyMultiTask<F> for L21<F> {
         self.alpha * W.map_axis(Axis(1), |Wj| (Wj.dot(&Wj).sqrt())).sum()
     }
     /// Computes the value of the proximal operator
-    fn prox_op(&self, value: ArrayView1<F>, stepsize: F) -> ArrayBase<OwnedRepr<F>, Ix1> {
+    fn prox_op(&self, value: ArrayView1<F>, stepsize: F) -> Array1<F> {
         block_soft_thresholding(value, self.alpha * stepsize)
     }
     /// Computes the distance of the gradient to the subdifferential
@@ -48,35 +48,38 @@ impl<F: 'static + Float> PenaltyMultiTask<F> for L21<F> {
         W: ArrayView2<F>,
         grad: ArrayView2<F>,
         ws: ArrayView1<usize>,
-    ) -> (ArrayBase<OwnedRepr<F>, Ix1>, F) {
-        let ws_size = ws.len();
-        let n_tasks = W.shape()[1];
-        let mut subdiff_dist = Array1::<F>::zeros(ws_size);
-        let mut max_subdiff_dist = F::neg_infinity();
-        for (idx, &j) in ws.iter().enumerate() {
-            if W.slice(s![j, ..]).fold(F::zero(), |sum, &w| sum + w.abs()) == F::zero() {
-                let norm_grad_j = grad
-                    .slice(s![idx, ..])
-                    .fold(F::zero(), |sum, &x| sum + x * x)
-                    .sqrt();
-                subdiff_dist[idx] = F::max(F::zero(), norm_grad_j - self.alpha);
-            } else {
-                let norm_W_j = W
-                    .slice(s![j, ..])
-                    .fold(F::zero(), |sum, &wj| sum + wj * wj)
-                    .sqrt();
-                let mut res = Array1::<F>::zeros(n_tasks);
-                for t in 0..n_tasks {
-                    res[t] = grad[[idx, t]] + self.alpha * W[[j, t]] / norm_W_j;
-                }
-                subdiff_dist[idx] = res.fold(F::zero(), |sum, &x| sum + x * x).sqrt();
-            }
-
-            if subdiff_dist[idx] > max_subdiff_dist {
-                max_subdiff_dist = subdiff_dist[idx];
-            }
-        }
-        (subdiff_dist, max_subdiff_dist)
+    ) -> (Array1<F>, F) {
+        let subdiff_dist = Array1::from_vec(
+            grad.axis_iter(Axis(0))
+                .zip(ws)
+                .map(|(grad_idx, &j)| {
+                    let W_j = W.slice(s![j, ..]);
+                    match W_j.iter().any(|&wij| wij == F::zero()) {
+                        true => {
+                            let norm_W_j = W_j.iter().map(|&W_ij| W_ij * W_ij).sum().sqrt();
+                            let update = grad_idx + self.alpha * W_j / norm_W_j;
+                            update
+                                .iter()
+                                .map(|&update_i| update_i * update_i)
+                                .sum()
+                                .sqrt()
+                        }
+                        false => {
+                            let norm_grad_j = grad_idx
+                                .iter()
+                                .map(|&grad_ij| grad_ij * grad_ij)
+                                .sum()
+                                .sqrt();
+                            F::max(F::zero(), norm_grad_j - self.alpha)
+                        }
+                    }
+                })
+                .collect(),
+        );
+        (
+            subdiff_dist,
+            subdiff_dist.fold(F::neg_infinity(), |max_val, &dist| F::max(max_val, dist)),
+        )
     }
 }
 
@@ -107,18 +110,11 @@ impl<F: Float> PenaltyMultiTask<F> for BlockMCP<F> {
         // value = sum_{j=1}^{n_features} pen(||W_j||)
         let cast2 = F::cast(2.);
         let norm_rows = W.map_axis(Axis(1), |Wj| (Wj.dot(&Wj).sqrt()));
-        let s0: Vec<bool> = norm_rows
-            .iter()
-            .map(|&nrm| nrm < self.alpha * self.gamma)
-            .collect();
         norm_rows
             .iter()
-            .zip(s0)
-            .map(|(&nrm_j, s0j)| {
-                if s0j {
-                    return self.alpha * nrm_j - nrm_j.powi(2) / (cast2 * self.gamma);
-                }
-                return self.gamma * self.alpha.powi(2) / cast2;
+            .map(|&nrm_j| match nrm_j < self.alpha * self.gamma {
+                true => self.alpha * nrm_j - nrm_j.powi(2) / (cast2 * self.gamma),
+                false => self.gamma * self.alpha.powi(2) / cast2,
             })
             .sum()
     }
@@ -138,9 +134,9 @@ impl<F: Float> PenaltyMultiTask<F> for BlockMCP<F> {
         let g = self.gamma / stepsize;
         let norm_value = value.map(|wj| wj.powi(2)).sum().sqrt();
         if norm_value <= tau {
-            return Array1::<F>::zeros(value.len());
+            Array1::<F>::zeros(value.len())
         } else if norm_value > g * tau {
-            return value.to_owned();
+            value.to_owned()
         } else {
             Array1::from_vec(
                 value
@@ -182,8 +178,9 @@ impl<F: Float> PenaltyMultiTask<F> for BlockMCP<F> {
                 })
                 .collect(),
         );
-        let max_subdiff_dist =
-            subdiff_dist.fold(F::neg_infinity(), |max_val, &dist| F::max(max_val, dist));
-        (subdiff_dist, max_subdiff_dist)
+        (
+            subdiff_dist,
+            subdiff_dist.fold(F::neg_infinity(), |max_val, &dist| F::max(max_val, dist)),
+        )
     }
 }
