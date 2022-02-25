@@ -90,19 +90,21 @@ impl<F: Float> Penalty<F> for MCP<F> {
         // pen(x) = alpha * x - x^2 / (2 * gamma) if x =< gamma * alpha
         //          gamma * alpha 2 / 2           if x > gamma * alpha
         // value = sum_{j=1}^{n_features} pen(|w_j|)
-        let mut s0 = Array1::from_elem(w.len(), false);
-        for (idx, &wj) in w.iter().enumerate() {
-            if wj.abs() < self.gamma * self.alpha {
-                s0[idx] = true;
-            }
-        }
-        let mut value = Array1::from_elem(w.len(), self.gamma * self.alpha.powi(2) / F::cast(2));
-        for idx in 0..w.len() {
-            if s0[idx] {
-                value[idx] = self.alpha * w[idx].abs() - w[idx].powi(2) / (F::cast(2) * self.gamma);
-            }
-        }
-        value.fold(F::zero(), |sum, &valuej| sum + valuej)
+        let cast2 = F::cast(2.);
+        let s0: Vec<bool> = w
+            .iter()
+            .map(|&wj| wj.abs() < self.gamma * self.alpha)
+            .collect();
+
+        w.iter()
+            .zip(s0)
+            .map(|(&wj, s0j)| {
+                if s0j {
+                    return self.alpha * wj.abs() - wj.powi(2) / (cast2 * self.gamma);
+                }
+                return self.gamma * self.alpha.powi(2) / cast2;
+            })
+            .sum()
     }
 
     /// Proximal operator
@@ -167,7 +169,7 @@ impl<F: Float> L05<F> {
 impl<F: Float> Penalty<F> for L05<F> {
     /// Gets the current value of the penalty
     fn value(&self, w: ArrayView1<F>) -> F {
-        self.alpha * w.fold(F::zero(), |sum, &wj| sum + wj.abs().sqrt())
+        self.alpha * w.map(|wj| wj.abs().sqrt()).sum()
     }
 
     /// Proximal operator
