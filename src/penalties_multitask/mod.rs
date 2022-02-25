@@ -1,6 +1,6 @@
 extern crate ndarray;
 
-use ndarray::{s, Array1, ArrayBase, ArrayView1, ArrayView2, Axis, Ix1, OwnedRepr};
+use ndarray::{s, Array1, ArrayBase, ArrayView1, ArrayView2, Axis, Ix1, OwnedRepr, Zip};
 
 use super::Float;
 use crate::helpers::prox::block_soft_thresholding;
@@ -158,32 +158,32 @@ impl<F: Float> PenaltyMultiTask<F> for BlockMCP<F> {
         grad: ArrayView2<F>,
         ws: ArrayView1<usize>,
     ) -> (Array1<F>, F) {
-        let ws_size = ws.len();
-        let n_tasks = W.shape()[1];
-        let mut subdiff_dist = Array1::<F>::zeros(ws_size);
-        let mut max_subdiff_dist = F::neg_infinity();
-        for (idx, &j) in ws.iter().enumerate() {
-            let W_j = W.slice(s![j, ..]);
-            let norm_W_j = W_j.map(|wj| wj.powi(2)).sum().sqrt();
+        let subdiff_dist = Array1::from_vec(
+            grad.axis_iter(Axis(0))
+                .zip(ws)
+                .map(|(grad_idx, &j)| {
+                    let W_j = W.slice(s![j, ..]);
+                    let norm_W_j = W_j.map(|wj| wj.powi(2)).sum().sqrt();
 
-            // if not np.any(W[j]):
-            //     # distance of -grad_j to alpha * unit ball
-            //     norm_grad_j = norm(grad[idx])
-            //     subdiff_dist[idx] = max(0, norm_grad_j - self.alpha)
-            // elif norm_Wj < self.alpha * self.gamma:
-            //     # distance of -grad_j to alpha * W[j] / ||W_j|| -  W[j] / gamma
-            //     subdiff_dist[idx] = norm(
-            //         grad[idx] + self.alpha * W[j]/norm_Wj - W[j] / self.gamma)
-            // else:
-            //     # distance of -grad to 0
-            //     subdiff_dist[idx] = norm(grad[idx])
-
-            if W_j.map(|wij| wij.abs()).sum() == F::zero {
-                let norm_grad_j = grad.slice(s![idx, ..]);
-                subdiff_dist[idx] = F::max(F::zero(), norm_grad_j - self.alpha);
-            } else if norm_W_j < self.alpha * self.gamma {
-                subdiff_dist[idx] = 
-            }
-        }
+                    if !W_j.iter().any(|&wij| wij == F::zero()) {
+                        // distance of -grad_j to alpha * unit ball
+                        let norm_grad_j =
+                            grad_idx.iter().map(|&grad_ij| grad_ij.powi(2)).sum().sqrt();
+                        return F::max(F::zero(), norm_grad_j - self.alpha);
+                    } else if norm_W_j < self.alpha * self.gamma {
+                        // distance of -grad_j to alpha * W[j] / ||W_j|| - W[j] / gamma
+                        let scale = self.alpha / norm_W_j - F::one() / self.gamma;
+                        let update = scale * W_j;
+                        return update.iter().map(|&update_i| update_i.powi(2)).sum().sqrt();
+                    } else {
+                        // distance of -grad to 0
+                        return grad_idx.iter().map(|&grad_ij| grad_ij.powi(2)).sum().sqrt();
+                    }
+                })
+                .collect(),
+        );
+        let max_subdiff_dist =
+            subdiff_dist.fold(F::neg_infinity(), |max_val, &dist| F::max(max_val, dist));
+        (subdiff_dist, max_subdiff_dist)
     }
 }
