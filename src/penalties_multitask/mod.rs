@@ -56,11 +56,13 @@ impl<F: 'static + Float> PenaltyMultiTask<F> for L21<F> {
                     let W_j = W.slice(s![j, ..]);
                     match W_j.iter().any(|&wij| wij == F::zero()) {
                         true => {
-                            let norm_W_j = W_j.iter().map(|&W_ij| W_ij * W_ij).sum().sqrt();
-                            let update = grad_idx + self.alpha * W_j / norm_W_j;
-                            update
+                            let norm_W_j = W_j.iter().map(|&W_ij| W_ij.powi(2)).sum().sqrt();
+                            grad_idx
                                 .iter()
-                                .map(|&update_i| update_i * update_i)
+                                .zip(W_j)
+                                .map(|(&grad_ij, &W_ij)| {
+                                    (grad_ij + self.alpha * W_ij / norm_W_j).powi(2)
+                                })
                                 .sum()
                                 .sqrt()
                         }
@@ -165,15 +167,14 @@ impl<F: Float> PenaltyMultiTask<F> for BlockMCP<F> {
                         // distance of -grad_j to alpha * unit ball
                         let norm_grad_j =
                             grad_idx.iter().map(|&grad_ij| grad_ij.powi(2)).sum().sqrt();
-                        return F::max(F::zero(), norm_grad_j - self.alpha);
+                        F::max(F::zero(), norm_grad_j - self.alpha);
                     } else if norm_W_j < self.alpha * self.gamma {
                         // distance of -grad_j to alpha * W[j] / ||W_j|| - W[j] / gamma
                         let scale = self.alpha / norm_W_j - F::one() / self.gamma;
-                        let update = scale * W_j;
-                        return update.iter().map(|&update_i| update_i.powi(2)).sum().sqrt();
+                        W_j.iter().map(|&W_ij| (W_ij * scale).powi(2)).sum().sqrt();
                     } else {
                         // distance of -grad to 0
-                        return grad_idx.iter().map(|&grad_ij| grad_ij.powi(2)).sum().sqrt();
+                        grad_idx.iter().map(|&grad_ij| grad_ij.powi(2)).sum().sqrt();
                     }
                 })
                 .collect(),
