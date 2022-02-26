@@ -2,7 +2,7 @@ extern crate ndarray;
 
 use ndarray::array;
 
-use crate::{helpers::test_helpers::assert_array_all_close, penalties_multitask::*};
+use crate::penalties_multitask::*;
 
 macro_rules! prox_tests {
     ($($penalty_name:ident: $payload:expr,)*) => {
@@ -32,9 +32,9 @@ macro_rules! prox_tests {
                     let soft_b = penalty.prox_op(b.view(), 1. / 0.5);
                     let soft_c = penalty.prox_op(c.view(), 1. / 0.5);
 
-                    assert_array_all_close(soft_a.view(), $payload.prox.0.view(), 1e-6);
-                    assert_array_all_close(soft_b.view(), $payload.prox.1.view(), 1e-6);
-                    assert_array_all_close(soft_c.view(), $payload.prox.2.view(), 1e-6);
+                    assert_eq!(soft_a, $payload.prox.0);
+                    assert_eq!(soft_b, $payload.prox.1);
+                    assert_eq!(soft_c, $payload.prox.2);
                 }
 
                 #[test]
@@ -47,7 +47,7 @@ macro_rules! prox_tests {
 
                     let (subdiff_dist, max_dist) = penalty.subdiff_distance(W.view(), grad.view(), ws.view());
 
-                    assert_array_all_close(subdiff_dist.view(), $payload.subdiff_dist.0.view(), 1e-6);
+                    assert_eq!(subdiff_dist, $payload.subdiff_dist.0);
                     assert_eq!(max_dist, $payload.subdiff_dist.1);
                 }
             }
@@ -66,21 +66,21 @@ prox_tests! {
     l21_32: Payload {
         penalty: L21::new(3.2),
         value: 44.20744920578355,
-        prox: (array![0.58706927, -1.66336294, 5.87069273], array![0., 0., 0.], array![-77.20780007, -0.74417157, -36.27836389]),
+        prox: (array![0.5870692727288661, -1.6633629393984541, 5.870692727288661], array![0., 0., 0.], array![-77.20780006769976, -0.7441715669175881, -36.278363887232416]),
         subdiff_dist: (array![3.95771241, 7.58582311, 3.84009106], 7.58582311),
     },
 
     l21_2: Payload {
         penalty: L21::new(2.),
         value: 27.629655753614717,
-        prox: (array![0.8169183, -2.31460184, 8.16918295], array![0., 0., 0.], array![-79.37987504, -0.76510723, -37.29897743]),
+        prox: (array![0.8169182954555414, -2.3146018371240342, 8.169182954555414], array![0., 0., 0.], array![-79.37987504231235, -0.7651072293234926, -37.298977429520264]),
         subdiff_dist: (array![3.95280656, 6.38713122, 3.09518773], 6.38713122),
     },
 
     l21_1: Payload {
         penalty: L21::new(1.),
         value: 13.814827876807358,
-        prox: (array![1.00845915, -2.85730092, 10.08459148], array![0.11340888, 0.03780296, 1.20969468], array![-81.18993752, -0.78255361, -38.14948871]),
+        prox: (array![1.0084591477277707, -2.857300918562017, 10.084591477277707], array![0.11340887592866315, 0.03780295864288772, 1.209694676572407], array![-81.18993752115618, -0.7825536146617463, -38.14948871476013]),
         subdiff_dist: (array![4.21809671, 5.38866612, 2.73406173], 5.3886661232080515),
     },
 
