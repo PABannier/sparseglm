@@ -21,7 +21,7 @@ pub mod prox {
     }
 
     pub fn block_soft_thresholding<F: Float>(x: ArrayView1<F>, threshold: F) -> Array1<F> {
-        let norm_x = x.fold(F::zero(), |sum, &i| sum + i * i).sqrt();
+        let norm_x = x.map(|&xi| xi.powi(2)).sum().sqrt();
         if norm_x < threshold {
             return Array1::<F>::zeros(x.len());
         }
