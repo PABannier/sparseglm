@@ -1,9 +1,9 @@
 extern crate ndarray;
 
-use ndarray::{Array1, ArrayBase, ArrayView1, Data, Dimension, Ix1, Ix2};
+use ndarray::{ArrayBase, Data, Dimension, Ix1, Ix2};
 
-use super::error::{LassoError, Result};
-use super::hyperparams::{LassoParams, LassoValidParams};
+use super::error::{EstimatorError, Result};
+use super::hyperparams::{LassoParams, LassoValidParams, MCPValidParams, MCParams};
 use super::traits::Fit;
 use crate::bcd::block_coordinate_descent;
 use crate::cd::coordinate_descent;
@@ -38,7 +38,7 @@ impl<F: Float, S: Data<Elem = F>, I: Dimension> Lasso<F, S, I> {
 }
 
 impl<F: Float, S: Data<Elem = F>, T: AsSingleTargets<Elem = F>>
-    Fit<ArrayBase<S, Ix2>, T, LassoError> for LassoValidParams<F>
+    Fit<ArrayBase<S, Ix2>, T, EstimatorError> for LassoValidParams<F>
 {
     type Object = Lasso<F, S, Ix1>;
     /// Fits the Lasso estimator to a dense design matrix
@@ -64,10 +64,10 @@ impl<F: Float, S: Data<Elem = F>, T: AsSingleTargets<Elem = F>>
     }
 }
 
-impl<F: Float, T: AsSingleTargets<Elem = F>> Fit<CSCArray<'_, F>, T, LassoError>
-    for LassoValidParams<F>
+impl<F: Float, S: Data<Elem = F>, T: AsSingleTargets<Elem = F>>
+    Fit<CSCArray<'_, F>, T, EstimatorError> for LassoValidParams<F>
 {
-    type Object = Lasso<F, "he", Ix1>;
+    type Object = Lasso<F, S, Ix1>;
     /// Fits the Lasso estimator to a sparse design matrix
     fn fit(&self, dataset: &DatasetBase<CSCArray<F>, T>) -> Result<Self::Object> {
         let solver = Solver {};
@@ -91,8 +91,8 @@ impl<F: Float, T: AsSingleTargets<Elem = F>> Fit<CSCArray<'_, F>, T, LassoError>
     }
 }
 
-impl<F: Float, S: Data<Elem = F>, T: AsMultiTargets<Elem = F>> Fit<ArrayBase<S, Ix2>, T, LassoError>
-    for LassoValidParams<F>
+impl<F: Float, S: Data<Elem = F>, T: AsMultiTargets<Elem = F>>
+    Fit<ArrayBase<S, Ix2>, T, EstimatorError> for LassoValidParams<F>
 {
     type Object = Lasso<F, S, Ix2>;
 
@@ -118,10 +118,10 @@ impl<F: Float, S: Data<Elem = F>, T: AsMultiTargets<Elem = F>> Fit<ArrayBase<S, 
     }
 }
 
-impl<F: Float, T: AsMultiTargets<Elem = F>> Fit<CSCArray<'_, F>, T, LassoError>
-    for LassoValidParams<F>
+impl<F: Float, S: Data<Elem = F>, T: AsMultiTargets<Elem = F>>
+    Fit<CSCArray<'_, F>, T, EstimatorError> for LassoValidParams<F>
 {
-    type Object = Lasso<F, "he", Ix2>;
+    type Object = Lasso<F, S, Ix2>;
 
     /// Fits the MultiTask estimator to a sparse design matrix
     fn fit(&self, dataset: &DatasetBase<CSCArray<'_, F>, T>) -> Result<Self::Object> {
@@ -151,28 +151,28 @@ impl<F: Float, T: AsMultiTargets<Elem = F>> Fit<CSCArray<'_, F>, T, LassoError>
 /// The Minimax Concave Penalty (MCP) estimator yields sparser solution than the
 /// Lasso thanks to a non-convex penalty. This mitigates the intrinsic Lasso bias
 /// and offers sparser solutions.
-pub struct MCPEstimator<F> {
-    coefficients: Array1<F>,
+pub struct MCPEstimator<F, S: Data<Elem = F>, I: Dimension> {
+    coefficients: ArrayBase<S, I>,
 }
 
-impl<F: Float> MCPEstimator<F> {
+impl<F: Float, S: Data<Elem = F>, I: Dimension> MCPEstimator<F, S, I> {
     /// Creates an instance of the Lasso with default parameters
     pub fn params() -> MCParams<F> {
         MCParams::new()
     }
 
-    pub fn coefficients(&self) -> ArrayView1<F> {
+    pub fn coefficients(&self) -> ArrayBase<S, I> {
         self.coefficients.view()
     }
 }
 
-impl<F: Float, D: Data<Elem = F>, T: AsSingleTargets<Elem = F>>
-    Fit<ArrayBase<D, Ix2>, T, LassoError> for MCPValidParams<F>
+impl<F: Float, S: Data<Elem = F>, T: AsSingleTargets<Elem = F>>
+    Fit<ArrayBase<S, Ix2>, T, EstimatorError> for MCPValidParams<F>
 {
-    type Object = MCPEstimator<F>;
+    type Object = MCPEstimator<F, S, Ix1>;
 
     /// Fits the MCP estimator to a dense design matrix
-    fn fit(&self, dataset: &DatasetBase<ArrayBase<D, Ix2>, T>) -> Result<Self::Object> {
+    fn fit(&self, dataset: &DatasetBase<ArrayBase<S, Ix2>, T>) -> Result<Self::Object> {
         let solver = Solver {};
         let mut datafit = Quadratic::default();
         let penalty = MCP::new(self.alpha(), self.gamma());
@@ -194,10 +194,10 @@ impl<F: Float, D: Data<Elem = F>, T: AsSingleTargets<Elem = F>>
     }
 }
 
-impl<F: Float, D: Data<Elem = F>, T: AsSingleTargets<Elem = F>> Fit<CSCArray<'_, F>, T, LassoError>
-    for MCPValidParams<F>
+impl<F: Float, S: Data<Elem = F>, T: AsSingleTargets<Elem = F>>
+    Fit<CSCArray<'_, F>, T, EstimatorError> for MCPValidParams<F>
 {
-    type Object = MCPEstimator<F>;
+    type Object = MCPEstimator<F, S, Ix1>;
 
     /// Fits the MCP estimator to a dense design matrix
     fn fit(&self, dataset: &DatasetBase<CSCArray<F>, T>) -> Result<Self::Object> {
@@ -206,6 +206,62 @@ impl<F: Float, D: Data<Elem = F>, T: AsSingleTargets<Elem = F>> Fit<CSCArray<'_,
         let penalty = MCP::new(self.alpha(), self.gamma());
 
         let w = coordinate_descent(
+            dataset,
+            &mut datafit,
+            &solver,
+            &penalty,
+            self.max_iterations(),
+            self.max_epochs(),
+            self.p0(),
+            self.tolerance(),
+            self.use_acceleration(),
+            self.K(),
+            self.verbose(),
+        );
+        Ok(MCPEstimator { coefficients: w })
+    }
+}
+
+impl<F: Float, S: Data<Elem = F>, T: AsMultiTargets<Elem = F>>
+    Fit<ArrayBase<S, Ix2>, T, EstimatorError> for MCPValidParams<F>
+{
+    type Object = MCPEstimator<F, S, Ix2>;
+
+    /// Fits the Block MCP estimator to a dense design matrix
+    fn fit(&self, dataset: &DatasetBase<ArrayBase<S, Ix2>, T>) -> Result<Self::Object> {
+        let solver = MultiTaskSolver {};
+        let mut datafit = QuadraticMultiTask::default();
+        let penalty = BlockMCP::new(self.alpha(), self.gamma());
+
+        let w = block_coordinate_descent(
+            dataset,
+            &mut datafit,
+            &solver,
+            &penalty,
+            self.max_iterations(),
+            self.max_epochs(),
+            self.p0(),
+            self.tolerance(),
+            self.use_acceleration(),
+            self.K(),
+            self.verbose(),
+        );
+        Ok(MCPEstimator { coefficients: w })
+    }
+}
+
+impl<F: Float, S: Data<Elem = F>, T: AsMultiTargets<Elem = F>>
+    Fit<CSCArray<'_, F>, T, EstimatorError> for MCPValidParams<F>
+{
+    type Object = MCPEstimator<F, S, Ix2>;
+
+    /// Fits the Block MCP estimator to a sparse design matrix
+    fn fit(&self, dataset: &DatasetBase<CSCArray<'_, F>, T>) -> Result<Self::Object> {
+        let solver = MultiTaskSolver {};
+        let mut datafit = QuadraticMultiTask::default();
+        let penalty = BlockMCP::new(self.alpha(), self.gamma());
+
+        let w = block_coordinate_descent(
             dataset,
             &mut datafit,
             &solver,

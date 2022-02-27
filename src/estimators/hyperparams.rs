@@ -1,4 +1,4 @@
-use super::error::{LassoError, Result};
+use super::error::{EstimatorError, Result};
 use super::param_guard::ParamGuard;
 use super::Float;
 
@@ -80,18 +80,18 @@ impl<F: Float> Default for SolverParams<F> {
 
 impl<F: Float> ParamGuard for SolverParams<F> {
     type Checked = SolverParams<F>;
-    type Error = LassoError;
+    type Error = EstimatorError;
 
     /// Validate the hyper parameters
     fn check_ref(&self) -> Result<&Self::Checked> {
         if self.tolerance.is_negative() {
-            Err(LassoError::InvalidTolerance(
+            Err(EstimatorError::InvalidTolerance(
                 self.tolerance.to_f32().unwrap(),
             ))
         } else if self.K <= 0 {
-            Err(LassoError::InvalidK(self.K))
+            Err(EstimatorError::InvalidK(self.K))
         } else if self.p0 <= 0 {
-            Err(LassoError::InvalidP0(self.p0))
+            Err(EstimatorError::InvalidP0(self.p0))
         } else {
             Ok(&self)
         }
@@ -210,12 +210,12 @@ impl<F: Float> LassoParams<F> {
 
 impl<F: Float> ParamGuard for LassoParams<F> {
     type Checked = LassoValidParams<F>;
-    type Error = LassoError;
+    type Error = EstimatorError;
 
     /// Validate the hyper parameters
     fn check_ref(&self) -> Result<&Self::Checked> {
         if self.0.alpha.is_negative() {
-            Err(LassoError::InvalidRegularization(
+            Err(EstimatorError::InvalidRegularization(
                 self.0.alpha.to_f32().unwrap(),
             ))
         } else {
@@ -351,16 +351,16 @@ impl<F: Float> MCParams<F> {
 
 impl<F: Float> ParamGuard for MCParams<F> {
     type Checked = MCPValidParams<F>;
-    type Error = LassoError;
+    type Error = EstimatorError;
 
     /// Validate the hyperparameters
     fn check_ref(&self) -> Result<&Self::Checked> {
         if self.0.alpha.is_negative() {
-            Err(LassoError::InvalidRegularization(
+            Err(EstimatorError::InvalidRegularization(
                 self.0.alpha.to_f32().unwrap(),
             ))
         } else if self.0.alpha < F::one() {
-            Err(LassoError::InvalidGamma(self.0.gamma.to_f32().unwrap()))
+            Err(EstimatorError::InvalidGamma(self.0.gamma.to_f32().unwrap()))
         } else {
             Ok(&self.0)
         }
