@@ -4,7 +4,7 @@ extern crate rand;
 use ndarray::{Array1, Array2};
 
 use crate::datasets::*;
-use crate::estimators::{lasso::*, multitasklasso::*, traits::*};
+use crate::estimators::{estimators::*, traits::*};
 use crate::helpers::helpers::*;
 use crate::helpers::test_helpers::*;
 
@@ -49,7 +49,7 @@ macro_rules! kkt_check_mtl_tests {
                 let alpha = alpha_max * 0.5;
 
                 let dataset = DenseDataset::from((X, Y));
-                let clf = MultiTaskLasso::params().alpha(alpha).fit(&dataset).unwrap();
+                let clf = Lasso::params().alpha(alpha).fit(&dataset).unwrap();
                 let W = clf.coefficients();
 
                 let X = dataset.design_matrix();

@@ -2,11 +2,9 @@ use super::error::{LassoError, Result};
 use super::param_guard::ParamGuard;
 use super::Float;
 
-/// A verified hyperparameter set ready for the fitting of a Lasso regression model
-///
+/// A verified hyperparameter set ready for fitting a sparse GLM
 
-pub struct LassoValidParams<F> {
-    alpha: F,
+pub struct SolverParams<F> {
     max_iterations: usize,
     max_epochs: usize,
     p0: usize,
@@ -16,37 +14,106 @@ pub struct LassoValidParams<F> {
     verbose: bool,
 }
 
-impl<F: Float> LassoValidParams<F> {
-    pub fn alpha(&self) -> F {
-        self.alpha
-    }
+pub trait SolverValidParams {
+    type Elem;
 
-    pub fn max_iterations(&self) -> usize {
+    fn max_iterations(&self) -> usize;
+
+    fn max_epochs(&self) -> usize;
+
+    fn p0(&self) -> usize;
+
+    fn tolerance(&self) -> Self::Elem;
+
+    fn K(&self) -> usize;
+
+    fn use_acceleration(&self) -> bool;
+
+    fn verbose(&self) -> bool;
+}
+
+impl<F> SolverValidParams for SolverParams<F> {
+    type Elem = F;
+
+    fn max_iterations(&self) -> usize {
         self.max_iterations
     }
 
-    pub fn max_epochs(&self) -> usize {
+    fn max_epochs(&self) -> usize {
         self.max_epochs
     }
 
-    pub fn p0(&self) -> usize {
+    fn p0(&self) -> usize {
         self.p0
     }
 
-    pub fn tolerance(&self) -> F {
+    fn tolerance(&self) -> Self::Elem {
         self.tolerance
     }
 
-    pub fn K(&self) -> usize {
+    fn K(&self) -> usize {
         self.K
     }
 
-    pub fn use_acceleration(&self) -> bool {
+    fn use_acceleration(&self) -> bool {
         self.use_acceleration
     }
 
-    pub fn verbose(&self) -> bool {
+    fn verbose(&self) -> bool {
         self.verbose
+    }
+}
+
+impl<F: Float> Default for SolverParams<F> {
+    fn default() -> Self {
+        SolverParams {
+            max_iterations: 50,
+            max_epochs: 1000,
+            p0: 10,
+            tolerance: F::cast(1e-6),
+            K: 5,
+            use_acceleration: true,
+            verbose: true,
+        }
+    }
+}
+
+impl<F: Float> ParamGuard for SolverParams<F> {
+    type Checked = SolverParams<F>;
+    type Error = LassoError;
+
+    /// Validate the hyper parameters
+    fn check_ref(&self) -> Result<&Self::Checked> {
+        if self.tolerance.is_negative() {
+            Err(LassoError::InvalidTolerance(
+                self.tolerance.to_f32().unwrap(),
+            ))
+        } else if self.K <= 0 {
+            Err(LassoError::InvalidK(self.K))
+        } else if self.p0 <= 0 {
+            Err(LassoError::InvalidP0(self.p0))
+        } else {
+            Ok(&self)
+        }
+    }
+
+    fn check(self) -> Result<Self::Checked> {
+        self.check_ref()?;
+        Ok(self)
+    }
+}
+
+/// A verified hyperparameter set ready for the fitting of a Lasso regression model
+///
+
+pub struct LassoValidParams<F> {
+    alpha: F,
+    solver_params: SolverParams<F>,
+}
+
+impl<F: Float> LassoValidParams<F> {
+    pub fn alpha(&self) -> F {
+        self.alpha
     }
 }
 
@@ -72,13 +139,7 @@ impl<F: Float> LassoParams<F> {
     pub fn new() -> LassoParams<F> {
         Self(LassoValidParams {
             alpha: F::one(),
-            max_iterations: 50,
-            max_epochs: 1000,
-            p0: 10,
-            tolerance: F::cast(1e-6),
-            K: 5,
-            use_acceleration: true,
-            verbose: true,
+            solver_params: SolverParams::default(),
         })
     }
 
@@ -94,7 +155,7 @@ impl<F: Float> LassoParams<F> {
     /// working set.
     /// Defaults to `50` if not set.
     pub fn max_iterations(mut self, max_iterations: usize) -> Self {
-        self.0.max_iterations = max_iterations;
+        self.0.solver_params.max_iterations = max_iterations;
         self
     }
 
@@ -102,7 +163,7 @@ impl<F: Float> LassoParams<F> {
     /// routine.
     /// Defaults to `1000` if not set.
     pub fn max_epochs(mut self, max_epochs: usize) -> Self {
-        self.0.max_epochs = max_epochs;
+        self.0.solver_params.max_epochs = max_epochs;
         self
     }
 
@@ -110,7 +171,7 @@ impl<F: Float> LassoParams<F> {
     ///
     /// Defaults to `10` if not set.
     pub fn p0(mut self, p0: usize) -> Self {
-        self.0.p0 = p0;
+        self.0.solver_params.p0 = p0;
         self
     }
 
@@ -118,7 +179,7 @@ impl<F: Float> LassoParams<F> {
     ///
     /// Defaults to `1e-6` if not set.
     pub fn tolerance(mut self, tolerance: F) -> Self {
-        self.0.tolerance = tolerance;
+        self.0.solver_params.tolerance = tolerance;
         self
     }
 
@@ -126,7 +187,7 @@ impl<F: Float> LassoParams<F> {
     ///
     /// Defaults to `5` if not set.
     pub fn K(mut self, K: usize) -> Self {
-        self.0.K = K;
+        self.0.solver_params.K = K;
         self
     }
 
@@ -134,7 +195,7 @@ impl<F: Float> LassoParams<F> {
     /// primal iterates.
     /// Defaults to `true` if not set.
     pub fn use_acceleration(mut self, use_acceleration: bool) -> Self {
-        self.0.use_acceleration = use_acceleration;
+        self.0.solver_params.use_acceleration = use_acceleration;
         self
     }
 
@@ -142,7 +203,7 @@ impl<F: Float> LassoParams<F> {
     ///
     /// Defaults to `true` if not set.
     pub fn verbose(mut self, verbose: bool) -> Self {
-        self.0.verbose = verbose;
+        self.0.solver_params.verbose = verbose;
         self
     }
 }
@@ -157,14 +218,6 @@ impl<F: Float> ParamGuard for LassoParams<F> {
             Err(LassoError::InvalidRegularization(
                 self.0.alpha.to_f32().unwrap(),
             ))
-        } else if self.0.tolerance.is_negative() {
-            Err(LassoError::InvalidTolerance(
-                self.0.tolerance.to_f32().unwrap(),
-            ))
-        } else if self.0.K <= 0 {
-            Err(LassoError::InvalidK(self.0.K))
-        } else if self.0.p0 <= 0 {
-            Err(LassoError::InvalidP0(self.0.p0))
         } else {
             Ok(&self.0)
         }
@@ -172,53 +225,27 @@ impl<F: Float> ParamGuard for LassoParams<F> {
 
     fn check(self) -> Result<Self::Checked> {
         self.check_ref()?;
+        self.0.solver_params.check_ref()?;
         Ok(self.0)
     }
 }
 
-/// Configure a MultiTaskLasso model.
-pub struct MultiTaskLassoValidParams<F> {
+/// A verified hyperparameter set ready for the fitting of a MCP regression model
+///
+
+pub struct MCPValidParams<F> {
     alpha: F,
-    max_iterations: usize,
-    max_epochs: usize,
-    p0: usize,
-    tolerance: F,
-    K: usize,
-    use_acceleration: bool,
-    verbose: bool,
+    gamma: F,
+    solver_params: SolverParams<F>,
 }
 
-impl<F: Float> MultiTaskLassoValidParams<F> {
+impl<F: Float> MCPValidParams<F> {
     pub fn alpha(&self) -> F {
         self.alpha
     }
 
-    pub fn max_iterations(&self) -> usize {
-        self.max_iterations
-    }
-
-    pub fn max_epochs(&self) -> usize {
-        self.max_epochs
-    }
-
-    pub fn p0(&self) -> usize {
-        self.p0
-    }
-
-    pub fn tolerance(&self) -> F {
-        self.tolerance
-    }
-
-    pub fn K(&self) -> usize {
-        self.K
-    }
-
-    pub fn use_acceleration(&self) -> bool {
-        self.use_acceleration
-    }
-
-    pub fn verbose(&self) -> bool {
-        self.verbose
+    pub fn gamma(&self) -> F {
+        self.gamma
     }
 }
 
@@ -226,31 +253,26 @@ impl<F: Float> MultiTaskLassoValidParams<F> {
 ///
 /// Configures and minimizes the following objective function:
 /// ```ignore
-/// 1 / (2 * n_samples) * ||Y - XW||^2_F
-///     + alpha * sum_j ||w_j||_2
+/// 1 / (2 * n_samples) * ||y - Xw||^2_2
+///     + alpha * MCP(w)
 /// ```
 ///
-pub struct MultiTaskLassoParams<F>(MultiTaskLassoValidParams<F>);
+pub struct MCParams<F>(MCPValidParams<F>);
 
-impl<F: Float> Default for MultiTaskLassoParams<F> {
+impl<F: Float> Default for MCParams<F> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-/// Configure and fit a Lasso model
-impl<F: Float> MultiTaskLassoParams<F> {
-    /// Create default Lasso hyper parameters
-    pub fn new() -> MultiTaskLassoParams<F> {
-        Self(MultiTaskLassoValidParams {
+/// Configure and fit a MCP model
+impl<F: Float> MCParams<F> {
+    /// Create default MCP hyper parameters
+    pub fn new() -> MCParams<F> {
+        Self(MCPValidParams {
             alpha: F::one(),
-            max_iterations: 50,
-            max_epochs: 1000,
-            p0: 10,
-            tolerance: F::cast(1e-6),
-            K: 5,
-            use_acceleration: true,
-            verbose: true,
+            gamma: F::cast(2),
+            solver_params: SolverParams::default(),
         })
     }
 
@@ -262,11 +284,19 @@ impl<F: Float> MultiTaskLassoParams<F> {
         self
     }
 
+    /// Set the shape of the penalty. A value close to infinity yields is equivalent
+    /// soft-thresholding (L1-norm).
+    /// Defaults to `2` if not set.
+    pub fn gamma(mut self, gamma: F) -> Self {
+        self.0.gamma = gamma;
+        self
+    }
+
     /// Set the maximum number of iterations in the outer loop used to build
     /// working set.
     /// Defaults to `50` if not set.
     pub fn max_iterations(mut self, max_iterations: usize) -> Self {
-        self.0.max_iterations = max_iterations;
+        self.0.solver_params.max_iterations = max_iterations;
         self
     }
 
@@ -274,7 +304,7 @@ impl<F: Float> MultiTaskLassoParams<F> {
     /// routine.
     /// Defaults to `1000` if not set.
     pub fn max_epochs(mut self, max_epochs: usize) -> Self {
-        self.0.max_epochs = max_epochs;
+        self.0.solver_params.max_epochs = max_epochs;
         self
     }
 
@@ -282,7 +312,7 @@ impl<F: Float> MultiTaskLassoParams<F> {
     ///
     /// Defaults to `10` if not set.
     pub fn p0(mut self, p0: usize) -> Self {
-        self.0.p0 = p0;
+        self.0.solver_params.p0 = p0;
         self
     }
 
@@ -290,7 +320,7 @@ impl<F: Float> MultiTaskLassoParams<F> {
     ///
     /// Defaults to `1e-6` if not set.
     pub fn tolerance(mut self, tolerance: F) -> Self {
-        self.0.tolerance = tolerance;
+        self.0.solver_params.tolerance = tolerance;
         self
     }
 
@@ -298,7 +328,7 @@ impl<F: Float> MultiTaskLassoParams<F> {
     ///
     /// Defaults to `5` if not set.
     pub fn K(mut self, K: usize) -> Self {
-        self.0.K = K;
+        self.0.solver_params.K = K;
         self
     }
 
@@ -306,7 +336,7 @@ impl<F: Float> MultiTaskLassoParams<F> {
     /// primal iterates.
     /// Defaults to `true` if not set.
     pub fn use_acceleration(mut self, use_acceleration: bool) -> Self {
-        self.0.use_acceleration = use_acceleration;
+        self.0.solver_params.use_acceleration = use_acceleration;
         self
     }
 
@@ -314,29 +344,23 @@ impl<F: Float> MultiTaskLassoParams<F> {
     ///
     /// Defaults to `true` if not set.
     pub fn verbose(mut self, verbose: bool) -> Self {
-        self.0.verbose = verbose;
+        self.0.solver_params.verbose = verbose;
         self
     }
 }
 
-impl<F: Float> ParamGuard for MultiTaskLassoParams<F> {
-    type Checked = MultiTaskLassoValidParams<F>;
+impl<F: Float> ParamGuard for MCParams<F> {
+    type Checked = MCPValidParams<F>;
     type Error = LassoError;
 
-    /// Validate the hyper parameters
+    /// Validate the hyperparameters
     fn check_ref(&self) -> Result<&Self::Checked> {
         if self.0.alpha.is_negative() {
             Err(LassoError::InvalidRegularization(
                 self.0.alpha.to_f32().unwrap(),
             ))
-        } else if self.0.tolerance.is_negative() {
-            Err(LassoError::InvalidTolerance(
-                self.0.tolerance.to_f32().unwrap(),
-            ))
-        } else if self.0.K <= 0 {
-            Err(LassoError::InvalidK(self.0.K))
-        } else if self.0.p0 <= 0 {
-            Err(LassoError::InvalidP0(self.0.p0))
+        } else if self.0.alpha < F::one() {
+            Err(LassoError::InvalidGamma(self.0.gamma.to_f32().unwrap()))
         } else {
             Ok(&self.0)
         }
@@ -344,6 +368,7 @@ impl<F: Float> ParamGuard for MultiTaskLassoParams<F> {
 
     fn check(self) -> Result<Self::Checked> {
         self.check_ref()?;
+        self.0.solver_params.check_ref()?;
         Ok(self.0)
     }
 }
