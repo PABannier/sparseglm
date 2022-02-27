@@ -6,6 +6,7 @@ use super::Float;
 use crate::datafits_multitask::MultiTaskDatafit;
 use crate::datasets::DesignMatrix;
 use crate::datasets::{AsMultiTargets, DatasetBase};
+use crate::estimators::hyperparams::SolverParams;
 use crate::helpers::helpers::{argsort_by, solve_lin_sys};
 use crate::penalties_multitask::PenaltyMultiTask;
 use crate::solver_multitask::{BCDSolver, MultiTaskExtrapolator};
@@ -171,13 +172,7 @@ pub fn block_coordinate_descent<F, DM, T, DF, P, S>(
     datafit: &mut DF,
     solver: &S,
     penalty: &P,
-    max_iter: usize,
-    max_epochs: usize,
-    _p0: usize,
-    tol: F,
-    use_accel: bool,
-    K: usize,
-    verbose: bool,
+    params: SolverParams<F>,
 ) -> Array2<F>
 where
     F: 'static + Float,
@@ -195,12 +190,16 @@ where
 
     let all_feats = Array1::from_shape_vec(n_features, (0..n_features).collect()).unwrap();
 
-    let p0 = if _p0 > n_features { n_features } else { _p0 };
+    let p0 = if params.p0 > n_features {
+        n_features
+    } else {
+        params.p0
+    };
 
     let mut W = Array2::<F>::zeros((n_features, n_tasks));
     let mut XW = Array2::<F>::zeros((n_samples, n_tasks));
 
-    for t in 0..max_iter {
+    for t in 0..params.max_iter {
         let (mut kkt, kkt_max) = kkt_violation(
             dataset,
             W.view(),
@@ -210,27 +209,27 @@ where
             penalty,
         );
 
-        if verbose {
+        if params.verbose {
             println!("KKT max violation: {:#?}", kkt_max);
         }
-        if kkt_max <= tol {
+        if kkt_max <= params.tol {
             break;
         }
 
         let (ws, ws_size) = construct_ws_from_kkt(&mut kkt, W.view(), p0);
 
-        let mut last_K_W = Array2::<F>::zeros((K + 1, ws_size * n_tasks));
-        let mut U = Array2::<F>::zeros((K, ws_size * n_tasks));
+        let mut last_K_W = Array2::<F>::zeros((params.K + 1, ws_size * n_tasks));
+        let mut U = Array2::<F>::zeros((params.K, ws_size * n_tasks));
 
-        if verbose {
+        if params.verbose {
             println!("Iteration {}, {} features in subproblem.", t + 1, ws_size);
         }
 
-        for epoch in 0..max_epochs {
+        for epoch in 0..params.max_epochs {
             solver.bcd_epoch(dataset, datafit, penalty, &mut W, &mut XW, ws.view());
 
             // Anderson acceleration
-            if use_accel {
+            if params.use_accel {
                 anderson_accel(
                     dataset,
                     solver,
@@ -242,8 +241,8 @@ where
                     &mut last_K_W,
                     &mut U,
                     epoch,
-                    K,
-                    verbose,
+                    params.K,
+                    params.verbose,
                 );
             }
 
@@ -254,7 +253,7 @@ where
                 let (_, kkt_ws_max) =
                     kkt_violation(dataset, W.view(), XW.view(), ws.view(), datafit, penalty);
 
-                if verbose {
+                if params.verbose {
                     println!(
                         "epoch: {} :: obj: {:#?} :: kkt: {:#?}",
                         epoch, p_obj, kkt_ws_max
@@ -262,12 +261,12 @@ where
                 }
 
                 if ws_size == n_features {
-                    if kkt_ws_max <= tol {
+                    if kkt_ws_max <= params.tol {
                         break;
                     }
                 } else {
                     if kkt_ws_max < F::cast(0.3) * kkt_max {
-                        if verbose {
+                        if params.verbose {
                             println!("Early exit.")
                         }
                         break;

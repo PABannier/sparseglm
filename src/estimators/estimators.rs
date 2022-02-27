@@ -52,13 +52,7 @@ impl<F: Float, S: Data<Elem = F>, T: AsSingleTargets<Elem = F>>
             &mut datafit,
             &solver,
             &penalty,
-            self.max_iterations(),
-            self.max_epochs(),
-            self.p0(),
-            self.tolerance(),
-            self.use_acceleration(),
-            self.K(),
-            self.verbose(),
+            self.solver_params(),
         );
         Ok(Lasso { coefficients: w })
     }
@@ -79,13 +73,7 @@ impl<F: Float, T: AsSingleTargets<Elem = F>> Fit<CSCArray<'_, F>, T, EstimatorEr
             &mut datafit,
             &solver,
             &penalty,
-            self.max_iterations(),
-            self.max_epochs(),
-            self.p0(),
-            self.tolerance(),
-            self.use_acceleration(),
-            self.K(),
-            self.verbose(),
+            self.solver_params(),
         );
         Ok(Lasso { coefficients: w })
     }
@@ -106,13 +94,7 @@ impl<F: Float, S: Data<Elem = F>, T: AsMultiTargets<Elem = F>>
             &mut datafit,
             &solver,
             &penalty,
-            self.max_iterations(),
-            self.max_epochs(),
-            self.p0(),
-            self.tolerance(),
-            self.use_acceleration(),
-            self.K(),
-            self.verbose(),
+            self.solver_params(),
         );
         Ok(Lasso { coefficients: W })
     }
@@ -134,13 +116,7 @@ impl<F: Float, T: AsMultiTargets<Elem = F>> Fit<CSCArray<'_, F>, T, EstimatorErr
             &mut datafit,
             &solver,
             &penalty,
-            self.max_iterations(),
-            self.max_epochs(),
-            self.p0(),
-            self.tolerance(),
-            self.use_acceleration(),
-            self.K(),
-            self.verbose(),
+            self.solver_params(),
         );
         Ok(Lasso { coefficients: W })
     }
@@ -182,13 +158,7 @@ impl<F: Float, S: Data<Elem = F>, T: AsSingleTargets<Elem = F>>
             &mut datafit,
             &solver,
             &penalty,
-            self.max_iterations(),
-            self.max_epochs(),
-            self.p0(),
-            self.tolerance(),
-            self.use_acceleration(),
-            self.K(),
-            self.verbose(),
+            self.solver_params(),
         );
         Ok(MCPEstimator { coefficients: w })
     }
@@ -210,13 +180,7 @@ impl<F: Float, T: AsSingleTargets<Elem = F>> Fit<CSCArray<'_, F>, T, EstimatorEr
             &mut datafit,
             &solver,
             &penalty,
-            self.max_iterations(),
-            self.max_epochs(),
-            self.p0(),
-            self.tolerance(),
-            self.use_acceleration(),
-            self.K(),
-            self.verbose(),
+            self.solver_params(),
         );
         Ok(MCPEstimator { coefficients: w })
     }
@@ -238,13 +202,7 @@ impl<F: Float, S: Data<Elem = F>, T: AsMultiTargets<Elem = F>>
             &mut datafit,
             &solver,
             &penalty,
-            self.max_iterations(),
-            self.max_epochs(),
-            self.p0(),
-            self.tolerance(),
-            self.use_acceleration(),
-            self.K(),
-            self.verbose(),
+            self.solver_params(),
         );
         Ok(MCPEstimator { coefficients: w })
     }
@@ -266,13 +224,7 @@ impl<F: Float, T: AsMultiTargets<Elem = F>> Fit<CSCArray<'_, F>, T, EstimatorErr
             &mut datafit,
             &solver,
             &penalty,
-            self.max_iterations(),
-            self.max_epochs(),
-            self.p0(),
-            self.tolerance(),
-            self.use_acceleration(),
-            self.K(),
-            self.verbose(),
+            self.solver_params(),
         );
         Ok(MCPEstimator { coefficients: w })
     }
