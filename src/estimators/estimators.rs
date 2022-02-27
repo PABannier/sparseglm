@@ -197,14 +197,14 @@ impl<F: Float, S: Data<Elem = F>, T: AsMultiTargets<Elem = F>>
         let mut datafit = QuadraticMultiTask::default();
         let penalty = BlockMCP::new(self.alpha(), self.gamma());
 
-        let w = block_coordinate_descent(
+        let W = block_coordinate_descent(
             dataset,
             &mut datafit,
             &solver,
             &penalty,
             self.solver_params(),
         );
-        Ok(MCPEstimator { coefficients: w })
+        Ok(MCPEstimator { coefficients: W })
     }
 }
 
@@ -219,13 +219,13 @@ impl<F: Float, T: AsMultiTargets<Elem = F>> Fit<CSCArray<'_, F>, T, EstimatorErr
         let mut datafit = QuadraticMultiTask::default();
         let penalty = BlockMCP::new(self.alpha(), self.gamma());
 
-        let w = block_coordinate_descent(
+        let W = block_coordinate_descent(
             dataset,
             &mut datafit,
             &solver,
             &penalty,
             self.solver_params(),
         );
-        Ok(MCPEstimator { coefficients: w })
+        Ok(MCPEstimator { coefficients: W })
     }
 }
