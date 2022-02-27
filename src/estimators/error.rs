@@ -9,6 +9,8 @@ pub enum LassoError {
     /// The input has not enough samples
     #[error("invalid alpha {0}")]
     InvalidRegularization(f32),
+    #[error("invalid gamma {0}")]
+    InvalidGamma(f32),
     #[error("invalid tolerance {0}")]
     InvalidTolerance(f32),
     #[error("invalid K {0}")]
