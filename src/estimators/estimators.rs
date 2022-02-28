@@ -1,9 +1,12 @@
 extern crate ndarray;
 
-use ndarray::{ArrayBase, Data, Dimension, Ix1, Ix2, OwnedRepr, ViewRepr};
+use ndarray::{ArrayBase, Data, Ix1, Ix2, OwnedRepr, ViewRepr};
 
 use super::error::{EstimatorError, Result};
-use super::hyperparams::{LassoParams, LassoValidParams, MCPValidParams, MCParams};
+use super::hyperparams::{
+    BlockMCPValidParams, BlockMCParams, LassoParams, LassoValidParams, MCPValidParams, MCParams,
+    MultiTaskLassoParams, MultiTaskLassoValidParams,
+};
 use super::traits::Fit;
 use crate::bcd::block_coordinate_descent;
 use crate::cd::coordinate_descent;
@@ -22,17 +25,17 @@ use crate::Float;
 /// The L1-regularization used yields sparse solutions. In the Multi-Task case,
 /// the problem is regularized using a L21 norm and yields structured sparse
 /// solutions.
-pub struct Lasso<F, I: Dimension> {
-    coefficients: ArrayBase<OwnedRepr<F>, I>,
+pub struct Lasso<F> {
+    coefficients: ArrayBase<OwnedRepr<F>, Ix1>,
 }
 
-impl<F: Float, I: Dimension> Lasso<F, I> {
+impl<F: Float> Lasso<F> {
     /// Creates an instance of the Lasso with default parameters
     pub fn params() -> LassoParams<F> {
         LassoParams::new()
     }
 
-    pub fn coefficients(&self) -> ArrayBase<ViewRepr<F>, I> {
+    pub fn coefficients(&self) -> ArrayBase<ViewRepr<&F>, Ix1> {
         self.coefficients.view()
     }
 }
@@ -40,7 +43,7 @@ impl<F: Float, I: Dimension> Lasso<F, I> {
 impl<F: Float, S: Data<Elem = F>, T: AsSingleTargets<Elem = F>>
     Fit<ArrayBase<S, Ix2>, T, EstimatorError> for LassoValidParams<F>
 {
-    type Object = Lasso<F, Ix1>;
+    type Object = Lasso<F>;
     /// Fits the Lasso estimator to a dense design matrix
     fn fit(&self, dataset: &DatasetBase<ArrayBase<S, Ix2>, T>) -> Result<Self::Object> {
         let solver = Solver {};
@@ -52,7 +55,13 @@ impl<F: Float, S: Data<Elem = F>, T: AsSingleTargets<Elem = F>>
             &mut datafit,
             &solver,
             &penalty,
-            self.solver_params(),
+            self.p0(),
+            self.max_iterations(),
+            self.max_epochs(),
+            self.tolerance(),
+            self.K(),
+            self.use_acceleration(),
+            self.verbose(),
         );
         Ok(Lasso { coefficients: w })
     }
@@ -61,7 +70,7 @@ impl<F: Float, S: Data<Elem = F>, T: AsSingleTargets<Elem = F>>
 impl<F: Float, T: AsSingleTargets<Elem = F>> Fit<CSCArray<'_, F>, T, EstimatorError>
     for LassoValidParams<F>
 {
-    type Object = Lasso<F, Ix1>;
+    type Object = Lasso<F>;
     /// Fits the Lasso estimator to a sparse design matrix
     fn fit(&self, dataset: &DatasetBase<CSCArray<F>, T>) -> Result<Self::Object> {
         let solver = Solver {};
@@ -73,16 +82,37 @@ impl<F: Float, T: AsSingleTargets<Elem = F>> Fit<CSCArray<'_, F>, T, EstimatorEr
             &mut datafit,
             &solver,
             &penalty,
-            self.solver_params(),
+            self.p0(),
+            self.max_iterations(),
+            self.max_epochs(),
+            self.tolerance(),
+            self.K(),
+            self.use_acceleration(),
+            self.verbose(),
         );
         Ok(Lasso { coefficients: w })
     }
 }
 
+pub struct MultiTaskLasso<F> {
+    coefficients: ArrayBase<OwnedRepr<F>, Ix2>,
+}
+
+impl<F: Float> MultiTaskLasso<F> {
+    /// Creates an instance of the MultiTaskLasso with default parameters
+    pub fn params() -> MultiTaskLassoParams<F> {
+        MultiTaskLassoParams::new()
+    }
+
+    pub fn coefficients(&self) -> ArrayBase<ViewRepr<&F>, Ix2> {
+        self.coefficients.view()
+    }
+}
+
 impl<F: Float, S: Data<Elem = F>, T: AsMultiTargets<Elem = F>>
-    Fit<ArrayBase<S, Ix2>, T, EstimatorError> for LassoValidParams<F>
+    Fit<ArrayBase<S, Ix2>, T, EstimatorError> for MultiTaskLassoValidParams<F>
 {
-    type Object = Lasso<F, Ix2>;
+    type Object = MultiTaskLasso<F>;
 
     /// Fits the MultiTaskLasso estimator to a dense design matrix
     fn fit(&self, dataset: &DatasetBase<ArrayBase<S, Ix2>, T>) -> Result<Self::Object> {
@@ -94,16 +124,22 @@ impl<F: Float, S: Data<Elem = F>, T: AsMultiTargets<Elem = F>>
             &mut datafit,
             &solver,
             &penalty,
-            self.solver_params(),
+            self.p0(),
+            self.max_iterations(),
+            self.max_epochs(),
+            self.tolerance(),
+            self.K(),
+            self.use_acceleration(),
+            self.verbose(),
         );
-        Ok(Lasso { coefficients: W })
+        Ok(MultiTaskLasso { coefficients: W })
     }
 }
 
 impl<F: Float, T: AsMultiTargets<Elem = F>> Fit<CSCArray<'_, F>, T, EstimatorError>
-    for LassoValidParams<F>
+    for MultiTaskLassoValidParams<F>
 {
-    type Object = Lasso<F, Ix2>;
+    type Object = MultiTaskLasso<F>;
 
     /// Fits the MultiTask estimator to a sparse design matrix
     fn fit(&self, dataset: &DatasetBase<CSCArray<'_, F>, T>) -> Result<Self::Object> {
@@ -116,9 +152,15 @@ impl<F: Float, T: AsMultiTargets<Elem = F>> Fit<CSCArray<'_, F>, T, EstimatorErr
             &mut datafit,
             &solver,
             &penalty,
-            self.solver_params(),
+            self.p0(),
+            self.max_iterations(),
+            self.max_epochs(),
+            self.tolerance(),
+            self.K(),
+            self.use_acceleration(),
+            self.verbose(),
         );
-        Ok(Lasso { coefficients: W })
+        Ok(MultiTaskLasso { coefficients: W })
     }
 }
 
@@ -127,17 +169,17 @@ impl<F: Float, T: AsMultiTargets<Elem = F>> Fit<CSCArray<'_, F>, T, EstimatorErr
 /// The Minimax Concave Penalty (MCP) estimator yields sparser solution than the
 /// Lasso thanks to a non-convex penalty. This mitigates the intrinsic Lasso bias
 /// and offers sparser solutions.
-pub struct MCPEstimator<F, I: Dimension> {
-    coefficients: ArrayBase<OwnedRepr<F>, I>,
+pub struct MCPEstimator<F> {
+    coefficients: ArrayBase<OwnedRepr<F>, Ix1>,
 }
 
-impl<F: Float, I: Dimension> MCPEstimator<F, I> {
+impl<F: Float> MCPEstimator<F> {
     /// Creates an instance of the Lasso with default parameters
     pub fn params() -> MCParams<F> {
         MCParams::new()
     }
 
-    pub fn coefficients(&self) -> ArrayBase<ViewRepr<F>, I> {
+    pub fn coefficients(&self) -> ArrayBase<ViewRepr<&F>, Ix1> {
         self.coefficients.view()
     }
 }
@@ -145,7 +187,7 @@ impl<F: Float, I: Dimension> MCPEstimator<F, I> {
 impl<F: Float, S: Data<Elem = F>, T: AsSingleTargets<Elem = F>>
     Fit<ArrayBase<S, Ix2>, T, EstimatorError> for MCPValidParams<F>
 {
-    type Object = MCPEstimator<F, Ix1>;
+    type Object = MCPEstimator<F>;
 
     /// Fits the MCP estimator to a dense design matrix
     fn fit(&self, dataset: &DatasetBase<ArrayBase<S, Ix2>, T>) -> Result<Self::Object> {
@@ -158,7 +200,13 @@ impl<F: Float, S: Data<Elem = F>, T: AsSingleTargets<Elem = F>>
             &mut datafit,
             &solver,
             &penalty,
-            self.solver_params(),
+            self.p0(),
+            self.max_iterations(),
+            self.max_epochs(),
+            self.tolerance(),
+            self.K(),
+            self.use_acceleration(),
+            self.verbose(),
         );
         Ok(MCPEstimator { coefficients: w })
     }
@@ -167,7 +215,7 @@ impl<F: Float, S: Data<Elem = F>, T: AsSingleTargets<Elem = F>>
 impl<F: Float, T: AsSingleTargets<Elem = F>> Fit<CSCArray<'_, F>, T, EstimatorError>
     for MCPValidParams<F>
 {
-    type Object = MCPEstimator<F, Ix1>;
+    type Object = MCPEstimator<F>;
 
     /// Fits the MCP estimator to a dense design matrix
     fn fit(&self, dataset: &DatasetBase<CSCArray<F>, T>) -> Result<Self::Object> {
@@ -180,16 +228,42 @@ impl<F: Float, T: AsSingleTargets<Elem = F>> Fit<CSCArray<'_, F>, T, EstimatorEr
             &mut datafit,
             &solver,
             &penalty,
-            self.solver_params(),
+            self.p0(),
+            self.max_iterations(),
+            self.max_epochs(),
+            self.tolerance(),
+            self.K(),
+            self.use_acceleration(),
+            self.verbose(),
         );
         Ok(MCPEstimator { coefficients: w })
     }
 }
 
+/// Block MCP Regressor
+///
+/// The Block Minimax Concave Penalty (MCP) estimator yields sparser solution than the
+/// MultiTaskLasso thanks to a block non-convex penalty. This mitigates the intrinsic Lasso bias
+/// and offers sparser solutions.
+pub struct BlockMCPEstimator<F> {
+    coefficients: ArrayBase<OwnedRepr<F>, Ix2>,
+}
+
+impl<F: Float> BlockMCPEstimator<F> {
+    /// Creates an instance of the Lasso with default parameters
+    pub fn params() -> BlockMCParams<F> {
+        BlockMCParams::new()
+    }
+
+    pub fn coefficients(&self) -> ArrayBase<ViewRepr<&F>, Ix2> {
+        self.coefficients.view()
+    }
+}
+
 impl<F: Float, S: Data<Elem = F>, T: AsMultiTargets<Elem = F>>
-    Fit<ArrayBase<S, Ix2>, T, EstimatorError> for MCPValidParams<F>
+    Fit<ArrayBase<S, Ix2>, T, EstimatorError> for BlockMCPValidParams<F>
 {
-    type Object = MCPEstimator<F, Ix2>;
+    type Object = BlockMCPEstimator<F>;
 
     /// Fits the Block MCP estimator to a dense design matrix
     fn fit(&self, dataset: &DatasetBase<ArrayBase<S, Ix2>, T>) -> Result<Self::Object> {
@@ -202,16 +276,22 @@ impl<F: Float, S: Data<Elem = F>, T: AsMultiTargets<Elem = F>>
             &mut datafit,
             &solver,
             &penalty,
-            self.solver_params(),
+            self.p0(),
+            self.max_iterations(),
+            self.max_epochs(),
+            self.tolerance(),
+            self.K(),
+            self.use_acceleration(),
+            self.verbose(),
         );
-        Ok(MCPEstimator { coefficients: W })
+        Ok(BlockMCPEstimator { coefficients: W })
     }
 }
 
 impl<F: Float, T: AsMultiTargets<Elem = F>> Fit<CSCArray<'_, F>, T, EstimatorError>
-    for MCPValidParams<F>
+    for BlockMCPValidParams<F>
 {
-    type Object = MCPEstimator<F, Ix2>;
+    type Object = BlockMCPEstimator<F>;
 
     /// Fits the Block MCP estimator to a sparse design matrix
     fn fit(&self, dataset: &DatasetBase<CSCArray<'_, F>, T>) -> Result<Self::Object> {
@@ -224,8 +304,14 @@ impl<F: Float, T: AsMultiTargets<Elem = F>> Fit<CSCArray<'_, F>, T, EstimatorErr
             &mut datafit,
             &solver,
             &penalty,
-            self.solver_params(),
+            self.p0(),
+            self.max_iterations(),
+            self.max_epochs(),
+            self.tolerance(),
+            self.K(),
+            self.use_acceleration(),
+            self.verbose(),
         );
-        Ok(MCPEstimator { coefficients: W })
+        Ok(BlockMCPEstimator { coefficients: W })
     }
 }

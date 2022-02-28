@@ -5,7 +5,6 @@ use ndarray::{Array1, Array2, ArrayView1};
 use super::Float;
 use crate::datafits::Datafit;
 use crate::datasets::{AsSingleTargets, DatasetBase, DesignMatrix};
-use crate::estimators::hyperparams::SolverParams;
 use crate::helpers::helpers::{argsort_by, solve_lin_sys};
 use crate::penalties::Penalty;
 use crate::solver::{CDSolver, Extrapolator};
@@ -165,7 +164,13 @@ pub fn coordinate_descent<F, DM, T, DF, P, S>(
     datafit: &mut DF,
     solver: &S,
     penalty: &P,
-    params: SolverParams<F>,
+    p0: usize,
+    max_iterations: usize,
+    max_epochs: usize,
+    tolerance: F,
+    K: usize,
+    use_acceleration: bool,
+    verbose: bool,
 ) -> Array1<F>
 where
     F: 'static + Float,
@@ -182,16 +187,12 @@ where
 
     let all_feats = Array1::from_shape_vec(n_features, (0..n_features).collect()).unwrap();
 
-    let p0 = if params.p0 > n_features {
-        n_features
-    } else {
-        params.p0
-    };
+    let p0 = if p0 > n_features { n_features } else { p0 };
 
     let mut w = Array1::<F>::zeros(n_features);
     let mut Xw = Array1::<F>::zeros(n_samples);
 
-    for t in 0..params.max_iter {
+    for t in 0..max_iterations {
         let (mut kkt, kkt_max) = kkt_violation(
             dataset,
             w.view(),
@@ -201,27 +202,27 @@ where
             penalty,
         );
 
-        if params.verbose {
+        if verbose {
             println!("KKT max violation: {:#?}", kkt_max);
         }
-        if kkt_max <= params.tol {
+        if kkt_max <= tolerance {
             break;
         }
 
         let (ws, ws_size) = construct_ws_from_kkt(&mut kkt, w.view(), p0);
 
-        let mut last_K_w = Array2::<F>::zeros((params.K + 1, ws_size));
-        let mut U = Array2::<F>::zeros((params.K, ws_size));
+        let mut last_K_w = Array2::<F>::zeros((K + 1, ws_size));
+        let mut U = Array2::<F>::zeros((K, ws_size));
 
-        if params.verbose {
+        if verbose {
             println!("Iteration {}, {} features in subproblem.", t + 1, ws_size);
         }
 
-        for epoch in 0..params.max_epochs {
+        for epoch in 0..max_epochs {
             solver.cd_epoch(dataset, datafit, penalty, &mut w, &mut Xw, ws.view());
 
             // Anderson acceleration
-            if params.use_accel {
+            if use_acceleration {
                 anderson_accel(
                     dataset,
                     datafit,
@@ -233,8 +234,8 @@ where
                     &mut Xw,
                     ws.view(),
                     epoch,
-                    params.K,
-                    params.verbose,
+                    K,
+                    verbose,
                 );
             }
 
@@ -245,7 +246,7 @@ where
                 let (_, kkt_ws_max) =
                     kkt_violation(dataset, w.view(), Xw.view(), ws.view(), datafit, penalty);
 
-                if params.verbose {
+                if verbose {
                     println!(
                         "epoch: {} :: obj: {:#?} :: kkt: {:#?}",
                         epoch, p_obj, kkt_ws_max
@@ -253,12 +254,12 @@ where
                 }
 
                 if ws_size == n_features {
-                    if kkt_ws_max <= params.tol {
+                    if kkt_ws_max <= tolerance {
                         break;
                     }
                 } else {
                     if kkt_ws_max < F::cast(0.3) * kkt_max {
-                        if params.verbose {
+                        if verbose {
                             println!("Early exit.")
                         }
                         break;

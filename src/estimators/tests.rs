@@ -49,7 +49,7 @@ macro_rules! kkt_check_mtl_tests {
                 let alpha = alpha_max * 0.5;
 
                 let dataset = DenseDataset::from((X, Y));
-                let clf = Lasso::params().alpha(alpha).fit(&dataset).unwrap();
+                let clf = MultiTaskLasso::params().alpha(alpha).fit(&dataset).unwrap();
                 let W = clf.coefficients();
 
                 let X = dataset.design_matrix();
