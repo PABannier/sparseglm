@@ -164,12 +164,12 @@ pub fn coordinate_descent<F, DM, T, DF, P, S>(
     datafit: &mut DF,
     solver: &S,
     penalty: &P,
-    max_iter: usize,
+    p0: usize,
+    max_iterations: usize,
     max_epochs: usize,
-    _p0: usize,
-    tol: F,
-    use_accel: bool,
+    tolerance: F,
     K: usize,
+    use_acceleration: bool,
     verbose: bool,
 ) -> Array1<F>
 where
@@ -187,12 +187,12 @@ where
 
     let all_feats = Array1::from_shape_vec(n_features, (0..n_features).collect()).unwrap();
 
-    let p0 = if _p0 > n_features { n_features } else { _p0 };
+    let p0 = if p0 > n_features { n_features } else { p0 };
 
     let mut w = Array1::<F>::zeros(n_features);
     let mut Xw = Array1::<F>::zeros(n_samples);
 
-    for t in 0..max_iter {
+    for t in 0..max_iterations {
         let (mut kkt, kkt_max) = kkt_violation(
             dataset,
             w.view(),
@@ -205,7 +205,7 @@ where
         if verbose {
             println!("KKT max violation: {:#?}", kkt_max);
         }
-        if kkt_max <= tol {
+        if kkt_max <= tolerance {
             break;
         }
 
@@ -222,7 +222,7 @@ where
             solver.cd_epoch(dataset, datafit, penalty, &mut w, &mut Xw, ws.view());
 
             // Anderson acceleration
-            if use_accel {
+            if use_acceleration {
                 anderson_accel(
                     dataset,
                     datafit,
@@ -254,7 +254,7 @@ where
                 }
 
                 if ws_size == n_features {
-                    if kkt_ws_max <= tol {
+                    if kkt_ws_max <= tolerance {
                         break;
                     }
                 } else {

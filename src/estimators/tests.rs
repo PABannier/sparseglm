@@ -4,7 +4,7 @@ extern crate rand;
 use ndarray::{Array1, Array2};
 
 use crate::datasets::*;
-use crate::estimators::{lasso::*, multitasklasso::*, traits::*};
+use crate::estimators::{estimators::*, traits::*};
 use crate::helpers::helpers::*;
 use crate::helpers::test_helpers::*;
 

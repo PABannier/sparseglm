@@ -4,8 +4,7 @@ use crate::Float;
 mod tests;
 
 pub mod error;
+pub mod estimators;
 pub mod hyperparams;
-pub mod lasso;
-pub mod multitasklasso;
 pub mod param_guard;
 pub mod traits;
