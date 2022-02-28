@@ -109,7 +109,7 @@ class Lasso(Estimator):
 
         self._inner = rustylassopy.LassoWrapper(
             alpha=self.alpha, max_iterations=self.max_iter, p0=self.p0,
-            K=self.K, max_epochs=self.max_epochs, tolerance=self.tol,
+            k=self.K, max_epochs=self.max_epochs, tolerance=self.tol,
             use_acceleration=self.use_accel, verbose=self.verbose)
 
         if sp.issparse(X):
@@ -200,7 +200,7 @@ class MultiTaskLasso(Estimator):
 
         self._inner = rustylassopy.MultiTaskLassoWrapper(
             alpha=self.alpha, max_iterations=self.max_iter, p0=self.p0,
-            K=self.K, max_epochs=self.max_epochs, tolerance=self.tol,
+            k=self.K, max_epochs=self.max_epochs, tolerance=self.tol,
             use_acceleration=self.use_accel, verbose=self.verbose)
 
         if sp.issparse(X):
@@ -288,7 +288,7 @@ class MCPRegressor(Estimator):
 
         self._inner = rustylassopy.MCPWrapper(
             alpha=self.alpha, gamma=self.gamma, max_iterations=self.max_iter,
-            p0=self.p0, K=self.K, max_epochs=self.max_epochs,
+            p0=self.p0, k=self.K, max_epochs=self.max_epochs,
             tolerance=self.tol, use_acceleration=self.use_accel,
             verbose=self.verbose)
 
@@ -388,7 +388,7 @@ class BlockMCPRegressor(Estimator):
 
         self._inner = rustylassopy.BlockMCPWrapper(
             alpha=self.alpha, gamma=self.gamma, max_iterations=self.max_iter,
-            p0=self.p0, K=self.K, max_epochs=self.max_epochs,
+            p0=self.p0, k=self.K, max_epochs=self.max_epochs,
             tolerance=self.tol, use_acceleration=self.use_accel,
             verbose=self.verbose)
 
