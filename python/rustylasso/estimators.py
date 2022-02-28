@@ -52,25 +52,25 @@ class Lasso(Estimator):
     ----------
     alpha : float
         The regularization hyperparameter.
-    
+
     max_iter : int, default = 50
         The number of iterations of the outer CD solver.
-    
+
     max_epochs : int, default = 1000
         The number of iterations used by the inner CD solver.
-    
+
     tolerance : float, default = 1e-9
         Stopping criterion used.
-    
+
     p0 : int, default = 10
         The starting size of the working set.
-    
+
     use_accel : bool, default = True
         Usage of Anderson acceleration.
-    
+
     K : int, default = 5
         Number of primal points used to extrapolate.
-    
+
     verbose : bool, default = True
         Verbosity.
 
@@ -131,25 +131,25 @@ class MultiTaskLasso(Estimator):
     ----------
     alpha : float
         The regularization hyperparameter.
-    
+
     max_iter : int, default = 50
         The number of iterations of the outer CD solver.
-    
+
     max_epochs : int, default = 1000
         The number of iterations used by the inner CD solver.
-    
+
     tolerance : float, default = 1e-9
         Stopping criterion used.
-    
+
     p0 : int, default = 10
         The starting size of the working set.
-    
+
     use_accel : bool, default = True
         Usage of Anderson acceleration.
-    
+
     K : int, default = 5
         Number of primal points used to extrapolate.
-    
+
     verbose : bool, default = True
         Verbosity.
 
@@ -224,27 +224,27 @@ class MCPRegressor(Estimator):
         The regularization hyperparameter.
 
     gamma : float
-        The shaping hyperparameter of the MCP. gamma=`np.inf` corresponds to a 
+        The shaping hyperparameter of the MCP. gamma=`np.inf` corresponds to a
         soft-thresholding operator.
-    
+
     max_iter : int, default = 50
         The number of iterations of the outer CD solver.
-    
+
     max_epochs : int, default = 1000
         The number of iterations used by the inner CD solver.
-    
+
     tolerance : float, default = 1e-9
         Stopping criterion used.
-    
+
     p0 : int, default = 10
         The starting size of the working set.
-    
+
     use_accel : bool, default = True
         Usage of Anderson acceleration.
-    
+
     K : int, default = 5
         Number of primal points used to extrapolate.
-    
+
     verbose : bool, default = True
         Verbosity.
 
@@ -257,9 +257,9 @@ class MCPRegressor(Estimator):
     """
     def __init__(self, alpha, gamma, max_iter=50, max_epochs=1000, tol=1e-9,
                  p0=10, use_accel=True, K=5, verbose=True):
-        super(MCPRegressor, self).__init__(max_iter=max_iter, K=K, tol=tol,
-                                           p0=p0, max_epochs=max_epochs,
-                                           use_accel=use_accel, verbose=verbose)
+        super(MCPRegressor, self).__init__(
+            max_iter=max_iter, K=K, tol=tol, p0=p0, max_epochs=max_epochs,
+            use_accel=use_accel, verbose=verbose)
         if not isinstance(alpha, float) or alpha < 0:
             raise ValueError("alpha={} must be a positive float".format(alpha))
         elif not isinstance(gamma, float) or alpha < 1:
@@ -313,27 +313,27 @@ class BlockMCPRegressor(Estimator):
         The regularization hyperparameter.
 
     gamma : float
-        The shaping hyperparameter of the MCP. gamma=`np.inf` corresponds to a 
+        The shaping hyperparameter of the MCP. gamma=`np.inf` corresponds to a
         soft-thresholding operator.
-    
+
     max_iter : int, default = 50
         The number of iterations of the outer CD solver.
-    
+
     max_epochs : int, default = 1000
         The number of iterations used by the inner CD solver.
-    
+
     tolerance : float, default = 1e-9
         Stopping criterion used.
-    
+
     p0 : int, default = 10
         The starting size of the working set.
-    
+
     use_accel : bool, default = True
         Usage of Anderson acceleration.
-    
+
     K : int, default = 5
         Number of primal points used to extrapolate.
-    
+
     verbose : bool, default = True
         Verbosity.
 
