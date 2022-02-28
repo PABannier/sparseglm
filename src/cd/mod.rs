@@ -24,12 +24,11 @@ where
     T: AsSingleTargets<Elem = F>,
     DF: Datafit<F, DM, T>,
 {
-    let ws_size = ws.len();
-    let mut grad = Array1::<F>::zeros(ws_size);
-    for (idx, &j) in ws.iter().enumerate() {
-        grad[idx] = datafit.gradient_j(dataset, Xw, j);
-    }
-    grad
+    Array1::from_iter(
+        ws.iter()
+            .map(|&j| datafit.gradient_j(dataset, Xw, j))
+            .collect::<Vec<F>>(),
+    )
 }
 
 pub fn kkt_violation<F, DF, P, DM, T>(
@@ -253,16 +252,19 @@ where
                     );
                 }
 
-                if ws_size == n_features {
-                    if kkt_ws_max <= tolerance {
-                        break;
-                    }
-                } else {
-                    if kkt_ws_max < F::cast(0.3) * kkt_max {
-                        if verbose {
-                            println!("Early exit.")
+                match ws_size == n_features {
+                    true => {
+                        if kkt_ws_max <= tolerance {
+                            break;
                         }
-                        break;
+                    }
+                    false => {
+                        if kkt_ws_max < F::cast(0.3) * kkt_max {
+                            if verbose {
+                                println!("Early exit.")
+                            }
+                            break;
+                        }
                     }
                 }
             }

@@ -25,14 +25,16 @@ where
     T: AsMultiTargets<Elem = F>,
     DF: MultiTaskDatafit<F, DM, T>,
 {
-    let ws_size = ws.len();
-    let n_tasks = dataset.targets().n_tasks();
-    let mut grad = Array2::<F>::zeros((ws_size, n_tasks));
-    for (idx, &j) in ws.iter().enumerate() {
-        let grad_j = datafit.gradient_j(&dataset, XW, j);
-        grad.slice_mut(s![idx, ..]).assign(&grad_j);
-    }
-    grad
+    Array2::from_shape_vec(
+        (ws.len(), dataset.targets().n_tasks()),
+        ws.iter()
+            .map(|&j| datafit.gradient_j(&dataset, XW, j))
+            .collect::<Vec<Array1<F>>>()
+            .into_iter()
+            .flatten()
+            .collect(),
+    )
+    .unwrap()
 }
 
 pub fn kkt_violation<F, DF, P, DM, T>(
@@ -67,7 +69,7 @@ where
     let mut nnz_features: usize = 0;
 
     for j in 0..n_features {
-        if W.slice(s![j, ..]).fold(F::zero(), |sum, &x| sum + x.abs()) != F::zero() {
+        if W.slice(s![j, ..]).iter().any(|&x| x != F::zero()) {
             nnz_features += 1;
             kkt[j] = F::infinity();
         }
