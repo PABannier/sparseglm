@@ -1,6 +1,6 @@
 extern crate ndarray;
 
-use ndarray::{s, Array1, ArrayBase, ArrayView1, Axis, Data, Ix1, Ix2, OwnedRepr};
+use ndarray::{s, Array1, ArrayBase, ArrayView1, Axis, Data, Ix2};
 
 use super::Float;
 use crate::datasets::{csc_array::CSCArray, AsSingleTargets, DatasetBase, DesignMatrix};
@@ -12,22 +12,17 @@ pub trait Datafit<F: Float, DM: DesignMatrix<Elem = F>, T: AsSingleTargets<Elem 
     fn initialize(&mut self, dataset: &DatasetBase<DM, T>);
     fn value(&self, dataset: &DatasetBase<DM, T>, Xw: ArrayView1<F>) -> F;
     fn gradient_j(&self, dataset: &DatasetBase<DM, T>, Xw: ArrayView1<F>, j: usize) -> F;
-    fn full_grad(
-        &self,
-        dataset: &DatasetBase<DM, T>,
-        Xw: ArrayView1<F>,
-    ) -> ArrayBase<OwnedRepr<F>, Ix1>;
-
+    fn full_grad(&self, dataset: &DatasetBase<DM, T>, Xw: ArrayView1<F>) -> Array1<F>;
     fn lipschitz(&self) -> ArrayView1<F>;
     fn Xty(&self) -> ArrayView1<F>;
 }
 
 /// Quadratic datafit
 ///
-
+#[derive(Debug, Clone, PartialEq)]
 pub struct Quadratic<F: Float> {
-    lipschitz: ArrayBase<OwnedRepr<F>, Ix1>,
-    Xty: ArrayBase<OwnedRepr<F>, Ix1>,
+    lipschitz: Array1<F>,
+    Xty: Array1<F>,
 }
 
 impl<F: Float> Default for Quadratic<F> {
@@ -69,7 +64,7 @@ impl<F: Float, D: Data<Elem = F>, T: AsSingleTargets<Elem = F>> Datafit<F, Array
         &self,
         dataset: &DatasetBase<ArrayBase<D, Ix2>, T>,
         Xw: ArrayView1<F>,
-    ) -> ArrayBase<OwnedRepr<F>, Ix1> {
+    ) -> Array1<F> {
         Array1::from_iter(
             (0..dataset.design_matrix().n_features())
                 .into_iter()
@@ -136,11 +131,7 @@ impl<F: Float, T: AsSingleTargets<Elem = F>> Datafit<F, CSCArray<'_, F>, T> for 
     }
 
     /// Computes the gradient at some point w using sparse matrices
-    fn full_grad(
-        &self,
-        dataset: &DatasetBase<CSCArray<'_, F>, T>,
-        Xw: ArrayView1<F>,
-    ) -> ArrayBase<OwnedRepr<F>, Ix1> {
+    fn full_grad(&self, dataset: &DatasetBase<CSCArray<'_, F>, T>, Xw: ArrayView1<F>) -> Array1<F> {
         Array1::from_iter(
             (0..dataset.design_matrix().n_features())
                 .into_iter()

@@ -5,6 +5,7 @@ use super::Float;
 /// A verified hyperparameter set ready for the fitting of a Lasso regression model
 ///
 
+#[derive(Debug, Clone, PartialEq)]
 pub struct LassoValidParams<F> {
     alpha: F,
     max_iterations: usize,
@@ -58,6 +59,8 @@ impl<F: Float> LassoValidParams<F> {
 ///     + alpha * ||w||_1
 /// ```
 ///
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct LassoParams<F>(LassoValidParams<F>);
 
 impl<F: Float> Default for LassoParams<F> {
@@ -177,6 +180,7 @@ impl<F: Float> ParamGuard for LassoParams<F> {
 }
 
 /// Configure a MultiTaskLasso model.
+#[derive(Debug, Clone, PartialEq)]
 pub struct MultiTaskLassoValidParams<F> {
     alpha: F,
     max_iterations: usize,
@@ -230,6 +234,8 @@ impl<F: Float> MultiTaskLassoValidParams<F> {
 ///     + alpha * sum_j ||w_j||_2
 /// ```
 ///
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct MultiTaskLassoParams<F>(MultiTaskLassoValidParams<F>);
 
 impl<F: Float> Default for MultiTaskLassoParams<F> {
@@ -351,6 +357,7 @@ impl<F: Float> ParamGuard for MultiTaskLassoParams<F> {
 /// A verified hyperparameter set ready for the fitting of a Lasso regression model
 ///
 
+#[derive(Debug, Clone, PartialEq)]
 pub struct MCPValidParams<F> {
     alpha: F,
     gamma: F,
@@ -409,6 +416,7 @@ impl<F: Float> MCPValidParams<F> {
 ///     + alpha * MCP(w)
 /// ```
 ///
+#[derive(Debug, Clone, PartialEq)]
 pub struct MCParams<F>(MCPValidParams<F>);
 
 impl<F: Float> Default for MCParams<F> {
@@ -538,6 +546,8 @@ impl<F: Float> ParamGuard for MCParams<F> {
 }
 
 /// Configure a MultiTaskLasso model.
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct BlockMCPValidParams<F> {
     alpha: F,
     gamma: F,
@@ -596,6 +606,8 @@ impl<F: Float> BlockMCPValidParams<F> {
 ///     + alpha * sum_j ||w_j||_2
 /// ```
 ///
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct BlockMCParams<F>(BlockMCPValidParams<F>);
 
 impl<F: Float> Default for BlockMCParams<F> {

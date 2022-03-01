@@ -22,6 +22,7 @@ pub trait PenaltyMultiTask<F: Float> {
 /// L21 penalty
 ///
 
+#[derive(Debug, Clone, PartialEq)]
 pub struct L21<F: Float> {
     alpha: F,
 }
@@ -79,6 +80,7 @@ impl<F: 'static + Float> PenaltyMultiTask<F> for L21<F> {
 /// Block MCP penalty
 ///
 
+#[derive(Debug, Clone, PartialEq)]
 pub struct BlockMCP<F: Float> {
     alpha: F,
     gamma: F,
