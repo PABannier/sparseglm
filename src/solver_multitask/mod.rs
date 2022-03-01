@@ -164,33 +164,25 @@ where
         W_acc: ArrayView2<F>,
         ws: ArrayView1<usize>,
     ) -> Array2<F> {
-        let X = dataset.design_matrix();
-        let n_samples = dataset.targets().n_samples();
-        let n_tasks = dataset.targets().n_tasks();
-        let mut XW_acc = Array2::<F>::zeros((n_samples, n_tasks));
-        for i in 0..n_samples {
-            for &j in ws {
-                for t in 0..n_tasks {
-                    XW_acc[[i, t]] += X[[i, j]] * W_acc[[j, t]];
-                }
-            }
-        }
-        XW_acc
-        // Array2::from_shape_vec(
-        //     (dataset.targets().n_samples(), dataset.targets.n_tasks()),
-        //     dataset
-        //         .design_matrix()
-        //         .rows()
-        //         .into_iter()
-        //         .map(|row| ws.iter().map(|&j| {
-
-        //         }))
-        //         .collect::<Vec<Array1<F>>>()
-        //         .into_iter()
-        //         .flatten()
-        //         .collect(),
-        // )
-        // .unwrap()
+        Array2::from_shape_vec(
+            (dataset.targets().n_samples(), dataset.targets().n_tasks()),
+            dataset
+                .design_matrix()
+                .rows()
+                .into_iter()
+                .map(|row| {
+                    W_acc
+                        .columns()
+                        .into_iter()
+                        .map(|col| ws.iter().map(|&j| row[j] * col[j]).sum())
+                        .collect::<Vec<F>>()
+                })
+                .collect::<Vec<Vec<F>>>()
+                .into_iter()
+                .flatten()
+                .collect::<Vec<F>>(),
+        )
+        .unwrap()
     }
 }
 
