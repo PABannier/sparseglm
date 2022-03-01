@@ -54,11 +54,9 @@ impl<F: Float> Penalty<F> for L1<F> {
         let subdiff_dist = Array1::from_vec(
             grad.iter()
                 .zip(ws)
-                .map(|(&grad_idx, &j)| {
-                    if w[j] == F::zero() {
-                        return F::max(F::zero(), grad_idx.abs() - self.alpha);
-                    }
-                    return (-grad_idx - w[j].signum() * self.alpha).abs();
+                .map(|(&grad_idx, &j)| match w[j] == F::zero() {
+                    true => F::max(F::zero(), grad_idx.abs() - self.alpha),
+                    false => (-grad_idx - w[j].signum() * self.alpha).abs(),
                 })
                 .collect(),
         );
