@@ -21,7 +21,7 @@ pub trait Penalty<F: Float> {
 
 /// L1 penalty
 ///
-
+#[derive(Debug, Clone, PartialEq)]
 pub struct L1<F: Float> {
     alpha: F,
 }
@@ -67,7 +67,7 @@ impl<F: Float> Penalty<F> for L1<F> {
 
 /// MCP penalty
 ///
-
+#[derive(Debug, Clone, PartialEq)]
 pub struct MCP<F: Float> {
     alpha: F,
     gamma: F,
@@ -138,7 +138,7 @@ impl<F: Float> Penalty<F> for MCP<F> {
 
 /// L05 penalty
 ///
-
+#[derive(Debug, Clone, PartialEq)]
 pub struct L05<F: Float> {
     alpha: F,
 }
@@ -172,13 +172,11 @@ impl<F: Float> Penalty<F> for L05<F> {
         let subdiff_dist = Array1::from_vec(
             grad.iter()
                 .zip(ws)
-                .map(|(&grad_idx, &j)| {
-                    if w[j] == F::zero() {
-                        F::zero()
-                    } else {
-                        (-grad_idx - w[j].signum() * self.alpha / (F::cast(2.) * w[j].abs().sqrt()))
-                            .abs()
-                    }
+                .map(|(&grad_idx, &j)| match w[j] == F::zero() {
+                    true => F::zero(),
+                    false => (-grad_idx
+                        - w[j].signum() * self.alpha / (F::cast(2.) * w[j].abs().sqrt()))
+                    .abs(),
                 })
                 .collect(),
         );

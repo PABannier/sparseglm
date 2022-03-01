@@ -11,6 +11,7 @@ mod impl_datasets;
 mod impl_design_matrix;
 mod impl_targets;
 
+#[derive(Debug, Clone, PartialEq)]
 pub struct DatasetBase<DM: DesignMatrix, T: AsMultiTargets> {
     pub design_matrix: DM,
     pub targets: T,
@@ -52,6 +53,7 @@ pub trait AsSingleTargets: AsMultiTargets {
     }
 }
 
+#[derive(Debug, Clone, PartialEq)]
 pub enum DesignMatrixType {
     Dense,
     Sparse,

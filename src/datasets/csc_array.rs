@@ -1,6 +1,6 @@
 use ndarray::ArrayView1;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct CSCArray<'a, T> {
     pub data: ArrayView1<'a, T>,
     pub indices: ArrayView1<'a, i32>,

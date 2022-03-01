@@ -1,8 +1,6 @@
 extern crate ndarray;
 
-use ndarray::{
-    s, Array1, Array2, ArrayBase, ArrayView1, ArrayView2, Axis, Data, Ix1, Ix2, OwnedRepr,
-};
+use ndarray::{s, Array1, Array2, ArrayBase, ArrayView1, ArrayView2, Axis, Data, Ix2};
 
 use super::Float;
 use crate::datasets::{csc_array::CSCArray, AsMultiTargets, DatasetBase, DesignMatrix};
@@ -20,14 +18,13 @@ where
     fn value(&self, dataset: &DatasetBase<DM, T>, XW: ArrayView2<F>) -> F;
     fn gradient_j(&self, dataset: &DatasetBase<DM, T>, XW: ArrayView2<F>, j: usize) -> Array1<F>;
     fn full_grad(&self, dataset: &DatasetBase<DM, T>, XW: ArrayView2<F>) -> Array2<F>;
-
     fn lipschitz(&self) -> ArrayView1<F>;
     fn XtY(&self) -> ArrayView2<F>;
 }
 
 /// Multi-Task Quadratic datafit
 ///
-
+#[derive(Debug, Clone, PartialEq)]
 pub struct QuadraticMultiTask<F: Float> {
     lipschitz: Array1<F>,
     XtY: Array2<F>,
@@ -70,7 +67,7 @@ impl<F: Float, D: Data<Elem = F>, T: AsMultiTargets<Elem = F>>
         dataset: &DatasetBase<ArrayBase<D, Ix2>, T>,
         XW: ArrayView2<F>,
         j: usize,
-    ) -> ArrayBase<OwnedRepr<F>, Ix1> {
+    ) -> Array1<F> {
         let n_samples = F::cast(dataset.targets().n_samples());
         let X = dataset.design_matrix();
         let Xj: ArrayView1<F> = X.slice(s![.., j]);
