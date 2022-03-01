@@ -7,7 +7,9 @@ edition = "2021"
 default = []
 
 [dependencies]
-ndarray = { version = "0.15", features = ["approx", "blas"] }
+ndarray = { version = "0.15", features = ["approx", "blas"]}
+blas-src = { version = "0.8.0", default-features = false, features = ["intel-mkl"] }
+fftw-sys = { version = "0.4", features = ["intel-mkl"] }
 ndarray-linalg = { version = "0.14" }
 ndarray-stats = "0.5.0"
 
