@@ -112,7 +112,7 @@ impl<F: Float> MultiTaskLasso<F> {
     }
 }
 
-impl<F: Float, S: Data<Elem = F>, T: AsMultiTargets<Elem = F>>
+impl<F: Float + Lapack, S: Data<Elem = F>, T: AsMultiTargets<Elem = F>>
     Fit<ArrayBase<S, Ix2>, T, EstimatorError> for MultiTaskLassoValidParams<F>
 {
     type Object = MultiTaskLasso<F>;
@@ -267,7 +267,7 @@ impl<F: Float> BlockMCPEstimator<F> {
     }
 }
 
-impl<F: Float, S: Data<Elem = F>, T: AsMultiTargets<Elem = F>>
+impl<F: Float + Lapack, S: Data<Elem = F>, T: AsMultiTargets<Elem = F>>
     Fit<ArrayBase<S, Ix2>, T, EstimatorError> for BlockMCPValidParams<F>
 {
     type Object = BlockMCPEstimator<F>;
@@ -295,7 +295,7 @@ impl<F: Float, S: Data<Elem = F>, T: AsMultiTargets<Elem = F>>
     }
 }
 
-impl<F: Float, T: AsMultiTargets<Elem = F>> Fit<CSCArray<'_, F>, T, EstimatorError>
+impl<F: Float + Lapack, T: AsMultiTargets<Elem = F>> Fit<CSCArray<'_, F>, T, EstimatorError>
     for BlockMCPValidParams<F>
 {
     type Object = BlockMCPEstimator<F>;
