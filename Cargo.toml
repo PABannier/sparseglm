@@ -8,7 +8,8 @@ default = []
 
 [dependencies]
 ndarray = { version = "0.15", features = ["approx", "blas"]}
-blas-src = { version = "0.8.0", default-features = false, features = ["intel-mkl"] }
+intel-mkl-src = { version = "0.6.0+mkl2020.1", features = ["mkl-dynamic-ilp64-seq"]}
+blas-sys = "0.7.1"
 ndarray-linalg = { version = "0.14" }
 ndarray-stats = "0.5.0"
 
@@ -19,6 +20,8 @@ rand = { version = "0.8", features = ["small_rng"] }
 rand_distr = "0.4.2"
 
 thiserror = "1.0.30"
+# Temporary fix for compatibility issue between intel-mkl-tool and anyhow (https://github.com/rust-math/intel-mkl-src/issues/68)
+anyhow = { version = "<=1.0.48" }
 
 [workspace]
 members = ["python/"]

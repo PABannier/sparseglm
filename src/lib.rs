@@ -1,4 +1,8 @@
 #![allow(non_snake_case)]
+
+extern crate blas_sys;
+extern crate intel_mkl_src;
+
 use ndarray::ScalarOperand;
 
 #[cfg(feature = "ndarray-linalg")]
