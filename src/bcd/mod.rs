@@ -7,7 +7,7 @@ use super::Float;
 use crate::datafits_multitask::MultiTaskDatafit;
 use crate::datasets::DesignMatrix;
 use crate::datasets::{AsMultiTargets, DatasetBase};
-use crate::helpers::helpers::{argsort_by, solve_lin_sys};
+use crate::helpers::helpers::argsort_by;
 use crate::penalties_multitask::PenaltyMultiTask;
 use crate::solver_multitask::{BCDSolver, MultiTaskExtrapolator};
 

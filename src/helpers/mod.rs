@@ -3,10 +3,6 @@ extern crate ndarray_stats;
 extern crate rand;
 extern crate rand_distr;
 
-
-#[cfg(test)]
-mod tests;
-
 pub mod prox {
     use crate::Float;
     use ndarray::{Array1, ArrayView1};
@@ -52,7 +48,7 @@ pub mod helpers {
     use crate::datasets::csc_array::CSCArray;
     use crate::Float;
     use ndarray::Data;
-    use ndarray::{Array1, Array2, ArrayBase, ArrayView1, ArrayView2, Axis, Ix1};
+    use ndarray::{Array1, ArrayBase, ArrayView1, ArrayView2, Axis, Ix1};
     use std::cmp::Ordering;
 
     pub fn compute_alpha_max<F: 'static + Float>(X: ArrayView2<F>, y: ArrayView1<F>) -> F {
@@ -92,61 +88,6 @@ pub mod helpers {
         let mut indices: Vec<usize> = (0..arr.len()).collect();
         indices.sort_unstable_by(move |&i, &j| compare(&arr[i], &arr[j]));
         indices
-    }
-
-    pub fn solve_lin_sys<F: 'static + Float>(
-        A: ArrayView2<F>,
-        b: ArrayView1<F>,
-    ) -> Result<Array1<F>, &'static str> {
-        // Concatenation
-        let size = b.len();
-        let mut system = Array2::<F>::zeros((size, size + 1));
-        for i in 0..size {
-            for j in 0..(size + 1) {
-                system[[i, j]] = if j == size { b[i] } else { A[[i, j]] };
-            }
-        }
-
-        // Echelon form
-        for i in 0..size - 1 {
-            for j in i..size - 1 {
-                if system[[i, i]] == F::zero() {
-                    continue;
-                } else {
-                    let factor = system[[j + 1, i]] / system[[i, i]];
-                    for k in i..size + 1 {
-                        system[[j + 1, k]] = system[[j + 1, k]] - factor * system[[i, k]];
-                    }
-                }
-            }
-        }
-
-        // Gaussian eliminated
-        for i in (1..size).rev() {
-            if system[[i, i]] == F::zero() {
-                continue;
-            } else {
-                for j in (1..i + 1).rev() {
-                    let factor = system[[j - 1, i]] / system[[i, i]];
-                    for k in (0..size + 1).rev() {
-                        system[[j - 1, k]] = system[[j - 1, k]] - factor * system[[i, k]];
-                    }
-                }
-            }
-        }
-
-        let mut x = Array1::<F>::zeros(size);
-        for i in 0..size {
-            if system[[i, i]] == F::zero() {
-                return Err("Infinitely many solutions or singular matrix");
-            } else {
-                system[[i, size]] = system[[i, size]] / system[[i, i]];
-                system[[i, i]] = F::one();
-                x[i] = system[[i, size]];
-            }
-        }
-
-        Ok(x)
     }
 }
 
