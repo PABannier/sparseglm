@@ -108,11 +108,25 @@ pub fn anderson_accel<F, DM, T, DF, P, S>(
     });
 
     if epoch % (K + 1) == K {
-        for k in 0..K {
-            for j in 0..ws.len() {
-                U[[k, j]] = last_K_w[[k + 1, j]] - last_K_w[[k, j]];
-            }
-        }
+        // for k in 0..K {
+        //     for j in 0..ws.len() {
+        //         U[[k, j]] = last_K_w[[k + 1, j]] - last_K_w[[k, j]];
+        //     }
+        // }
+        *U = Array2::from_shape_vec(
+            (K, ws.len()),
+            last_K_w
+                .rows()
+                .into_iter()
+                .take(K)
+                .zip(last_K_w.rows().into_iter().skip(1))
+                .map(|(row_k, row_k_plus_1)| &row_k_plus_1 - &row_k)
+                .collect::<Vec<Array1<F>>>()
+                .into_iter()
+                .flatten()
+                .collect(),
+        )
+        .unwrap();
 
         let C = U.t().dot(U);
         let _res = solve_lin_sys(C.view(), Array1::<F>::ones(K).view());
@@ -121,17 +135,15 @@ pub fn anderson_accel<F, DM, T, DF, P, S>(
             Ok(z) => {
                 let c = &z / z.sum();
 
-                let mut w_acc = Array1::<F>::zeros(n_features);
-
                 // Extrapolation
-                for (idx, &j) in ws.iter().enumerate() {
+                let mut w_acc = Array1::<F>::zeros(n_features);
+                ws.iter().enumerate().for_each(|(idx, &j)| {
                     for k in 0..K {
                         w_acc[j] += last_K_w[[k, idx]] * c[k];
                     }
-                }
+                });
 
                 let Xw_acc = solver.extrapolate(dataset, w_acc.view(), ws);
-
                 let p_obj = datafit.value(dataset, Xw.view()) + penalty.value(w.view());
                 let p_obj_acc = datafit.value(dataset, Xw_acc.view()) + penalty.value(w_acc.view());
 
