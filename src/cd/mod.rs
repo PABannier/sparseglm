@@ -137,11 +137,18 @@ pub fn anderson_accel<F, DM, T, DF, P, S>(
 
                 // Extrapolation
                 let mut w_acc = Array1::<F>::zeros(n_features);
-                ws.iter().enumerate().for_each(|(idx, &j)| {
-                    for k in 0..K {
-                        w_acc[j] += last_K_w[[k, idx]] * c[k];
-                    }
-                });
+                last_K_w
+                    .rows()
+                    .into_iter()
+                    .take(K)
+                    .zip(c)
+                    .map(|(row, c_k)| &row * c_k)
+                    .fold(Array1::<F>::zeros(ws.len()), std::ops::Add::add)
+                    .iter()
+                    .zip(ws)
+                    .for_each(|(&extrapolated_pt_j, &j)| {
+                        w_acc[j] = extrapolated_pt_j;
+                    });
 
                 let Xw_acc = solver.extrapolate(dataset, w_acc.view(), ws);
                 let p_obj = datafit.value(dataset, Xw.view()) + penalty.value(w.view());
