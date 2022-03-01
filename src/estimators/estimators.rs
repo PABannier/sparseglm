@@ -26,6 +26,7 @@ use crate::Float;
 /// The L1-regularization used yields sparse solutions. In the Multi-Task case,
 /// the problem is regularized using a L21 norm and yields structured sparse
 /// solutions.
+#[derive(Debug, Clone, PartialEq)]
 pub struct Lasso<F> {
     coefficients: ArrayBase<OwnedRepr<F>, Ix1>,
 }
@@ -95,6 +96,7 @@ impl<F: Float + Lapack, T: AsSingleTargets<Elem = F>> Fit<CSCArray<'_, F>, T, Es
     }
 }
 
+#[derive(Debug, Clone, PartialEq)]
 pub struct MultiTaskLasso<F> {
     coefficients: ArrayBase<OwnedRepr<F>, Ix2>,
 }
@@ -170,6 +172,8 @@ impl<F: Float + Lapack, T: AsMultiTargets<Elem = F>> Fit<CSCArray<'_, F>, T, Est
 /// The Minimax Concave Penalty (MCP) estimator yields sparser solution than the
 /// Lasso thanks to a non-convex penalty. This mitigates the intrinsic Lasso bias
 /// and offers sparser solutions.
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct MCPEstimator<F> {
     coefficients: ArrayBase<OwnedRepr<F>, Ix1>,
 }
@@ -246,6 +250,8 @@ impl<F: Float + Lapack, T: AsSingleTargets<Elem = F>> Fit<CSCArray<'_, F>, T, Es
 /// The Block Minimax Concave Penalty (MCP) estimator yields sparser solution than the
 /// MultiTaskLasso thanks to a block non-convex penalty. This mitigates the intrinsic Lasso bias
 /// and offers sparser solutions.
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct BlockMCPEstimator<F> {
     coefficients: ArrayBase<OwnedRepr<F>, Ix2>,
 }
