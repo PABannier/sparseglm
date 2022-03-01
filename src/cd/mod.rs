@@ -4,7 +4,7 @@ use ndarray::{Array1, Array2, ArrayView1};
 
 use super::Float;
 use crate::datafits::Datafit;
-use crate::datasets::{DatasetBase, DesignMatrix, Targets};
+use crate::datasets::{AsSingleTargets, DatasetBase, DesignMatrix};
 use crate::helpers::helpers::{argsort_by, solve_lin_sys};
 use crate::penalties::Penalty;
 use crate::solver::{CDSolver, Extrapolator};
@@ -21,15 +21,14 @@ pub fn construct_grad<F, DF, DM, T>(
 where
     F: 'static + Float,
     DM: DesignMatrix<Elem = F>,
-    T: Targets<Elem = F>,
+    T: AsSingleTargets<Elem = F>,
     DF: Datafit<F, DM, T>,
 {
-    let ws_size = ws.len();
-    let mut grad = Array1::<F>::zeros(ws_size);
-    for (idx, &j) in ws.iter().enumerate() {
-        grad[idx] = datafit.gradient_j(dataset, Xw, j);
-    }
-    grad
+    Array1::from_iter(
+        ws.iter()
+            .map(|&j| datafit.gradient_j(dataset, Xw, j))
+            .collect::<Vec<F>>(),
+    )
 }
 
 pub fn kkt_violation<F, DF, P, DM, T>(
@@ -43,7 +42,7 @@ pub fn kkt_violation<F, DF, P, DM, T>(
 where
     F: 'static + Float,
     DM: DesignMatrix<Elem = F>,
-    T: Targets<Elem = F>,
+    T: AsSingleTargets<Elem = F>,
     DF: Datafit<F, DM, T>,
     P: Penalty<F>,
 {
@@ -97,58 +96,61 @@ pub fn anderson_accel<F, DM, T, DF, P, S>(
 ) where
     F: 'static + Float,
     DM: DesignMatrix<Elem = F>,
-    T: Targets<Elem = F>,
+    T: AsSingleTargets<Elem = F>,
     DF: Datafit<F, DM, T>,
     P: Penalty<F>,
     S: Extrapolator<F, DM, T>,
 {
-    let n_samples = dataset.n_samples();
-    let n_features = dataset.n_features();
+    let n_features = dataset.design_matrix().n_features();
 
-    // last_K_w[epoch % (K + 1)] = w[ws]
-    // Note: from my experiments, loops are 4-5x faster than slice
-    // See: https://github.com/rust-ndarray/ndarray/issues/571
-    for (idx, &j) in ws.iter().enumerate() {
+    ws.iter().enumerate().for_each(|(idx, &j)| {
         last_K_w[[epoch % (K + 1), idx]] = w[j];
-    }
+    });
 
     if epoch % (K + 1) == K {
-        for k in 0..K {
-            for j in 0..ws.len() {
-                U[[k, j]] = last_K_w[[k + 1, j]] - last_K_w[[k, j]];
-            }
-        }
+        // for k in 0..K {
+        //     for j in 0..ws.len() {
+        //         U[[k, j]] = last_K_w[[k + 1, j]] - last_K_w[[k, j]];
+        //     }
+        // }
+        *U = Array2::from_shape_vec(
+            (K, ws.len()),
+            last_K_w
+                .rows()
+                .into_iter()
+                .take(K)
+                .zip(last_K_w.rows().into_iter().skip(1))
+                .map(|(row_k, row_k_plus_1)| &row_k_plus_1 - &row_k)
+                .collect::<Vec<Array1<F>>>()
+                .into_iter()
+                .flatten()
+                .collect(),
+        )
+        .unwrap();
 
-        let mut C: Array2<F> = Array2::zeros((K, K));
-        // general_mat_mul is 20x slower than using plain for loops
-        // Complexity relatively low o(K^2 * ws_size) considering K usually is 5
-        for i in 0..K {
-            for j in 0..K {
-                for l in 0..ws.len() {
-                    C[[i, j]] += U[[i, l]] * U[[j, l]];
-                }
-            }
-        }
-
+        let C = U.t().dot(U);
         let _res = solve_lin_sys(C.view(), Array1::<F>::ones(K).view());
 
         match _res {
             Ok(z) => {
-                let denom = z.sum();
-                let c = z.map(|&x| x / denom);
-
-                let mut w_acc = Array1::<F>::zeros(n_features);
+                let c = &z / z.sum();
 
                 // Extrapolation
-                for (idx, &j) in ws.iter().enumerate() {
-                    for k in 0..K {
-                        w_acc[j] += last_K_w[[k, idx]] * c[k];
-                    }
-                }
+                let mut w_acc = Array1::<F>::zeros(n_features);
+                last_K_w
+                    .rows()
+                    .into_iter()
+                    .take(K)
+                    .zip(c)
+                    .map(|(row, c_k)| &row * c_k)
+                    .fold(Array1::<F>::zeros(ws.len()), std::ops::Add::add)
+                    .iter()
+                    .zip(ws)
+                    .for_each(|(&extrapolated_pt_j, &j)| {
+                        w_acc[j] = extrapolated_pt_j;
+                    });
 
-                let mut Xw_acc = Array1::<F>::zeros(n_samples);
-                solver.extrapolate(dataset, &mut Xw_acc, w_acc.view(), ws);
-
+                let Xw_acc = solver.extrapolate(dataset, w_acc.view(), ws);
                 let p_obj = datafit.value(dataset, Xw.view()) + penalty.value(w.view());
                 let p_obj_acc = datafit.value(dataset, Xw_acc.view()) + penalty.value(w_acc.view());
 
@@ -163,7 +165,7 @@ pub fn anderson_accel<F, DM, T, DF, P, S>(
             }
             Err(_) => {
                 if verbose {
-                    println!("----LinAlg error");
+                    println!("---- Warning: Singular extrapolation matrix.");
                 }
             }
         }
@@ -175,35 +177,35 @@ pub fn coordinate_descent<F, DM, T, DF, P, S>(
     datafit: &mut DF,
     solver: &S,
     penalty: &P,
-    max_iter: usize,
+    p0: usize,
+    max_iterations: usize,
     max_epochs: usize,
-    _p0: usize,
-    tol: F,
-    use_accel: bool,
+    tolerance: F,
     K: usize,
+    use_acceleration: bool,
     verbose: bool,
 ) -> Array1<F>
 where
     F: 'static + Float,
     DM: DesignMatrix<Elem = F>,
-    T: Targets<Elem = F>,
+    T: AsSingleTargets<Elem = F>,
     DF: Datafit<F, DM, T>,
     P: Penalty<F>,
     S: CDSolver<F, DF, P, DM, T> + Extrapolator<F, DM, T>,
 {
-    let n_samples = dataset.n_samples();
-    let n_features = dataset.n_features();
+    let n_samples = dataset.targets().n_samples();
+    let n_features = dataset.design_matrix().n_features();
 
     datafit.initialize(dataset);
 
     let all_feats = Array1::from_shape_vec(n_features, (0..n_features).collect()).unwrap();
 
-    let p0 = if _p0 > n_features { n_features } else { _p0 };
+    let p0 = if p0 > n_features { n_features } else { p0 };
 
     let mut w = Array1::<F>::zeros(n_features);
     let mut Xw = Array1::<F>::zeros(n_samples);
 
-    for t in 0..max_iter {
+    for t in 0..max_iterations {
         let (mut kkt, kkt_max) = kkt_violation(
             dataset,
             w.view(),
@@ -216,7 +218,7 @@ where
         if verbose {
             println!("KKT max violation: {:#?}", kkt_max);
         }
-        if kkt_max <= tol {
+        if kkt_max <= tolerance {
             break;
         }
 
@@ -233,7 +235,7 @@ where
             solver.cd_epoch(dataset, datafit, penalty, &mut w, &mut Xw, ws.view());
 
             // Anderson acceleration
-            if use_accel {
+            if use_acceleration {
                 anderson_accel(
                     dataset,
                     datafit,
@@ -264,16 +266,19 @@ where
                     );
                 }
 
-                if ws_size == n_features {
-                    if kkt_ws_max <= tol {
-                        break;
-                    }
-                } else {
-                    if kkt_ws_max < F::cast(0.3) * kkt_max {
-                        if verbose {
-                            println!("Early exit.")
+                match ws_size == n_features {
+                    true => {
+                        if kkt_ws_max <= tolerance {
+                            break;
                         }
-                        break;
+                    }
+                    false => {
+                        if kkt_ws_max < F::cast(0.3) * kkt_max {
+                            if verbose {
+                                println!("Early exit.")
+                            }
+                            break;
+                        }
                     }
                 }
             }

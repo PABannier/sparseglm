@@ -1,13 +1,17 @@
 use pyo3::prelude::*;
 
-#[allow(non_snake_case)]
+mod block_mcp;
 mod lasso;
-#[allow(non_snake_case)]
+mod mcp;
 mod mtl_lasso;
 
 #[pymodule]
 fn rustylassopy(_py: Python, m: &PyModule) -> PyResult<()> {
+    // Lasso
     m.add_class::<lasso::LassoWrapper>()?;
     m.add_class::<mtl_lasso::MultiTaskLassoWrapper>()?;
+    // MCP
+    m.add_class::<mcp::MCPWrapper>()?;
+    m.add_class::<block_mcp::BlockMCPWrapper>()?;
     Ok(())
 }

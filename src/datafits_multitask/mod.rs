@@ -1,12 +1,11 @@
 extern crate ndarray;
 
-use ndarray::linalg::general_mat_mul;
 use ndarray::{
     s, Array1, Array2, ArrayBase, ArrayView1, ArrayView2, Axis, Data, Ix1, Ix2, OwnedRepr,
 };
 
 use super::Float;
-use crate::datasets::{csc_array::CSCArray, DatasetBase, DesignMatrix, Targets};
+use crate::datasets::{csc_array::CSCArray, AsMultiTargets, DatasetBase, DesignMatrix};
 
 #[cfg(test)]
 mod tests;
@@ -15,21 +14,12 @@ pub trait MultiTaskDatafit<F, DM, T>
 where
     F: Float,
     DM: DesignMatrix<Elem = F>,
-    T: Targets<Elem = F>,
+    T: AsMultiTargets<Elem = F>,
 {
     fn initialize(&mut self, dataset: &DatasetBase<DM, T>);
     fn value(&self, dataset: &DatasetBase<DM, T>, XW: ArrayView2<F>) -> F;
-    fn gradient_j(
-        &self,
-        dataset: &DatasetBase<DM, T>,
-        XW: ArrayView2<F>,
-        j: usize,
-    ) -> ArrayBase<OwnedRepr<F>, Ix1>;
-    fn full_grad(
-        &self,
-        dataset: &DatasetBase<DM, T>,
-        XW: ArrayView2<F>,
-    ) -> ArrayBase<OwnedRepr<F>, Ix2>;
+    fn gradient_j(&self, dataset: &DatasetBase<DM, T>, XW: ArrayView2<F>, j: usize) -> Array1<F>;
+    fn full_grad(&self, dataset: &DatasetBase<DM, T>, XW: ArrayView2<F>) -> Array2<F>;
 
     fn lipschitz(&self) -> ArrayView1<F>;
     fn XtY(&self) -> ArrayView2<F>;
@@ -38,18 +28,12 @@ where
 /// Multi-Task Quadratic datafit
 ///
 
-pub struct QuadraticMultiTask<F>
-where
-    F: Float,
-{
-    lipschitz: ArrayBase<OwnedRepr<F>, Ix1>,
-    XtY: ArrayBase<OwnedRepr<F>, Ix2>,
+pub struct QuadraticMultiTask<F: Float> {
+    lipschitz: Array1<F>,
+    XtY: Array2<F>,
 }
 
-impl<F> Default for QuadraticMultiTask<F>
-where
-    F: Float,
-{
+impl<F: Float> Default for QuadraticMultiTask<F> {
     fn default() -> QuadraticMultiTask<F> {
         QuadraticMultiTask {
             lipschitz: Array1::zeros(1),
@@ -58,95 +42,61 @@ where
     }
 }
 
-impl<F, D> MultiTaskDatafit<F, ArrayBase<D, Ix2>, ArrayBase<D, Ix2>> for QuadraticMultiTask<F>
-where
-    F: Float,
-    D: Data<Elem = F>,
+impl<F: Float, D: Data<Elem = F>, T: AsMultiTargets<Elem = F>>
+    MultiTaskDatafit<F, ArrayBase<D, Ix2>, T> for QuadraticMultiTask<F>
 {
     /// Initializes the datafit by pre-computing useful quantities
-    fn initialize(&mut self, dataset: &DatasetBase<ArrayBase<D, Ix2>, ArrayBase<D, Ix2>>) {
-        let n_samples = F::cast(dataset.n_samples());
-        let n_features = dataset.n_features();
-        let n_tasks = dataset.n_tasks();
-
+    fn initialize(&mut self, dataset: &DatasetBase<ArrayBase<D, Ix2>, T>) {
+        let n_samples = F::cast(dataset.targets().n_samples());
         let X = dataset.design_matrix();
-        let Y = dataset.targets();
-
-        let mut xty = Array2::<F>::zeros((n_features, n_tasks));
-        general_mat_mul(F::one(), &X.t(), &Y, F::one(), &mut xty);
+        let Y = dataset.targets().as_multi_tasks();
+        let xty = X.t().dot(&Y);
         self.lipschitz = X.map_axis(Axis(0), |Xj| Xj.dot(&Xj) / n_samples);
         self.XtY = xty;
     }
 
     /// Computes the value of the datafit
-    fn value(
-        &self,
-        dataset: &DatasetBase<ArrayBase<D, Ix2>, ArrayBase<D, Ix2>>,
-        XW: ArrayView2<F>,
-    ) -> F {
-        let n_samples = dataset.n_samples();
-        let n_tasks = dataset.n_tasks();
-
-        let Y = dataset.targets();
-
-        let R = Y - &XW;
-        let mut val = F::zero();
-        for i in 0..n_samples {
-            for j in 0..n_tasks {
-                val += R[[i, j]] * R[[i, j]];
-            }
-        }
-        val / F::cast(2 * n_samples)
+    fn value(&self, dataset: &DatasetBase<ArrayBase<D, Ix2>, T>, XW: ArrayView2<F>) -> F {
+        let n_samples = dataset.targets().n_samples();
+        let Y = dataset.targets().as_multi_tasks();
+        let R = &Y - &XW;
+        let frob = R.map(|&x| x.powi(2)).sum();
+        frob / F::cast(2 * n_samples)
     }
 
     /// Computes the value of the gradient at some point w for coordinate j
     fn gradient_j(
         &self,
-        dataset: &DatasetBase<ArrayBase<D, Ix2>, ArrayBase<D, Ix2>>,
+        dataset: &DatasetBase<ArrayBase<D, Ix2>, T>,
         XW: ArrayView2<F>,
         j: usize,
     ) -> ArrayBase<OwnedRepr<F>, Ix1> {
-        let n_samples = F::cast(dataset.n_samples());
-        let n_tasks = dataset.n_tasks();
-
+        let n_samples = F::cast(dataset.targets().n_samples());
         let X = dataset.design_matrix();
-
         let Xj: ArrayView1<F> = X.slice(s![.., j]);
-        let mut grad = Xj.dot(&XW) - self.XtY.slice(s![j, ..]);
-        for t in 0..n_tasks {
-            grad[t] /= n_samples;
-        }
-        grad
+        let grad = Xj.dot(&XW) - self.XtY.slice(s![j, ..]);
+        grad / n_samples
     }
 
     /// Computes the value of the gradient at some point w
     fn full_grad(
         &self,
-        dataset: &DatasetBase<ArrayBase<D, Ix2>, ArrayBase<D, Ix2>>,
+        dataset: &DatasetBase<ArrayBase<D, Ix2>, T>,
         XW: ArrayView2<F>,
-    ) -> ArrayBase<OwnedRepr<F>, Ix2> {
-        let n_samples = F::cast(dataset.n_samples());
-        let n_features = dataset.n_features();
-        let n_tasks = dataset.n_tasks();
-
-        let X = dataset.design_matrix();
-
-        let mut grad = Array2::<F>::zeros((n_features, n_tasks));
-
-        for j in 0..n_features {
-            let Xj: ArrayView1<F> = X.slice(s![.., j]);
-            let mut grad_j = Xj.dot(&XW) - self.XtY.slice(s![j, ..]);
-            for t in 0..n_tasks {
-                grad_j[t] /= n_samples;
-            }
-
-            // Assign
-            for t in 0..n_tasks {
-                grad[[j, t]] = grad_j[t];
-            }
-        }
-
-        grad
+    ) -> Array2<F> {
+        let n_features = dataset.design_matrix().n_features();
+        let n_tasks = dataset.targets().n_tasks();
+        Array2::from_shape_vec(
+            (n_features, n_tasks),
+            (0..n_features)
+                .into_iter()
+                .map(|j| self.gradient_j(dataset, XW, j))
+                .collect::<Vec<Array1<F>>>()
+                .into_iter()
+                .flatten()
+                .collect(),
+        )
+        .unwrap()
     }
 
     // Getter for Lipschitz
@@ -160,19 +110,17 @@ where
     }
 }
 
-impl<F, D> MultiTaskDatafit<F, CSCArray<'_, F>, ArrayBase<D, Ix2>> for QuadraticMultiTask<F>
-where
-    F: Float,
-    D: Data<Elem = F>,
+impl<F: Float, T: AsMultiTargets<Elem = F>> MultiTaskDatafit<F, CSCArray<'_, F>, T>
+    for QuadraticMultiTask<F>
 {
     /// Initializes the datafit by pre-computing useful quantities
-    fn initialize(&mut self, dataset: &DatasetBase<CSCArray<'_, F>, ArrayBase<D, Ix2>>) {
-        let n_samples = F::cast(dataset.n_samples());
-        let n_features = dataset.n_features();
-        let n_tasks = dataset.n_tasks();
+    fn initialize(&mut self, dataset: &DatasetBase<CSCArray<'_, F>, T>) {
+        let n_samples = F::cast(dataset.targets().n_samples());
+        let n_features = dataset.design_matrix().n_features();
+        let n_tasks = dataset.targets().n_tasks();
 
         let X = dataset.design_matrix();
-        let Y = dataset.targets();
+        let Y = dataset.targets().as_multi_tasks();
 
         self.XtY = Array2::<F>::zeros((n_features, n_tasks));
         self.lipschitz = Array1::<F>::zeros(n_features);
@@ -192,83 +140,49 @@ where
     }
 
     /// Computes the value of the datafit
-    fn value(
-        &self,
-        dataset: &DatasetBase<CSCArray<'_, F>, ArrayBase<D, Ix2>>,
-        XW: ArrayView2<F>,
-    ) -> F {
-        let n_samples = dataset.n_samples();
-        let n_tasks = dataset.n_tasks();
-
-        let Y = dataset.targets();
-        let R = Y - &XW;
-
-        let mut val = F::zero();
-        for i in 0..n_samples {
-            for j in 0..n_tasks {
-                val += R[[i, j]] * R[[i, j]];
-            }
-        }
-        val / F::cast(2 * n_samples)
+    fn value(&self, dataset: &DatasetBase<CSCArray<'_, F>, T>, XW: ArrayView2<F>) -> F {
+        let n_samples = dataset.targets().n_samples();
+        let Y = dataset.targets().as_multi_tasks();
+        let R = &Y - &XW;
+        let frob = R.map(|&x| x.powi(2)).sum();
+        frob / F::cast(2 * n_samples)
     }
 
     /// Computes the value of the gradient at some point w for coordinate j
     fn gradient_j(
         &self,
-        dataset: &DatasetBase<CSCArray<'_, F>, ArrayBase<D, Ix2>>,
+        dataset: &DatasetBase<CSCArray<'_, F>, T>,
         XW: ArrayView2<F>,
         j: usize,
-    ) -> ArrayBase<OwnedRepr<F>, Ix1> {
-        let n_samples = F::cast(dataset.n_samples());
-        let n_tasks = dataset.n_tasks();
-
+    ) -> Array1<F> {
+        let n_samples = F::cast(dataset.targets().n_samples());
+        let n_tasks = dataset.targets().n_tasks();
         let X = dataset.design_matrix();
         let mut XjTXW = Array1::<F>::zeros(n_tasks);
-
         for i in X.indptr[j]..X.indptr[j + 1] {
             for t in 0..n_tasks {
                 XjTXW[t] += X.data[i as usize] * XW[[X.indices[i as usize] as usize, t]];
             }
         }
-        let mut grad_j = XjTXW - self.XtY.slice(s![j, ..]);
-        for t in 0..n_tasks {
-            grad_j[t] = grad_j[t] / n_samples;
-        }
-        grad_j
+        let grad_j = XjTXW - self.XtY.slice(s![j, ..]);
+        grad_j / n_samples
     }
 
     /// Computes the value of the gradient at some point w
-    fn full_grad(
-        &self,
-        dataset: &DatasetBase<CSCArray<'_, F>, ArrayBase<D, Ix2>>,
-        XW: ArrayView2<F>,
-    ) -> ArrayBase<OwnedRepr<F>, Ix2> {
-        let n_samples = F::cast(dataset.n_samples());
-        let n_features = dataset.n_features();
-        let n_tasks = dataset.n_tasks();
-
-        let X = dataset.design_matrix();
-
-        let mut grad = Array2::<F>::zeros((n_features, n_tasks));
-
-        for j in 0..n_features {
-            let mut XjTXW = Array1::<F>::zeros(n_tasks);
-            for i in X.indptr[j]..X.indptr[j + 1] {
-                for t in 0..n_tasks {
-                    XjTXW[t] += X.data[i as usize] * XW[[X.indices[i as usize] as usize, t]];
-                }
-            }
-            let mut grad_j = XjTXW - self.XtY.slice(s![j, ..]);
-            for t in 0..n_tasks {
-                grad_j[t] /= n_samples;
-            }
-
-            // Assign
-            for t in 0..n_tasks {
-                grad[[j, t]] = grad_j[t];
-            }
-        }
-        grad
+    fn full_grad(&self, dataset: &DatasetBase<CSCArray<'_, F>, T>, XW: ArrayView2<F>) -> Array2<F> {
+        let n_features = dataset.design_matrix().n_features();
+        let n_tasks = dataset.targets().n_tasks();
+        Array2::from_shape_vec(
+            (n_features, n_tasks),
+            (0..n_features)
+                .into_iter()
+                .map(|j| self.gradient_j(dataset, XW, j))
+                .collect::<Vec<Array1<F>>>()
+                .into_iter()
+                .flatten()
+                .collect(),
+        )
+        .unwrap()
     }
 
     // Getter for Lipschitz

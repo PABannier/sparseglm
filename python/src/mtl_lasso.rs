@@ -1,7 +1,7 @@
 use numpy::{PyArray, PyArray1, PyArray2};
 use pyo3::prelude::*;
 use rustylasso::{
-    datasets::{csc_array::CSCArray, DenseDatasetView, SparseDatasetView},
+    datasets::{csc_array::CSCArray, DenseDatasetView, SparseDataset},
     estimators::hyperparams::MultiTaskLassoParams,
     estimators::traits::Fit,
 };
@@ -21,7 +21,7 @@ impl MultiTaskLassoWrapper {
         tolerance: f64,
         p0: usize,
         use_acceleration: bool,
-        K: usize,
+        k: usize,
         verbose: bool,
     ) -> PyResult<Self> {
         let _estimator = MultiTaskLassoParams::new()
@@ -31,7 +31,7 @@ impl MultiTaskLassoWrapper {
             .tolerance(tolerance)
             .p0(p0)
             .use_acceleration(use_acceleration)
-            .K(K)
+            .K(k)
             .verbose(verbose);
         Ok(MultiTaskLassoWrapper { inner: _estimator })
     }
@@ -39,10 +39,10 @@ impl MultiTaskLassoWrapper {
     unsafe fn fit<'py>(
         &mut self,
         py: Python<'py>,
-        X: &PyArray2<f64>,
-        Y: &PyArray2<f64>,
+        x: &PyArray2<f64>,
+        y: &PyArray2<f64>,
     ) -> PyResult<&'py PyArray2<f64>> {
-        let dataset = DenseDatasetView::from((X.as_array(), Y.as_array()));
+        let dataset = DenseDatasetView::from((x.as_array(), y.as_array()));
         let _estimator = self.inner.fit(&dataset).unwrap();
         Ok(PyArray::from_array(py, &_estimator.coefficients()))
     }
@@ -50,13 +50,13 @@ impl MultiTaskLassoWrapper {
     unsafe fn fit_sparse<'py>(
         &mut self,
         py: Python<'py>,
-        X_data: &PyArray1<f64>,
-        X_indices: &PyArray1<i32>,
-        X_indptr: &PyArray1<i32>,
-        Y: &PyArray2<f64>,
+        data: &PyArray1<f64>,
+        indices: &PyArray1<i32>,
+        indptr: &PyArray1<i32>,
+        y: &PyArray2<f64>,
     ) -> PyResult<&'py PyArray2<f64>> {
-        let X = CSCArray::new(X_data.as_array(), X_indices.as_array(), X_indptr.as_array());
-        let dataset = SparseDatasetView::from((X, Y.as_array()));
+        let x = CSCArray::new(data.as_array(), indices.as_array(), indptr.as_array());
+        let dataset = SparseDataset::from((x, y.as_array()));
         let _estimator = self.inner.fit(&dataset).unwrap();
         Ok(PyArray::from_array(py, &_estimator.coefficients()))
     }

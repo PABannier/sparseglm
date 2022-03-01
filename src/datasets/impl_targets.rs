@@ -1,12 +1,7 @@
-use super::{DatasetBase, DesignMatrix, Targets};
-use ndarray::{ArrayBase, Axis, Data, Dimension};
+use super::{AsMultiTargets, AsSingleTargets};
+use ndarray::{ArrayBase, ArrayView2, Axis, Data, Ix1, Ix2};
 
-/// Implement the Targets trait for Ndarrays
-impl<F, S, I> Targets for ArrayBase<S, I>
-where
-    S: Data<Elem = F>,
-    I: Dimension,
-{
+impl<'a, F, S: Data<Elem = F>> AsMultiTargets for ArrayBase<S, Ix2> {
     type Elem = F;
 
     fn n_samples(&self) -> usize {
@@ -16,40 +11,31 @@ where
     fn n_tasks(&self) -> usize {
         self.len_of(Axis(1))
     }
+
+    fn as_multi_tasks(&self) -> ArrayView2<F> {
+        self.view()
+    }
 }
 
-/// Implement the Targets trait for DatasetBase
-impl<F, DM, T> Targets for DatasetBase<DM, T>
-where
-    DM: DesignMatrix<Elem = F>,
-    T: Targets<Elem = F>,
-{
+impl<'a, F, S: Data<Elem = F>> AsMultiTargets for ArrayBase<S, Ix1> {
     type Elem = F;
 
     fn n_samples(&self) -> usize {
-        self.targets.n_samples()
+        self.len_of(Axis(0))
     }
 
     fn n_tasks(&self) -> usize {
-        self.targets.n_tasks()
+        1
+    }
+
+    fn as_multi_tasks(&self) -> ArrayView2<F> {
+        self.view().insert_axis(Axis(1))
     }
 }
 
-/// Implement the Targets trait for an empty dataset
-impl Targets for () {
-    type Elem = ();
+impl<'a, F, S: Data<Elem = F>> AsSingleTargets for ArrayBase<S, Ix1> {}
 
-    fn n_samples(&self) -> usize {
-        0
-    }
-
-    fn n_tasks(&self) -> usize {
-        0
-    }
-}
-
-/// Implement the Targets trait for a reference
-impl<T: Targets> Targets for &T {
+impl<T: AsMultiTargets> AsMultiTargets for &T {
     type Elem = T::Elem;
 
     fn n_samples(&self) -> usize {
@@ -58,5 +44,9 @@ impl<T: Targets> Targets for &T {
 
     fn n_tasks(&self) -> usize {
         (*self).n_tasks()
+    }
+
+    fn as_multi_tasks(&self) -> ArrayView2<Self::Elem> {
+        (*self).as_multi_tasks()
     }
 }

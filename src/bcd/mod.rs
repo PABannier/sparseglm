@@ -5,7 +5,7 @@ use ndarray::{s, Array1, Array2, ArrayView1, ArrayView2};
 use super::Float;
 use crate::datafits_multitask::MultiTaskDatafit;
 use crate::datasets::DesignMatrix;
-use crate::datasets::{DatasetBase, Targets};
+use crate::datasets::{AsMultiTargets, DatasetBase};
 use crate::helpers::helpers::{argsort_by, solve_lin_sys};
 use crate::penalties_multitask::PenaltyMultiTask;
 use crate::solver_multitask::{BCDSolver, MultiTaskExtrapolator};
@@ -22,19 +22,19 @@ pub fn construct_grad<F, DF, DM, T>(
 where
     F: 'static + Float,
     DM: DesignMatrix<Elem = F>,
-    T: Targets<Elem = F>,
+    T: AsMultiTargets<Elem = F>,
     DF: MultiTaskDatafit<F, DM, T>,
 {
-    let ws_size = ws.len();
-    let n_tasks = dataset.n_tasks();
-    let mut grad = Array2::<F>::zeros((ws_size, n_tasks));
-    for (idx, &j) in ws.iter().enumerate() {
-        let grad_j = datafit.gradient_j(&dataset, XW, j);
-        for t in 0..n_tasks {
-            grad[[idx, t]] = grad_j[t];
-        }
-    }
-    grad
+    Array2::from_shape_vec(
+        (ws.len(), dataset.targets().n_tasks()),
+        ws.iter()
+            .map(|&j| datafit.gradient_j(&dataset, XW, j))
+            .collect::<Vec<Array1<F>>>()
+            .into_iter()
+            .flatten()
+            .collect(),
+    )
+    .unwrap()
 }
 
 pub fn kkt_violation<F, DF, P, DM, T>(
@@ -48,7 +48,7 @@ pub fn kkt_violation<F, DF, P, DM, T>(
 where
     F: 'static + Float,
     DM: DesignMatrix<Elem = F>,
-    T: Targets<Elem = F>,
+    T: AsMultiTargets<Elem = F>,
     DF: MultiTaskDatafit<F, DM, T>,
     P: PenaltyMultiTask<F>,
 {
@@ -69,7 +69,7 @@ where
     let mut nnz_features: usize = 0;
 
     for j in 0..n_features {
-        if W.slice(s![j, ..]).map(|&x| x.abs()).sum() != F::zero() {
+        if W.slice(s![j, ..]).iter().any(|&x| x != F::zero()) {
             nnz_features += 1;
             kkt[j] = F::infinity();
         }
@@ -103,61 +103,73 @@ pub fn anderson_accel<F, DM, T, DF, P, S>(
 ) where
     F: 'static + Float,
     DM: DesignMatrix<Elem = F>,
-    T: Targets<Elem = F>,
+    T: AsMultiTargets<Elem = F>,
     DF: MultiTaskDatafit<F, DM, T>,
     P: PenaltyMultiTask<F>,
     S: BCDSolver<F, DF, P, DM, T> + MultiTaskExtrapolator<F, DM, T>,
 {
-    let n_samples = dataset.n_samples();
-    let n_features = dataset.n_features();
-    let n_tasks = dataset.n_tasks();
+    let n_features = dataset.design_matrix().n_features();
+    let n_tasks = dataset.targets().n_tasks();
 
-    // last_K_w[epoch % (K + 1)] = w[ws]
-    for (idx, &j) in ws.iter().enumerate() {
-        for t in 0..n_tasks {
-            last_K_W[[epoch % (K + 1), idx * n_tasks + t]] = W[[j, t]];
-        }
-    }
+    // last_K_w[epoch % (K + 1)] = W[ws, :].ravel()
+    last_K_W
+        .slice_mut(s![epoch % (K + 1), ..])
+        .assign(&Array1::from_iter(
+            ws.iter()
+                .map(|&j| W.slice(s![j, ..]).to_owned()) // TODO: Circumvent this to_owned
+                .collect::<Vec<Array1<F>>>()
+                .into_iter()
+                .flatten()
+                .collect::<Vec<F>>(),
+        ));
 
     if epoch % (K + 1) == K {
-        for k in 0..K {
-            for j in 0..(ws.len() * n_tasks) {
-                U[[k, j]] = last_K_W[[k + 1, j]] - last_K_W[[k, j]];
-            }
-        }
+        // for k in 0..K {
+        //     for j in 0..(ws.len() * n_tasks) {
+        //         U[[k, j]] = last_K_W[[k + 1, j]] - last_K_W[[k, j]];
+        //     }
+        // }
+        *U = Array2::from_shape_vec(
+            (K, ws.len() * n_tasks),
+            last_K_W
+                .rows()
+                .into_iter()
+                .take(K)
+                .zip(last_K_W.rows().into_iter().skip(1))
+                .map(|(row_k, row_k_plus_1)| &row_k_plus_1 - &row_k)
+                .collect::<Vec<Array1<F>>>()
+                .into_iter()
+                .flatten()
+                .collect(),
+        )
+        .unwrap();
 
-        let mut C: Array2<F> = Array2::zeros((K, K));
-        // general_mat_mul is 20x slower than using plain for loops
-        // Complexity relatively low o(K^2 * ws_size) considering K usually is 5
-        for i in 0..K {
-            for j in 0..K {
-                for l in 0..ws.len() {
-                    C[[i, j]] += U[[i, l]] * U[[j, l]];
-                }
-            }
-        }
-
-        let _res = solve_lin_sys(C.view(), Array1::<F>::ones(K).view());
+        let C = U.t().dot(U);
+        let _res = solve_lin_sys(C.view(), Array1::<F>::ones(K).view()); // TODO: change into LAPACK inversion
 
         match _res {
             Ok(z) => {
-                let denom = z.sum();
-                let c = z.map(|&x| x / denom);
-
-                let mut W_acc = Array2::<F>::zeros((n_features, n_tasks));
+                let c = &z / z.sum();
 
                 // Extrapolation
-                for (idx, &j) in ws.iter().enumerate() {
-                    for k in 0..K {
-                        for t in 0..n_tasks {
-                            W_acc[[j, t]] += last_K_W[[k, idx * n_tasks + t]] * c[k];
-                        }
-                    }
-                }
+                let mut W_acc = Array2::<F>::zeros((n_features, n_tasks));
+                last_K_W
+                    .rows()
+                    .into_iter()
+                    .take(K)
+                    .zip(c)
+                    .map(|(row, c_k)| &row * c_k)
+                    .fold(Array1::<F>::zeros(ws.len() * n_tasks), std::ops::Add::add)
+                    .into_shape((ws.len(), n_tasks))
+                    .unwrap()
+                    .rows()
+                    .into_iter()
+                    .zip(ws)
+                    .for_each(|(row, &j)| {
+                        W_acc.slice_mut(s![j, ..]).assign(&row);
+                    });
 
-                let mut XW_acc = Array2::<F>::zeros((n_samples, n_tasks));
-                solver.extrapolate(dataset, &mut XW_acc, W_acc.view(), ws);
-
+                let XW_acc = solver.extrapolate(dataset, W_acc.view(), ws);
                 let p_obj = datafit.value(dataset, XW.view()) + penalty.value(W.view());
                 let p_obj_acc = datafit.value(dataset, XW_acc.view()) + penalty.value(W_acc.view());
 
@@ -172,7 +184,7 @@ pub fn anderson_accel<F, DM, T, DF, P, S>(
             }
             Err(_) => {
                 if verbose {
-                    println!("----LinAlg error");
+                    println!("---- Warning: Singular extrapolation matrix.");
                 }
             }
         }
@@ -184,36 +196,36 @@ pub fn block_coordinate_descent<F, DM, T, DF, P, S>(
     datafit: &mut DF,
     solver: &S,
     penalty: &P,
-    max_iter: usize,
+    p0: usize,
+    max_iterations: usize,
     max_epochs: usize,
-    _p0: usize,
-    tol: F,
-    use_accel: bool,
+    tolerance: F,
     K: usize,
+    use_acceleration: bool,
     verbose: bool,
 ) -> Array2<F>
 where
     F: 'static + Float,
     DM: DesignMatrix<Elem = F>,
-    T: Targets<Elem = F>,
+    T: AsMultiTargets<Elem = F>,
     DF: MultiTaskDatafit<F, DM, T>,
     P: PenaltyMultiTask<F>,
     S: BCDSolver<F, DF, P, DM, T> + MultiTaskExtrapolator<F, DM, T>,
 {
-    let n_samples = dataset.n_samples();
-    let n_features = dataset.n_features();
-    let n_tasks = dataset.n_tasks();
+    let n_samples = dataset.targets().n_samples();
+    let n_features = dataset.design_matrix().n_features();
+    let n_tasks = dataset.targets().n_tasks();
 
     datafit.initialize(dataset);
 
     let all_feats = Array1::from_shape_vec(n_features, (0..n_features).collect()).unwrap();
 
-    let p0 = if _p0 > n_features { n_features } else { _p0 };
+    let p0 = if p0 > n_features { n_features } else { p0 };
 
     let mut W = Array2::<F>::zeros((n_features, n_tasks));
     let mut XW = Array2::<F>::zeros((n_samples, n_tasks));
 
-    for t in 0..max_iter {
+    for t in 0..max_iterations {
         let (mut kkt, kkt_max) = kkt_violation(
             dataset,
             W.view(),
@@ -226,7 +238,7 @@ where
         if verbose {
             println!("KKT max violation: {:#?}", kkt_max);
         }
-        if kkt_max <= tol {
+        if kkt_max <= tolerance {
             break;
         }
 
@@ -243,7 +255,7 @@ where
             solver.bcd_epoch(dataset, datafit, penalty, &mut W, &mut XW, ws.view());
 
             // Anderson acceleration
-            if use_accel {
+            if use_acceleration {
                 anderson_accel(
                     dataset,
                     solver,
@@ -275,7 +287,7 @@ where
                 }
 
                 if ws_size == n_features {
-                    if kkt_ws_max <= tol {
+                    if kkt_ws_max <= tolerance {
                         break;
                     }
                 } else {

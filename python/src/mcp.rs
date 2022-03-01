@@ -2,20 +2,21 @@ use numpy::{PyArray, PyArray1, PyArray2};
 use pyo3::prelude::*;
 use rustylasso::{
     datasets::{csc_array::CSCArray, DenseDatasetView, SparseDataset},
-    estimators::hyperparams::LassoParams,
+    estimators::hyperparams::MCParams,
     estimators::traits::Fit,
 };
 
 #[pyclass]
-pub struct LassoWrapper {
-    inner: LassoParams<f64>,
+pub struct MCPWrapper {
+    inner: MCParams<f64>,
 }
 
 #[pymethods]
-impl LassoWrapper {
+impl MCPWrapper {
     #[new]
     fn new(
         alpha: f64,
+        gamma: f64,
         max_iterations: usize,
         max_epochs: usize,
         tolerance: f64,
@@ -24,8 +25,9 @@ impl LassoWrapper {
         k: usize,
         verbose: bool,
     ) -> PyResult<Self> {
-        let _estimator = LassoParams::new()
+        let _estimator = MCParams::new()
             .alpha(alpha)
+            .gamma(gamma)
             .max_iterations(max_iterations)
             .max_epochs(max_epochs)
             .tolerance(tolerance)
@@ -33,7 +35,7 @@ impl LassoWrapper {
             .use_acceleration(use_acceleration)
             .K(k)
             .verbose(verbose);
-        Ok(LassoWrapper { inner: _estimator })
+        Ok(MCPWrapper { inner: _estimator })
     }
 
     unsafe fn fit<'py>(
