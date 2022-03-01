@@ -18,17 +18,8 @@ where
 {
     fn initialize(&mut self, dataset: &DatasetBase<DM, T>);
     fn value(&self, dataset: &DatasetBase<DM, T>, XW: ArrayView2<F>) -> F;
-    fn gradient_j(
-        &self,
-        dataset: &DatasetBase<DM, T>,
-        XW: ArrayView2<F>,
-        j: usize,
-    ) -> ArrayBase<OwnedRepr<F>, Ix1>;
-    fn full_grad(
-        &self,
-        dataset: &DatasetBase<DM, T>,
-        XW: ArrayView2<F>,
-    ) -> ArrayBase<OwnedRepr<F>, Ix2>;
+    fn gradient_j(&self, dataset: &DatasetBase<DM, T>, XW: ArrayView2<F>, j: usize) -> Array1<F>;
+    fn full_grad(&self, dataset: &DatasetBase<DM, T>, XW: ArrayView2<F>) -> Array2<F>;
 
     fn lipschitz(&self) -> ArrayView1<F>;
     fn XtY(&self) -> ArrayView2<F>;
@@ -38,8 +29,8 @@ where
 ///
 
 pub struct QuadraticMultiTask<F: Float> {
-    lipschitz: ArrayBase<OwnedRepr<F>, Ix1>,
-    XtY: ArrayBase<OwnedRepr<F>, Ix2>,
+    lipschitz: Array1<F>,
+    XtY: Array2<F>,
 }
 
 impl<F: Float> Default for QuadraticMultiTask<F> {
@@ -69,7 +60,7 @@ impl<F: Float, D: Data<Elem = F>, T: AsMultiTargets<Elem = F>>
         let n_samples = dataset.targets().n_samples();
         let Y = dataset.targets().as_multi_tasks();
         let R = &Y - &XW;
-        let frob = R.fold(F::zero(), |sum, &x| sum + x * x);
+        let frob = R.map(|&x| x.powi(2)).sum();
         frob / F::cast(2 * n_samples)
     }
 
@@ -92,15 +83,20 @@ impl<F: Float, D: Data<Elem = F>, T: AsMultiTargets<Elem = F>>
         &self,
         dataset: &DatasetBase<ArrayBase<D, Ix2>, T>,
         XW: ArrayView2<F>,
-    ) -> ArrayBase<OwnedRepr<F>, Ix2> {
+    ) -> Array2<F> {
         let n_features = dataset.design_matrix().n_features();
         let n_tasks = dataset.targets().n_tasks();
-        let mut grad = Array2::<F>::zeros((n_features, n_tasks));
-        for j in 0..n_features {
-            grad.slice_mut(s![j, ..])
-                .assign(&self.gradient_j(dataset, XW, j));
-        }
-        grad
+        Array2::from_shape_vec(
+            (n_features, n_tasks),
+            (0..n_features)
+                .into_iter()
+                .map(|j| self.gradient_j(dataset, XW, j))
+                .collect::<Vec<Array1<F>>>()
+                .into_iter()
+                .flatten()
+                .collect(),
+        )
+        .unwrap()
     }
 
     // Getter for Lipschitz
@@ -148,7 +144,7 @@ impl<F: Float, T: AsMultiTargets<Elem = F>> MultiTaskDatafit<F, CSCArray<'_, F>,
         let n_samples = dataset.targets().n_samples();
         let Y = dataset.targets().as_multi_tasks();
         let R = &Y - &XW;
-        let frob = R.fold(F::zero(), |sum, &x| sum + x * x);
+        let frob = R.map(|&x| x.powi(2)).sum();
         frob / F::cast(2 * n_samples)
     }
 
@@ -158,7 +154,7 @@ impl<F: Float, T: AsMultiTargets<Elem = F>> MultiTaskDatafit<F, CSCArray<'_, F>,
         dataset: &DatasetBase<CSCArray<'_, F>, T>,
         XW: ArrayView2<F>,
         j: usize,
-    ) -> ArrayBase<OwnedRepr<F>, Ix1> {
+    ) -> Array1<F> {
         let n_samples = F::cast(dataset.targets().n_samples());
         let n_tasks = dataset.targets().n_tasks();
         let X = dataset.design_matrix();
@@ -173,19 +169,20 @@ impl<F: Float, T: AsMultiTargets<Elem = F>> MultiTaskDatafit<F, CSCArray<'_, F>,
     }
 
     /// Computes the value of the gradient at some point w
-    fn full_grad(
-        &self,
-        dataset: &DatasetBase<CSCArray<'_, F>, T>,
-        XW: ArrayView2<F>,
-    ) -> ArrayBase<OwnedRepr<F>, Ix2> {
-        let n_tasks = dataset.targets().n_tasks();
+    fn full_grad(&self, dataset: &DatasetBase<CSCArray<'_, F>, T>, XW: ArrayView2<F>) -> Array2<F> {
         let n_features = dataset.design_matrix().n_features();
-        let mut grad = Array2::<F>::zeros((n_features, n_tasks));
-        for j in 0..n_features {
-            grad.slice_mut(s![j, ..])
-                .assign(&self.gradient_j(dataset, XW, j));
-        }
-        grad
+        let n_tasks = dataset.targets().n_tasks();
+        Array2::from_shape_vec(
+            (n_features, n_tasks),
+            (0..n_features)
+                .into_iter()
+                .map(|j| self.gradient_j(dataset, XW, j))
+                .collect::<Vec<Array1<F>>>()
+                .into_iter()
+                .flatten()
+                .collect(),
+        )
+        .unwrap()
     }
 
     // Getter for Lipschitz

@@ -25,14 +25,16 @@ where
     T: AsMultiTargets<Elem = F>,
     DF: MultiTaskDatafit<F, DM, T>,
 {
-    let ws_size = ws.len();
-    let n_tasks = dataset.targets().n_tasks();
-    let mut grad = Array2::<F>::zeros((ws_size, n_tasks));
-    for (idx, &j) in ws.iter().enumerate() {
-        let grad_j = datafit.gradient_j(&dataset, XW, j);
-        grad.slice_mut(s![idx, ..]).assign(&grad_j);
-    }
-    grad
+    Array2::from_shape_vec(
+        (ws.len(), dataset.targets().n_tasks()),
+        ws.iter()
+            .map(|&j| datafit.gradient_j(&dataset, XW, j))
+            .collect::<Vec<Array1<F>>>()
+            .into_iter()
+            .flatten()
+            .collect(),
+    )
+    .unwrap()
 }
 
 pub fn kkt_violation<F, DF, P, DM, T>(
@@ -67,7 +69,7 @@ where
     let mut nnz_features: usize = 0;
 
     for j in 0..n_features {
-        if W.slice(s![j, ..]).fold(F::zero(), |sum, &x| sum + x.abs()) != F::zero() {
+        if W.slice(s![j, ..]).iter().any(|&x| x != F::zero()) {
             nnz_features += 1;
             kkt[j] = F::infinity();
         }
@@ -106,23 +108,41 @@ pub fn anderson_accel<F, DM, T, DF, P, S>(
     P: PenaltyMultiTask<F>,
     S: BCDSolver<F, DF, P, DM, T> + MultiTaskExtrapolator<F, DM, T>,
 {
-    let n_samples = dataset.targets().n_samples();
     let n_features = dataset.design_matrix().n_features();
     let n_tasks = dataset.targets().n_tasks();
 
-    // last_K_w[epoch % (K + 1)] = w[ws]
-    for (idx, &j) in ws.iter().enumerate() {
-        for t in 0..n_tasks {
-            last_K_W[[epoch % (K + 1), idx * n_tasks + t]] = W[[j, t]];
-        }
-    }
+    // last_K_w[epoch % (K + 1)] = W[ws, :].ravel()
+    last_K_W
+        .slice_mut(s![epoch % (K + 1), ..])
+        .assign(&Array1::from_iter(
+            ws.iter()
+                .map(|&j| W.slice(s![j, ..]).to_owned()) // TODO: Circumvent this to_owned
+                .collect::<Vec<Array1<F>>>()
+                .into_iter()
+                .flatten()
+                .collect::<Vec<F>>(),
+        ));
 
     if epoch % (K + 1) == K {
-        for k in 0..K {
-            for j in 0..(ws.len() * n_tasks) {
-                U[[k, j]] = last_K_W[[k + 1, j]] - last_K_W[[k, j]];
-            }
-        }
+        // for k in 0..K {
+        //     for j in 0..(ws.len() * n_tasks) {
+        //         U[[k, j]] = last_K_W[[k + 1, j]] - last_K_W[[k, j]];
+        //     }
+        // }
+        *U = Array2::from_shape_vec(
+            (K, ws.len() * n_tasks),
+            last_K_W
+                .rows()
+                .into_iter()
+                .take(K)
+                .zip(last_K_W.rows().into_iter().skip(1))
+                .map(|(row_k, row_k_plus_1)| &row_k_plus_1 - &row_k)
+                .collect::<Vec<Array1<F>>>()
+                .into_iter()
+                .flatten()
+                .collect(),
+        )
+        .unwrap();
 
         let C = U.t().dot(U);
         let _res = solve_lin_sys(C.view(), Array1::<F>::ones(K).view()); // TODO: change into LAPACK inversion
@@ -131,20 +151,25 @@ pub fn anderson_accel<F, DM, T, DF, P, S>(
             Ok(z) => {
                 let c = &z / z.sum();
 
-                let mut W_acc = Array2::<F>::zeros((n_features, n_tasks));
-
                 // Extrapolation
-                for (idx, &j) in ws.iter().enumerate() {
-                    for k in 0..K {
-                        for t in 0..n_tasks {
-                            W_acc[[j, t]] += last_K_W[[k, idx * n_tasks + t]] * c[k];
-                        }
-                    }
-                }
+                let mut W_acc = Array2::<F>::zeros((n_features, n_tasks));
+                last_K_W
+                    .rows()
+                    .into_iter()
+                    .take(K)
+                    .zip(c)
+                    .map(|(row, c_k)| &row * c_k)
+                    .fold(Array1::<F>::zeros(ws.len() * n_tasks), std::ops::Add::add)
+                    .into_shape((ws.len(), n_tasks))
+                    .unwrap()
+                    .rows()
+                    .into_iter()
+                    .zip(ws)
+                    .for_each(|(row, &j)| {
+                        W_acc.slice_mut(s![j, ..]).assign(&row);
+                    });
 
-                let mut XW_acc = Array2::<F>::zeros((n_samples, n_tasks));
-                solver.extrapolate(dataset, &mut XW_acc, W_acc.view(), ws);
-
+                let XW_acc = solver.extrapolate(dataset, W_acc.view(), ws);
                 let p_obj = datafit.value(dataset, XW.view()) + penalty.value(W.view());
                 let p_obj_acc = datafit.value(dataset, XW_acc.view()) + penalty.value(W_acc.view());
 

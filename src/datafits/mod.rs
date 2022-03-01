@@ -70,12 +70,12 @@ impl<F: Float, D: Data<Elem = F>, T: AsSingleTargets<Elem = F>> Datafit<F, Array
         dataset: &DatasetBase<ArrayBase<D, Ix2>, T>,
         Xw: ArrayView1<F>,
     ) -> ArrayBase<OwnedRepr<F>, Ix1> {
-        let n_features = dataset.design_matrix().n_features();
-        let mut grad = Array1::<F>::zeros(n_features);
-        for j in 0..n_features {
-            grad[j] = self.gradient_j(dataset, Xw, j);
-        }
-        grad
+        Array1::from_iter(
+            (0..dataset.design_matrix().n_features())
+                .into_iter()
+                .map(|j| self.gradient_j(dataset, Xw, j))
+                .collect::<Vec<F>>(),
+        )
     }
 
     /// Computes the value of the datafit
@@ -141,12 +141,12 @@ impl<F: Float, T: AsSingleTargets<Elem = F>> Datafit<F, CSCArray<'_, F>, T> for 
         dataset: &DatasetBase<CSCArray<'_, F>, T>,
         Xw: ArrayView1<F>,
     ) -> ArrayBase<OwnedRepr<F>, Ix1> {
-        let n_features = dataset.design_matrix().n_features();
-        let mut grad = Array1::<F>::zeros(n_features);
-        for j in 0..n_features {
-            grad[j] = self.gradient_j(dataset, Xw, j);
-        }
-        grad
+        Array1::from_iter(
+            (0..dataset.design_matrix().n_features())
+                .into_iter()
+                .map(|j| self.gradient_j(dataset, Xw, j))
+                .collect::<Vec<F>>(),
+        )
     }
 
     /// Computes the value of the datafit

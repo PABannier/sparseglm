@@ -24,12 +24,11 @@ where
     T: AsSingleTargets<Elem = F>,
     DF: Datafit<F, DM, T>,
 {
-    let ws_size = ws.len();
-    let mut grad = Array1::<F>::zeros(ws_size);
-    for (idx, &j) in ws.iter().enumerate() {
-        grad[idx] = datafit.gradient_j(dataset, Xw, j);
-    }
-    grad
+    Array1::from_iter(
+        ws.iter()
+            .map(|&j| datafit.gradient_j(dataset, Xw, j))
+            .collect::<Vec<F>>(),
+    )
 }
 
 pub fn kkt_violation<F, DF, P, DM, T>(
@@ -102,22 +101,32 @@ pub fn anderson_accel<F, DM, T, DF, P, S>(
     P: Penalty<F>,
     S: Extrapolator<F, DM, T>,
 {
-    let n_samples = dataset.targets().n_samples();
     let n_features = dataset.design_matrix().n_features();
 
-    // last_K_w[epoch % (K + 1)] = w[ws]
-    // Note: from my experiments, loops are 4-5x faster than slice
-    // See: https://github.com/rust-ndarray/ndarray/issues/571
-    for (idx, &j) in ws.iter().enumerate() {
+    ws.iter().enumerate().for_each(|(idx, &j)| {
         last_K_w[[epoch % (K + 1), idx]] = w[j];
-    }
+    });
 
     if epoch % (K + 1) == K {
-        for k in 0..K {
-            for j in 0..ws.len() {
-                U[[k, j]] = last_K_w[[k + 1, j]] - last_K_w[[k, j]];
-            }
-        }
+        // for k in 0..K {
+        //     for j in 0..ws.len() {
+        //         U[[k, j]] = last_K_w[[k + 1, j]] - last_K_w[[k, j]];
+        //     }
+        // }
+        *U = Array2::from_shape_vec(
+            (K, ws.len()),
+            last_K_w
+                .rows()
+                .into_iter()
+                .take(K)
+                .zip(last_K_w.rows().into_iter().skip(1))
+                .map(|(row_k, row_k_plus_1)| &row_k_plus_1 - &row_k)
+                .collect::<Vec<Array1<F>>>()
+                .into_iter()
+                .flatten()
+                .collect(),
+        )
+        .unwrap();
 
         let C = U.t().dot(U);
         let _res = solve_lin_sys(C.view(), Array1::<F>::ones(K).view());
@@ -126,18 +135,22 @@ pub fn anderson_accel<F, DM, T, DF, P, S>(
             Ok(z) => {
                 let c = &z / z.sum();
 
-                let mut w_acc = Array1::<F>::zeros(n_features);
-
                 // Extrapolation
-                for (idx, &j) in ws.iter().enumerate() {
-                    for k in 0..K {
-                        w_acc[j] += last_K_w[[k, idx]] * c[k];
-                    }
-                }
+                let mut w_acc = Array1::<F>::zeros(n_features);
+                last_K_w
+                    .rows()
+                    .into_iter()
+                    .take(K)
+                    .zip(c)
+                    .map(|(row, c_k)| &row * c_k)
+                    .fold(Array1::<F>::zeros(ws.len()), std::ops::Add::add)
+                    .iter()
+                    .zip(ws)
+                    .for_each(|(&extrapolated_pt_j, &j)| {
+                        w_acc[j] = extrapolated_pt_j;
+                    });
 
-                let mut Xw_acc = Array1::<F>::zeros(n_samples);
-                solver.extrapolate(dataset, &mut Xw_acc, w_acc.view(), ws);
-
+                let Xw_acc = solver.extrapolate(dataset, w_acc.view(), ws);
                 let p_obj = datafit.value(dataset, Xw.view()) + penalty.value(w.view());
                 let p_obj_acc = datafit.value(dataset, Xw_acc.view()) + penalty.value(w_acc.view());
 
@@ -253,16 +266,19 @@ where
                     );
                 }
 
-                if ws_size == n_features {
-                    if kkt_ws_max <= tolerance {
-                        break;
-                    }
-                } else {
-                    if kkt_ws_max < F::cast(0.3) * kkt_max {
-                        if verbose {
-                            println!("Early exit.")
+                match ws_size == n_features {
+                    true => {
+                        if kkt_ws_max <= tolerance {
+                            break;
                         }
-                        break;
+                    }
+                    false => {
+                        if kkt_ws_max < F::cast(0.3) * kkt_max {
+                            if verbose {
+                                println!("Early exit.")
+                            }
+                            break;
+                        }
                     }
                 }
             }

@@ -35,10 +35,9 @@ pub trait MultiTaskExtrapolator<F: Float, DM: DesignMatrix<Elem = F>, T: AsMulti
     fn extrapolate(
         &self,
         dataset: &DatasetBase<DM, T>,
-        XW_acc: &mut Array2<F>,
         W_acc: ArrayView2<F>,
         ws: ArrayView1<usize>,
-    );
+    ) -> Array2<F>;
 }
 
 /// This implementation block implements the coordinate descent epoch for dense
@@ -68,28 +67,31 @@ where
         let lipschitz = datafit.lipschitz();
 
         for &j in ws {
-            if lipschitz[j] == F::zero() {
-                continue;
-            }
-            let Xj: ArrayView1<F> = X.slice(s![.., j]);
-            let old_W_j = W.slice(s![j, ..]).to_owned();
-            let grad_j = datafit.gradient_j(dataset, XW.view(), j);
+            match lipschitz[j] == F::zero() {
+                true => continue,
+                false => {
+                    let Xj: ArrayView1<F> = X.slice(s![.., j]);
+                    let old_W_j = W.slice(s![j, ..]).to_owned();
+                    let grad_j = datafit.gradient_j(dataset, XW.view(), j);
 
-            let step = &old_W_j - grad_j / lipschitz[j];
-            let upd = penalty.prox_op(step.view(), F::one() / lipschitz[j]);
-            W.slice_mut(s![j, ..]).assign(&upd);
+                    let step = &old_W_j - grad_j / lipschitz[j];
+                    let upd = penalty.prox_op(step.view(), F::one() / lipschitz[j]);
+                    W.slice_mut(s![j, ..]).assign(&upd);
 
-            let mut diff = Array1::<F>::zeros(n_tasks);
-            let mut sum_diff = F::zero();
-            for t in 0..n_tasks {
-                diff[t] = W[[j, t]] - old_W_j[t];
-                sum_diff += diff[t].abs()
-            }
+                    let diff = Array1::from_iter(
+                        old_W_j
+                            .iter()
+                            .enumerate()
+                            .map(|(t, &old_w_jt)| W[[j, t]] - old_w_jt)
+                            .collect::<Vec<F>>(),
+                    );
 
-            if sum_diff != F::zero() {
-                for i in 0..n_samples {
-                    for t in 0..n_tasks {
-                        XW[[i, t]] += diff[t] * Xj[i];
+                    if diff.iter().any(|&x| x != F::zero()) {
+                        for i in 0..n_samples {
+                            for t in 0..n_tasks {
+                                XW[[i, t]] += diff[t] * Xj[i];
+                            }
+                        }
                     }
                 }
             }
@@ -162,20 +164,28 @@ where
     fn extrapolate(
         &self,
         dataset: &DatasetBase<ArrayBase<D, Ix2>, T>,
-        XW_acc: &mut Array2<F>,
         W_acc: ArrayView2<F>,
         ws: ArrayView1<usize>,
-    ) {
-        let X = dataset.design_matrix();
-        let n_samples = dataset.targets().n_samples();
-        let n_tasks = dataset.targets().n_tasks();
-        for i in 0..n_samples {
-            for &j in ws {
-                for t in 0..n_tasks {
-                    XW_acc[[i, t]] += X[[i, j]] * W_acc[[j, t]];
-                }
-            }
-        }
+    ) -> Array2<F> {
+        Array2::from_shape_vec(
+            (dataset.targets().n_samples(), dataset.targets().n_tasks()),
+            dataset
+                .design_matrix()
+                .rows()
+                .into_iter()
+                .map(|row| {
+                    W_acc
+                        .columns()
+                        .into_iter()
+                        .map(|col| ws.iter().map(|&j| row[j] * col[j]).sum())
+                        .collect::<Vec<F>>()
+                })
+                .collect::<Vec<Vec<F>>>()
+                .into_iter()
+                .flatten()
+                .collect::<Vec<F>>(),
+        )
+        .unwrap()
     }
 }
 
@@ -190,12 +200,12 @@ where
     fn extrapolate(
         &self,
         dataset: &DatasetBase<CSCArray<'a, F>, T>,
-        XW_acc: &mut Array2<F>,
         W_acc: ArrayView2<F>,
         ws: ArrayView1<usize>,
-    ) {
-        let X = dataset.design_matrix();
+    ) -> Array2<F> {
         let n_tasks = dataset.targets().n_tasks();
+        let mut XW_acc = Array2::<F>::zeros((dataset.targets().n_samples(), n_tasks));
+        let X = dataset.design_matrix();
         for &j in ws {
             for idx in X.indptr[j]..X.indptr[j + 1] {
                 for t in 0..n_tasks {
@@ -204,5 +214,6 @@ where
                 }
             }
         }
+        XW_acc
     }
 }
