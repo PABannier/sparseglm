@@ -67,28 +67,31 @@ where
         let lipschitz = datafit.lipschitz();
 
         for &j in ws {
-            if lipschitz[j] == F::zero() {
-                continue;
-            }
-            let Xj: ArrayView1<F> = X.slice(s![.., j]);
-            let old_W_j = W.slice(s![j, ..]).to_owned();
-            let grad_j = datafit.gradient_j(dataset, XW.view(), j);
+            match lipschitz[j] == F::zero() {
+                true => continue,
+                false => {
+                    let Xj: ArrayView1<F> = X.slice(s![.., j]);
+                    let old_W_j = W.slice(s![j, ..]).to_owned();
+                    let grad_j = datafit.gradient_j(dataset, XW.view(), j);
 
-            let step = &old_W_j - grad_j / lipschitz[j];
-            let upd = penalty.prox_op(step.view(), F::one() / lipschitz[j]);
-            W.slice_mut(s![j, ..]).assign(&upd);
+                    let step = &old_W_j - grad_j / lipschitz[j];
+                    let upd = penalty.prox_op(step.view(), F::one() / lipschitz[j]);
+                    W.slice_mut(s![j, ..]).assign(&upd);
 
-            let mut diff = Array1::<F>::zeros(n_tasks);
-            let mut sum_diff = F::zero();
-            for t in 0..n_tasks {
-                diff[t] = W[[j, t]] - old_W_j[t];
-                sum_diff += diff[t].abs()
-            }
+                    let diff = Array1::from_iter(
+                        old_W_j
+                            .iter()
+                            .enumerate()
+                            .map(|(t, &old_w_jt)| W[[j, t]] - old_w_jt)
+                            .collect::<Vec<F>>(),
+                    );
 
-            if sum_diff != F::zero() {
-                for i in 0..n_samples {
-                    for t in 0..n_tasks {
-                        XW[[i, t]] += diff[t] * Xj[i];
+                    if diff.iter().any(|&x| x != F::zero()) {
+                        for i in 0..n_samples {
+                            for t in 0..n_tasks {
+                                XW[[i, t]] += diff[t] * Xj[i];
+                            }
+                        }
                     }
                 }
             }
