@@ -1,5 +1,5 @@
 use ndarray::{Array1, Array2, ArrayView1};
-use ndarray_linalg::{Inverse, Lapack};
+use ndarray_linalg::{InverseC, Lapack};
 
 use super::Float;
 use crate::datafits::Datafit;
@@ -128,11 +128,17 @@ pub fn anderson_accel<F, DM, T, DF, P, S>(
         .unwrap();
 
         let C = U.t().dot(U);
-        // let _res = solve_lin_sys(C.view(), Array1::<F>::ones(K).view());
-        let _res = C.inv();
+        let _res = C.invc();
 
         match _res {
-            Ok(z) => {
+            Ok(C_inv) => {
+                let z = Array1::from_iter(
+                    C_inv
+                        .rows()
+                        .into_iter()
+                        .map(|row| row.sum())
+                        .collect::<Vec<F>>(),
+                );
                 let c = &z / z.sum();
 
                 // Extrapolation

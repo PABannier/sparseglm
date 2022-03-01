@@ -1,6 +1,7 @@
 extern crate ndarray;
 
 use ndarray::{s, Array1, Array2, ArrayView1, ArrayView2};
+use ndarray_linalg::{InverseC, Lapack};
 
 use super::Float;
 use crate::datafits_multitask::MultiTaskDatafit;
@@ -101,7 +102,7 @@ pub fn anderson_accel<F, DM, T, DF, P, S>(
     K: usize,
     verbose: bool,
 ) where
-    F: 'static + Float,
+    F: 'static + Float + Lapack,
     DM: DesignMatrix<Elem = F>,
     T: AsMultiTargets<Elem = F>,
     DF: MultiTaskDatafit<F, DM, T>,
@@ -145,10 +146,17 @@ pub fn anderson_accel<F, DM, T, DF, P, S>(
         .unwrap();
 
         let C = U.t().dot(U);
-        let _res = solve_lin_sys(C.view(), Array1::<F>::ones(K).view()); // TODO: change into LAPACK inversion
+        let _res = C.invc();
 
         match _res {
-            Ok(z) => {
+            Ok(C_inv) => {
+                let z = Array1::from_iter(
+                    C_inv
+                        .rows()
+                        .into_iter()
+                        .map(|row| row.sum())
+                        .collect::<Vec<F>>(),
+                );
                 let c = &z / z.sum();
 
                 // Extrapolation
@@ -205,7 +213,7 @@ pub fn block_coordinate_descent<F, DM, T, DF, P, S>(
     verbose: bool,
 ) -> Array2<F>
 where
-    F: 'static + Float,
+    F: 'static + Float + Lapack,
     DM: DesignMatrix<Elem = F>,
     T: AsMultiTargets<Elem = F>,
     DF: MultiTaskDatafit<F, DM, T>,
