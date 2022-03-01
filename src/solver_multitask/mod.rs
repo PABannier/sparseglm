@@ -35,10 +35,9 @@ pub trait MultiTaskExtrapolator<F: Float, DM: DesignMatrix<Elem = F>, T: AsMulti
     fn extrapolate(
         &self,
         dataset: &DatasetBase<DM, T>,
-        XW_acc: &mut Array2<F>,
         W_acc: ArrayView2<F>,
         ws: ArrayView1<usize>,
-    );
+    ) -> Array2<F>;
 }
 
 /// This implementation block implements the coordinate descent epoch for dense
@@ -162,13 +161,13 @@ where
     fn extrapolate(
         &self,
         dataset: &DatasetBase<ArrayBase<D, Ix2>, T>,
-        XW_acc: &mut Array2<F>,
         W_acc: ArrayView2<F>,
         ws: ArrayView1<usize>,
-    ) {
+    ) -> Array2<F> {
         let X = dataset.design_matrix();
         let n_samples = dataset.targets().n_samples();
         let n_tasks = dataset.targets().n_tasks();
+        let mut XW_acc = Array2::<F>::zeros((n_samples, n_tasks));
         for i in 0..n_samples {
             for &j in ws {
                 for t in 0..n_tasks {
@@ -176,6 +175,22 @@ where
                 }
             }
         }
+        XW_acc
+        // Array2::from_shape_vec(
+        //     (dataset.targets().n_samples(), dataset.targets.n_tasks()),
+        //     dataset
+        //         .design_matrix()
+        //         .rows()
+        //         .into_iter()
+        //         .map(|row| ws.iter().map(|&j| {
+
+        //         }))
+        //         .collect::<Vec<Array1<F>>>()
+        //         .into_iter()
+        //         .flatten()
+        //         .collect(),
+        // )
+        // .unwrap()
     }
 }
 
@@ -190,12 +205,12 @@ where
     fn extrapolate(
         &self,
         dataset: &DatasetBase<CSCArray<'a, F>, T>,
-        XW_acc: &mut Array2<F>,
         W_acc: ArrayView2<F>,
         ws: ArrayView1<usize>,
-    ) {
-        let X = dataset.design_matrix();
+    ) -> Array2<F> {
         let n_tasks = dataset.targets().n_tasks();
+        let mut XW_acc = Array2::<F>::zeros((dataset.targets().n_samples(), n_tasks));
+        let X = dataset.design_matrix();
         for &j in ws {
             for idx in X.indptr[j]..X.indptr[j + 1] {
                 for t in 0..n_tasks {
@@ -204,5 +219,6 @@ where
                 }
             }
         }
+        XW_acc
     }
 }
