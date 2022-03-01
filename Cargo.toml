@@ -3,9 +3,12 @@ name = "rustylasso"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+default = []
+
 [dependencies]
-ndarray = { version = "0.15", default-features = false, features = ["approx"] }
-ndarray-linalg = { version = "0.13", features = ["openblas-static"] }
+ndarray = { version = "0.15", features = ["approx", "blas"] }
+ndarray-linalg = { version = "0.14" }
 ndarray-stats = "0.5.0"
 
 num-traits = "0.2"
