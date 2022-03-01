@@ -101,15 +101,11 @@ pub fn anderson_accel<F, DM, T, DF, P, S>(
     P: Penalty<F>,
     S: Extrapolator<F, DM, T>,
 {
-    let n_samples = dataset.targets().n_samples();
     let n_features = dataset.design_matrix().n_features();
 
-    // last_K_w[epoch % (K + 1)] = w[ws]
-    // Note: from my experiments, loops are 4-5x faster than slice
-    // See: https://github.com/rust-ndarray/ndarray/issues/571
-    for (idx, &j) in ws.iter().enumerate() {
+    ws.iter().enumerate().for_each(|(idx, &j)| {
         last_K_w[[epoch % (K + 1), idx]] = w[j];
-    }
+    });
 
     if epoch % (K + 1) == K {
         for k in 0..K {
@@ -134,8 +130,7 @@ pub fn anderson_accel<F, DM, T, DF, P, S>(
                     }
                 }
 
-                let mut Xw_acc = Array1::<F>::zeros(n_samples);
-                solver.extrapolate(dataset, &mut Xw_acc, w_acc.view(), ws);
+                let Xw_acc = solver.extrapolate(dataset, w_acc.view(), ws);
 
                 let p_obj = datafit.value(dataset, Xw.view()) + penalty.value(w.view());
                 let p_obj_acc = datafit.value(dataset, Xw_acc.view()) + penalty.value(w_acc.view());
