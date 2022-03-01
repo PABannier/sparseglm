@@ -1,11 +1,10 @@
-extern crate ndarray;
-
 use ndarray::{Array1, Array2, ArrayView1};
+use ndarray_linalg::{Inverse, Lapack};
 
 use super::Float;
 use crate::datafits::Datafit;
 use crate::datasets::{AsSingleTargets, DatasetBase, DesignMatrix};
-use crate::helpers::helpers::{argsort_by, solve_lin_sys};
+use crate::helpers::helpers::argsort_by;
 use crate::penalties::Penalty;
 use crate::solver::{CDSolver, Extrapolator};
 
@@ -94,7 +93,7 @@ pub fn anderson_accel<F, DM, T, DF, P, S>(
     K: usize,
     verbose: bool,
 ) where
-    F: 'static + Float,
+    F: 'static + Float + Lapack,
     DM: DesignMatrix<Elem = F>,
     T: AsSingleTargets<Elem = F>,
     DF: Datafit<F, DM, T>,
@@ -129,7 +128,8 @@ pub fn anderson_accel<F, DM, T, DF, P, S>(
         .unwrap();
 
         let C = U.t().dot(U);
-        let _res = solve_lin_sys(C.view(), Array1::<F>::ones(K).view());
+        // let _res = solve_lin_sys(C.view(), Array1::<F>::ones(K).view());
+        let _res = C.inv();
 
         match _res {
             Ok(z) => {
@@ -186,7 +186,7 @@ pub fn coordinate_descent<F, DM, T, DF, P, S>(
     verbose: bool,
 ) -> Array1<F>
 where
-    F: 'static + Float,
+    F: 'static + Float + Lapack,
     DM: DesignMatrix<Elem = F>,
     T: AsSingleTargets<Elem = F>,
     DF: Datafit<F, DM, T>,

@@ -1,10 +1,11 @@
 #![allow(non_snake_case)]
-
 #![feature(test)]
 extern crate test;
 
 use ndarray::ScalarOperand;
-use ndarray_linalg::{Scalar, Lapack};
+
+#[cfg(feature = "ndarray-linalg")]
+use ndarray_linalg::{Lapack, Scalar};
 
 use num_traits::{AsPrimitive, FromPrimitive, NumAssignOps, NumCast, Signed};
 
@@ -12,6 +13,9 @@ use std::cmp::PartialOrd;
 use std::fmt;
 use std::iter::Sum;
 use std::ops::{AddAssign, DivAssign, MulAssign, SubAssign};
+
+mod lapack_bounds;
+pub use lapack_bounds::*;
 
 /// Float point numbers
 ///
@@ -39,7 +43,10 @@ pub trait Float:
     + ScalarOperand
     + approx::AbsDiffEq
 {
+    #[cfg(feature = "ndarray-linalg")]
     type Lapack: Float + Scalar + Lapack;
+    #[cfg(not(feature = "ndarray-linalg"))]
+    type Lapack: Float;
 
     fn cast<T: NumCast>(x: T) -> Self {
         NumCast::from(x).unwrap()
