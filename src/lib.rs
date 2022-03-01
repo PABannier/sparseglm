@@ -1,7 +1,4 @@
 #![allow(non_snake_case)]
-#![feature(test)]
-extern crate test;
-
 use ndarray::ScalarOperand;
 
 #[cfg(feature = "ndarray-linalg")]
