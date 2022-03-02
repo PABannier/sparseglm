@@ -4,7 +4,7 @@ import scipy.sparse as sp
 from sklearn.base import BaseEstimator
 from sklearn.utils import check_array
 
-import rustylassopy
+import sparseglm_solver
 
 
 __all__ = ["Lasso", "MultiTaskLasso", "MCPRegressor", "BlockMCPRegressor"]
@@ -76,7 +76,7 @@ class Lasso(Estimator):
 
     Examples
     --------
-    >>> from rustylasso.estimators import Lasso
+    >>> from sparseglm.estimators import Lasso
     >>> clf = Lasso(alpha)
     >>> clf.fit(X, y)
     """
@@ -107,7 +107,7 @@ class Lasso(Estimator):
         y = check_array(y, 'csc', dtype=X.dtype.type, order='F', copy=False,
                         ensure_2d=False)
 
-        self._inner = rustylassopy.LassoWrapper(
+        self._inner = sparseglm_solver.LassoWrapper(
             alpha=self.alpha, max_iterations=self.max_iter, p0=self.p0,
             k=self.K, max_epochs=self.max_epochs, tolerance=self.tol,
             use_acceleration=self.use_accel, verbose=self.verbose)
@@ -155,7 +155,7 @@ class MultiTaskLasso(Estimator):
 
     Examples
     --------
-    >>> from rustylasso.estimators import MultiTaskLasso
+    >>> from sparseglm.estimators import MultiTaskLasso
     >>> clf = MultiTaskLasso(alpha)
     >>> clf.fit(X, Y)
 
@@ -198,7 +198,7 @@ class MultiTaskLasso(Estimator):
             raise ValueError("X and Y have inconsistent dimensions (%d != %d)"
                              % (n_samples, Y.shape[0]))
 
-        self._inner = rustylassopy.MultiTaskLassoWrapper(
+        self._inner = sparseglm_solver.MultiTaskLassoWrapper(
             alpha=self.alpha, max_iterations=self.max_iter, p0=self.p0,
             k=self.K, max_epochs=self.max_epochs, tolerance=self.tol,
             use_acceleration=self.use_accel, verbose=self.verbose)
@@ -250,7 +250,7 @@ class MCPRegressor(Estimator):
 
     Examples
     --------
-    >>> from rustylasso.estimators import MCPRegressor
+    >>> from sparseglm.estimators import MCPRegressor
     >>> clf = MCP(alpha, gamma)
     >>> clf.fit(X, y)
 
@@ -286,7 +286,7 @@ class MCPRegressor(Estimator):
         y = check_array(y, 'csc', dtype=X.dtype.type, order='F', copy=False,
                         ensure_2d=False)
 
-        self._inner = rustylassopy.MCPWrapper(
+        self._inner = sparseglm_solver.MCPWrapper(
             alpha=self.alpha, gamma=self.gamma, max_iterations=self.max_iter,
             p0=self.p0, k=self.K, max_epochs=self.max_epochs,
             tolerance=self.tol, use_acceleration=self.use_accel,
@@ -339,7 +339,7 @@ class BlockMCPRegressor(Estimator):
 
     Examples
     --------
-    >>> from rustylasso.estimators import BlockMCPRegressor
+    >>> from sparseglm.estimators import BlockMCPRegressor
     >>> clf = BlockMCPRegressor(alpha, gamma)
     >>> clf.fit(X, Y)
 
@@ -386,7 +386,7 @@ class BlockMCPRegressor(Estimator):
             raise ValueError("X and Y have inconsistent dimensions (%d != %d)"
                              % (n_samples, Y.shape[0]))
 
-        self._inner = rustylassopy.BlockMCPWrapper(
+        self._inner = sparseglm_solver.BlockMCPWrapper(
             alpha=self.alpha, gamma=self.gamma, max_iterations=self.max_iter,
             p0=self.p0, k=self.K, max_epochs=self.max_epochs,
             tolerance=self.tol, use_acceleration=self.use_accel,

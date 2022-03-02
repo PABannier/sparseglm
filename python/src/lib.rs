@@ -6,7 +6,7 @@ mod mcp;
 mod mtl_lasso;
 
 #[pymodule]
-fn rustylassopy(_py: Python, m: &PyModule) -> PyResult<()> {
+fn sparseglm_solver(_py: Python, m: &PyModule) -> PyResult<()> {
     // Lasso
     m.add_class::<lasso::LassoWrapper>()?;
     m.add_class::<mtl_lasso::MultiTaskLassoWrapper>()?;

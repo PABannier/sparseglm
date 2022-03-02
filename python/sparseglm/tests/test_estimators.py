@@ -7,7 +7,7 @@ import scipy.sparse as sp
 from sklearn.linear_model import Lasso as Lasso_sk
 from sklearn.linear_model import MultiTaskLasso as MultiTaskLasso_sk
 
-from rustylasso.estimators import Lasso, MultiTaskLasso
+from sparseglm.estimators import Lasso, MultiTaskLasso
 
 from ..utils import make_correlated_data
 

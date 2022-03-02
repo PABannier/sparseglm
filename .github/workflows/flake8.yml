@@ -19,4 +19,4 @@ jobs:
       - name: Lint with flake
         run: |
           pip install flake8
-          flake8 python/rustylasso --exclude="python/rustylasso/profile/*"
+          flake8 python/sparseglm --exclude="python/sparseglm/profile/*"
