@@ -46,7 +46,7 @@ receive 3 structs which are responsible for the optimization routine: a `Solver`
 proximal step and computes the distance of the gradient to the subdifferential, a crucial score to rank the features that should be included in the
 working set.
 
-**\*Why not use duality theory to build working sets and use the duality gap as a stopping criterion?**
+**Why not use duality theory to build working sets and use the duality gap as a stopping criterion?**
 
 Convex models offer stronger theoretical guarantees and tools to write memory-efficient and fast optimization routine. However, building a solver
 around duality theory restrains de facto the range of supported models to only convex ones. The philosohpy of rust-sparseglm is to support as many models
@@ -58,3 +58,8 @@ The first one is used by most models and is implemented by the `subdiff_distance
 strategy fails. For instance, the subdifferential of the L0.5-quasinorm penalty at 0 is the real-line, which makes the computation of the distance of the
 gradient of the datafit with respect to feature `Xj` useless since the distance is always 0. Therefore, the first criterion becomes uninformative and we need
 to rely on the second criterion.
+
+## How to contribute?
+
+Any contributions are welcome. Just look at the issues page. If you need any guidance, feel free to ping any moderator
+and they will be happy to help you.
