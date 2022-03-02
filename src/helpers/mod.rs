@@ -1,8 +1,3 @@
-extern crate ndarray;
-extern crate ndarray_stats;
-extern crate rand;
-extern crate rand_distr;
-
 pub mod prox {
     use crate::Float;
     use ndarray::{Array1, ArrayView1};
