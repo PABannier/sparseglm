@@ -1,6 +1,7 @@
 # rust-sparseglm
 
 ![build](https://github.com/PABannier/RustyLasso/actions/workflows/cargo.yml/badge.svg)
+![build](https://github.com/PABannier/RustyLasso/actions/workflows/pytest.yml/badge.svg)
 
 A fast and modular coordinate descent solver for sparse generalized linear models with **convex** and **non-convex** separable penalties, written in Rust with Python bindings.
 
