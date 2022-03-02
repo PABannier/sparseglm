@@ -9,7 +9,7 @@ The solver implemented in this crate is explained in depth in [CITE PAPER] and p
 It also extensively demonstrates the superiority of such solver over non-accelerated approaches. A similar package written in pure Python
 (with Numba JIT compiled code) can be found here: [CITE FLASHCD].
 
-This solver leverages ![**Anderson acceleration**](https://github.com/mathurinm/andersoncd) and ![**working sets**](https://github.com/mathurinm/celer)
+This solver leverages [Anderson acceleration](https://github.com/mathurinm/andersoncd) and [working sets](https://github.com/mathurinm/celer)
 to achieve state-of-the-art performance on a large variety of algorithms. It can solve problems with millions of samples and features in seconds.
 
 The crate is organized in such a way it is very modular. Any sparse GLM can be implemented in under 50 lines of code by providing **a datafit** and **a penalty**, which makes it very easy to support new estimators.
@@ -29,7 +29,7 @@ Currently we support:
 | Dual SVM with hinge loss   |         -          |         -          |   Convex   |
 
 We provide below a demonstration of rust-sparseglm against other fast coordinate descent solvers using the optimization benchmarking tool
-![Benchopt](https://github.com/benchopt/benchopt).
+[Benchopt](https://github.com/benchopt/benchopt).
 
 [INSERT IMAGE]
 
