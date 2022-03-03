@@ -127,7 +127,8 @@ pub fn anderson_accel<F, DM, T, DF, P, S>(
         .unwrap();
 
         let C = U.t().dot(U);
-        let _res = C.invc();
+        // let _res = C.invc();
+        let _res: std::result::Result<Array2<_>, &str> = Err("hello");
 
         match _res {
             Ok(C_inv) => {

@@ -7,8 +7,7 @@ edition = "2021"
 default = []
 
 [dependencies]
-ndarray = { version = "0.15", features = ["approx", "blas"]}
-ndarray-linalg = { version = "0.14" }
+ndarray = { version = "0.15", features = ["approx"]}
 ndarray-stats = "0.5.0"
 
 num-traits = "0.2"
