@@ -8,8 +8,6 @@ default = []
 
 [dependencies]
 ndarray = { version = "0.15", features = ["approx", "blas"]}
-intel-mkl-src = { version = "0.6.0+mkl2020.1", features = ["mkl-dynamic-ilp64-seq"]}
-blas-sys = "0.7.1"
 ndarray-linalg = { version = "0.14" }
 ndarray-stats = "0.5.0"
 

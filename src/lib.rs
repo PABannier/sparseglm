@@ -1,12 +1,6 @@
 #![allow(non_snake_case)]
 
-extern crate blas_sys;
-extern crate intel_mkl_src;
-
 use ndarray::ScalarOperand;
-
-#[cfg(feature = "ndarray-linalg")]
-use ndarray_linalg::{Lapack, Scalar};
 
 use num_traits::{AsPrimitive, FromPrimitive, NumAssignOps, NumCast, Signed};
 
@@ -14,9 +8,6 @@ use std::cmp::PartialOrd;
 use std::fmt;
 use std::iter::Sum;
 use std::ops::{AddAssign, DivAssign, MulAssign, SubAssign};
-
-mod lapack_bounds;
-pub use lapack_bounds::*;
 
 /// Float point numbers
 ///
@@ -44,23 +35,14 @@ pub trait Float:
     + ScalarOperand
     + approx::AbsDiffEq
 {
-    #[cfg(feature = "ndarray-linalg")]
-    type Lapack: Float + Scalar + Lapack;
-    #[cfg(not(feature = "ndarray-linalg"))]
-    type Lapack: Float;
-
     fn cast<T: NumCast>(x: T) -> Self {
         NumCast::from(x).unwrap()
     }
 }
 
-impl Float for f32 {
-    type Lapack = f32;
-}
+impl Float for f32 {}
 
-impl Float for f64 {
-    type Lapack = f64;
-}
+impl Float for f64 {}
 
 pub mod bcd;
 pub mod cd;
