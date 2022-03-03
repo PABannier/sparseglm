@@ -1,7 +1,4 @@
-extern crate ndarray;
-
 use ndarray::{s, Array1, Array2, ArrayView1, ArrayView2};
-use ndarray_linalg::{InverseC, Lapack};
 
 use super::Float;
 use crate::datafits_multitask::MultiTaskDatafit;
@@ -102,7 +99,7 @@ pub fn anderson_accel<F, DM, T, DF, P, S>(
     K: usize,
     verbose: bool,
 ) where
-    F: 'static + Float + Lapack,
+    F: 'static + Float,
     DM: DesignMatrix<Elem = F>,
     T: AsMultiTargets<Elem = F>,
     DF: MultiTaskDatafit<F, DM, T>,
@@ -213,7 +210,7 @@ pub fn block_coordinate_descent<F, DM, T, DF, P, S>(
     verbose: bool,
 ) -> Array2<F>
 where
-    F: 'static + Float + Lapack,
+    F: 'static + Float,
     DM: DesignMatrix<Elem = F>,
     T: AsMultiTargets<Elem = F>,
     DF: MultiTaskDatafit<F, DM, T>,
