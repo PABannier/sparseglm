@@ -1,0 +1,1 @@
+initSidebarItems({"fn":[["anderson_accel",""],["block_coordinate_descent",""],["construct_grad",""],["construct_ws_from_kkt",""],["kkt_violation",""]]});

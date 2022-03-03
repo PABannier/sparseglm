@@ -1,6 +1,5 @@
 use thiserror::Error;
 
-/// Simplified `Result` using [`EstimatorError`](crate::EstimatorError) as error type
 pub type Result<T> = std::result::Result<T, EstimatorError>;
 
 /// Error variants from hyperparameter construction or model estimation

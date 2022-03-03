@@ -1,0 +1,3 @@
+var N = null;var sourcesIndex = {};
+sourcesIndex["rust_sparseglm"] = {"name":"","dirs":[{"name":"bcd","files":["mod.rs"]},{"name":"cd","files":["mod.rs"]},{"name":"datafits","files":["mod.rs"]},{"name":"datafits_multitask","files":["mod.rs"]},{"name":"datasets","files":["csc_array.rs","impl_datasets.rs","impl_design_matrix.rs","impl_targets.rs","mod.rs"]},{"name":"estimators","files":["error.rs","estimators.rs","hyperparams.rs","mod.rs","param_guard.rs","traits.rs"]},{"name":"helpers","files":["mod.rs"]},{"name":"penalties","files":["mod.rs"]},{"name":"penalties_multitask","files":["mod.rs"]},{"name":"solver","files":["mod.rs"]},{"name":"solver_multitask","files":["mod.rs"]}],"files":["lib.rs"]};
+createSourceSidebar();
