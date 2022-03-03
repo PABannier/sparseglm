@@ -36,7 +36,7 @@ impl<F: Float> L1<F> {
 impl<F: Float> Penalty<F> for L1<F> {
     /// Gets the current value of the penalty
     fn value(&self, w: ArrayView1<F>) -> F {
-        self.alpha * w.map(|&wj| wj.abs()).sum()
+        self.alpha * w.iter().map(|&wj| wj.abs()).sum()
     }
 
     /// Computes the value of the proximal operator
@@ -154,7 +154,7 @@ impl<F: Float> L05<F> {
 impl<F: Float> Penalty<F> for L05<F> {
     /// Gets the current value of the penalty
     fn value(&self, w: ArrayView1<F>) -> F {
-        self.alpha * w.map(|wj| wj.abs().sqrt()).sum()
+        self.alpha * w.iter().map(|wj| wj.abs().sqrt()).sum()
     }
 
     /// Proximal operator

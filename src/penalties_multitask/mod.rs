@@ -56,7 +56,7 @@ impl<F: 'static + Float> PenaltyMultiTask<F> for L21<F> {
 
                 match W_j.iter().any(|&w_ij| w_ij != F::zero()) {
                     true => {
-                        let norm_W_j = W_j.map(|&wj| wj.powi(2)).sum().sqrt();
+                        let norm_W_j = W_j.dot(&W_j).sqrt();
                         grad_idx
                             .iter()
                             .zip(W_j)
@@ -66,7 +66,7 @@ impl<F: 'static + Float> PenaltyMultiTask<F> for L21<F> {
                             .sqrt()
                     }
                     false => {
-                        let norm_grad_j = grad_idx.map(|&grad_ij| grad_ij.powi(2)).sum().sqrt();
+                        let norm_grad_j = grad_idx.dot(&grad_idx).sqrt();
                         F::max(F::zero(), norm_grad_j - self.alpha)
                     }
                 }
@@ -127,7 +127,7 @@ impl<F: Float> PenaltyMultiTask<F> for BlockMCP<F> {
         let cast1 = F::cast(1.);
         let tau = self.alpha * stepsize;
         let g = self.gamma / stepsize;
-        let norm_value = value.map(|wj| wj.powi(2)).sum().sqrt();
+        let norm_value = value.dot(&value).sqrt();
         if norm_value <= tau {
             Array1::<F>::zeros(value.len())
         } else if norm_value > g * tau {
@@ -152,22 +152,25 @@ impl<F: Float> PenaltyMultiTask<F> for BlockMCP<F> {
         let subdiff_dist =
             Array1::from_iter(grad.axis_iter(Axis(0)).zip(ws).map(|(grad_idx, &j)| {
                 let W_j = W.slice(s![j, ..]);
-                let norm_W_j = W_j.map(|wj| wj.powi(2)).sum().sqrt();
+                let norm_W_j = W_j.dot(&W_j).sqrt();
 
                 match W_j.iter().any(|&w_ij| w_ij != F::zero()) {
                     false => {
                         // distance of -grad_j to alpha * unit_ball
-                        let norm_grad_j = grad_idx.map(|&grad_ij| grad_ij.powi(2)).sum().sqrt();
+                        let norm_grad_j = grad_idx.dot(&grad_idx).sqrt();
                         F::max(F::zero(), norm_grad_j - self.alpha)
                     }
                     _ => {
                         if norm_W_j < self.alpha * self.gamma {
                             // distance of -grad_j to alpha * W[j] / ||W_j|| - W[j] / gamma
                             let scale = self.alpha / norm_W_j - F::one() / self.gamma;
-                            W_j.map(|&W_ij| (W_ij * scale).powi(2)).sum().sqrt()
+                            W_j.iter()
+                                .map(|&W_ij| (W_ij * scale).powi(2))
+                                .sum::<F>()
+                                .sqrt()
                         } else {
                             // distance of -grad_j to 0
-                            grad_idx.map(|&grad_ij| grad_ij.powi(2)).sum().sqrt()
+                            grad_idx.dot(&grad_idx).sqrt()
                         }
                     }
                 }
