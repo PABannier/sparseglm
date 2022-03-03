@@ -1,4 +1,4 @@
-extern crate ndarray;
+
 
 use ndarray::{ArrayBase, ArrayView1, ArrayView2, Axis, Ix2, OwnedRepr, ViewRepr};
 

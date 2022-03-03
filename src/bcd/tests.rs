@@ -1,5 +1,3 @@
-extern crate ndarray;
-
 use ndarray::linalg::general_mat_mul;
 use ndarray::{Array1, Array2};
 

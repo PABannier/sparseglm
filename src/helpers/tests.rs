@@ -1,5 +1,3 @@
-extern crate ndarray;
-
 use crate::helpers::*;
 use ndarray::{Array1, Array2};
 

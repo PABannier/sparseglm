@@ -1,4 +1,4 @@
-extern crate ndarray;
+
 
 use ndarray::array;
 

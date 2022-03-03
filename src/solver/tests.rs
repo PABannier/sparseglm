@@ -1,4 +1,4 @@
-extern crate ndarray;
+
 
 use ndarray::{Array1, Array2};
 

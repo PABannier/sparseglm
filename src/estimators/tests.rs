@@ -1,6 +1,3 @@
-extern crate ndarray;
-extern crate rand;
-
 use ndarray::{Array1, Array2};
 
 use crate::datasets::*;

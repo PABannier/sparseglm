@@ -1,5 +1,3 @@
-extern crate ndarray;
-
 use ndarray::{array, Array1};
 
 use crate::penalties::*;

@@ -1,5 +1,13 @@
 #![allow(non_snake_case)]
 
+extern crate approx;
+extern crate ndarray;
+extern crate ndarray_stats;
+extern crate num_traits;
+extern crate rand;
+extern crate rand_distr;
+extern crate thiserror;
+
 use ndarray::ScalarOperand;
 
 use num_traits::{AsPrimitive, FromPrimitive, NumAssignOps, NumCast, Signed};
@@ -13,7 +21,7 @@ use std::ops::{AddAssign, DivAssign, MulAssign, SubAssign};
 ///
 /// This trait bound multiplexes to the most common assumption of floating point
 /// number and implement them for 32bit and 64bit float points.
-/// Ref: https://github.com/rust-ml/linfa/blob/master/src/dataset/mod.rs#L36
+/// Ref: `<https://github.com/rust-ml/linfa/blob/master/src/dataset/mod.rs#L36>`
 pub trait Float:
     FromPrimitive
     + num_traits::Float

@@ -1,5 +1,3 @@
-extern crate ndarray;
-
 use ndarray::{Array1, Array2};
 
 use crate::datafits_multitask::*;

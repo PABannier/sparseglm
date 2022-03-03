@@ -1,5 +1,3 @@
-extern crate ndarray;
-
 use ndarray::{s, Array1, Array2, ArrayView1, ArrayView2};
 
 use super::Float;
