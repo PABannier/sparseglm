@@ -6,9 +6,25 @@ use crate::helpers::prox::{prox_05, soft_thresholding};
 #[cfg(test)]
 mod tests;
 
+/// This trait provides three methods needed to update the weights during the
+/// optimization routine.
 pub trait Penalty<F: Float> {
+    /// This method is called when evaluating the objective value.
+    ///
+    /// It is jointly used  with [`Datafit::value`] in order to compute the value
+    /// of the objective.
     fn value(&self, w: ArrayView1<F>) -> F;
+
+    /// This method computes the proximal gradient step during the update of the
+    /// weights. For a given penalty, it implements its proximal operator.
     fn prox_op(&self, value: F, step_size: F) -> F;
+
+    /// This method is used when ranking the features to build the working set.
+    /// It allows to compute the distance between the gradient of the datafit
+    /// to the subdifferential of the penalty.
+    ///
+    /// It outputs the distances of the gradient of each feature to the subdifferential
+    /// of the penalty, as well as the maximum distance.
     fn subdiff_distance(
         &self,
         w: ArrayView1<F>,
@@ -17,32 +33,39 @@ pub trait Penalty<F: Float> {
     ) -> (Array1<F>, F);
 }
 
-/// L1 penalty
+/// The L1 penalty
 ///
+/// A widely-used penalty made popular by the LASSO model. It is used in a regression
+/// setting and yields sparse solutions. Note that LASSO yields a biased solution
+/// compared to the ordinary least square solution.
 #[derive(Debug, Clone, PartialEq)]
 pub struct L1<F: Float> {
     alpha: F,
 }
 
 impl<F: Float> L1<F> {
-    // Constructor
+    /// Instantiates a L1 penalty with a positive regularization hyperparameter.
     pub fn new(alpha: F) -> Self {
         L1 { alpha }
     }
 }
 
 impl<F: Float> Penalty<F> for L1<F> {
-    /// Gets the current value of the penalty
+    /// Computes the L1-norm of the weights
     fn value(&self, w: ArrayView1<F>) -> F {
         self.alpha * w.map(|&wj| wj.abs()).sum()
     }
 
-    /// Computes the value of the proximal operator
+    /// Applies the soft-thresholding operator to a weight scalar
     fn prox_op(&self, value: F, stepsize: F) -> F {
         soft_thresholding(value, self.alpha * stepsize)
     }
 
     /// Computes the distance of the gradient to the subdifferential
+    ///
+    /// The distance of the gradient to the subdifferential of L1 is:
+    /// dist(grad, subdiff) = max(0, |grad| - alpha)         if w[j] = 0
+    ///                       |- grad - sign(w[j]) * alpha|  otherwise
     fn subdiff_distance(
         &self,
         w: ArrayView1<F>,
@@ -63,8 +86,10 @@ impl<F: Float> Penalty<F> for L1<F> {
     }
 }
 
-/// MCP penalty
+/// The Minimax concave penalty
 ///
+/// A non-convex penalty that yields sparser solutions than the L1 penalty and mitigates
+/// the intrinsic L1-penalty bias.
 #[derive(Debug, Clone, PartialEq)]
 pub struct MCP<F: Float> {
     alpha: F,
@@ -72,20 +97,21 @@ pub struct MCP<F: Float> {
 }
 
 impl<F: Float> MCP<F> {
-    /// Constructor
-    ///
+    /// Instantiates a Minimax Concave Penalty (MCP) with a given positive regularization
+    /// and a shaping hyperparameter
     pub fn new(alpha: F, gamma: F) -> Self {
         MCP { alpha, gamma }
     }
 }
 
 impl<F: Float> Penalty<F> for MCP<F> {
-    /// Gets the current value of the penalty
+    /// Computes the MCP for the weight vector
+    ///
+    /// With x >= 0
+    /// pen(x) = alpha * x - x^2 / (2 * gamma) if x =< gamma * alpha
+    ///          gamma * alpha 2 / 2           if x > gamma * alpha
+    /// value = sum_{j=1}^{n_features} pen(|w_j|)
     fn value(&self, w: ArrayView1<F>) -> F {
-        // With x >= 0
-        // pen(x) = alpha * x - x^2 / (2 * gamma) if x =< gamma * alpha
-        //          gamma * alpha 2 / 2           if x > gamma * alpha
-        // value = sum_{j=1}^{n_features} pen(|w_j|)
         let cast2 = F::cast(2.);
         w.iter()
             .map(|&wj| match wj.abs() < self.gamma * self.alpha {
@@ -95,7 +121,11 @@ impl<F: Float> Penalty<F> for MCP<F> {
             .sum()
     }
 
-    /// Proximal operator
+    /// Computes the proximal operator of MCP for a weight scalar
+    ///
+    /// prox(x, threshold) = 0.                  if |x| < alpha * threshold
+    ///                      x                   if |x| > alpha * gamma
+    ///                      sign(x) * (|x| - alpha * threshold) / (1 - threshold / gamma)
     fn prox_op(&self, value: F, stepsize: F) -> F {
         let tau = self.alpha * stepsize;
         let g = self.gamma / stepsize;
@@ -108,7 +138,11 @@ impl<F: Float> Penalty<F> for MCP<F> {
         }
     }
 
-    /// Computes the distance of the gradient to the subdifferential
+    /// Computes the distance of the gradient to the subdifferential of MCP
+    ///
+    /// dist(grad, subdiff) = max(0, |grad| - alpha)                      if w[j] = 0
+    ///                       |grad + alpha * sign(w[j]) - w[j] / gamma|  if |w[j]| < alpha * gamma
+    ///                       |grad|                                      otherwise
     fn subdiff_distance(
         &self,
         w: ArrayView1<F>,
@@ -134,52 +168,46 @@ impl<F: Float> Penalty<F> for MCP<F> {
     }
 }
 
-/// L05 penalty
+/// The L05 penalty
 ///
+/// A non-convex penalty based on the quasi-norm l0.5. It creates sparser solutions than
+/// the L1 penalty.
 #[derive(Debug, Clone, PartialEq)]
 pub struct L05<F: Float> {
     alpha: F,
 }
 
 impl<F: Float> L05<F> {
-    /// Constructor
-    ///
+    /// Instantiates a L05 penalty with a given regularization hyperparameter
     pub fn new(alpha: F) -> Self {
         L05 { alpha }
     }
 }
 
 impl<F: Float> Penalty<F> for L05<F> {
-    /// Gets the current value of the penalty
+    /// Computes the L05 penalty value for the weight vector
+    ///
+    /// pen(x) = alpha * ||x||_0.5
     fn value(&self, w: ArrayView1<F>) -> F {
         self.alpha * w.map(|wj| wj.abs().sqrt()).sum()
     }
 
-    /// Proximal operator
+    /// Computes the proximal operator of the L0.5 norm for a weight scalar
     fn prox_op(&self, value: F, stepsize: F) -> F {
         prox_05(value, stepsize * self.alpha)
     }
 
-    /// Computes the distance of the gradient to the subdifferential
+    /// No distance to the subdifferential is computed for the L0.5 norm since the
+    /// subdifferential is the real line, therefore the distance to the gradient is
+    /// always 0. This makes this criterion uninformative to build the working sets.
+    /// This penalty relies instead on the violation of the fixed point iterate schema.
     fn subdiff_distance(
         &self,
-        w: ArrayView1<F>,
-        grad: ArrayView1<F>,
-        ws: ArrayView1<usize>,
+        _w: ArrayView1<F>,
+        _grad: ArrayView1<F>,
+        _ws: ArrayView1<usize>,
     ) -> (Array1<F>, F) {
-        let subdiff_dist = Array1::from_vec(
-            grad.iter()
-                .zip(ws)
-                .map(|(&grad_idx, &j)| match w[j] == F::zero() {
-                    true => F::zero(),
-                    false => (-grad_idx
-                        - w[j].signum() * self.alpha / (F::cast(2.) * w[j].abs().sqrt()))
-                    .abs(),
-                })
-                .collect(),
-        );
-        let max_dist = subdiff_dist.fold(F::neg_infinity(), |max_val, &dist| F::max(max_val, dist));
-        (subdiff_dist, max_dist)
+        (Array1::<F>::zeros(1), F::zero())
     }
 }
 
