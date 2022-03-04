@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["Solver",""]],"trait":[["CDSolver",""],["Extrapolator",""]]});

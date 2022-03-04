@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["L05","L05 penalty"],["L1","L1 penalty"],["MCP","MCP penalty"]],"trait":[["Penalty",""]]});

@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["MultiTaskSolver",""]],"trait":[["BCDSolver",""],["MultiTaskExtrapolator",""]]});

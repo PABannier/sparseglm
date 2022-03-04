@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["Quadratic","Quadratic datafit"]],"trait":[["Datafit",""]]});
