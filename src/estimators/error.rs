@@ -16,4 +16,6 @@ pub enum EstimatorError {
     InvalidK(usize),
     #[error("invalid p0 {0}")]
     InvalidP0(usize),
+    #[error("invalid l1 ratio {0}")]
+    InvalidL1Ratio(f32),
 }

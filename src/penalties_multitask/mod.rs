@@ -100,6 +100,88 @@ impl<F: 'static + Float> MultiTaskPenalty<F> for L21<F> {
     }
 }
 
+/// The Block L1 + L2 penalty
+///
+/// A block convex penalty used by the Elastic Net model. It is used in a
+/// multi-task regression setting and is a combination of a L2-regularized OLS
+/// model (MultiTask Ridge) and a L21-regularized OLS (MultiTask Lasso).
+#[derive(Debug, Clone, PartialEq)]
+pub struct BlockL1PlusL2<F: Float> {
+    alpha: F,
+    l21_ratio: F,
+}
+
+impl<F: Float> BlockL1PlusL2<F> {
+    /// Instantiates a block L1 + L2 penalty with a positive regularization hyperparameter
+    /// and a weighting hyperparameter between 0 and 1 that weights the amount of
+    /// L21 and L2,2 regularizations.
+    pub fn new(alpha: F, l21_ratio: F) -> Self {
+        BlockL1PlusL2 { alpha, l21_ratio }
+    }
+}
+
+impl<F: Float> MultiTaskPenalty<F> for BlockL1PlusL2<F> {
+    /// Computes the block L1 + L2 - norm of the weights
+    ///
+    /// pen(X) = alpha * l21_ratio * ||X||_2,1 + alpha * (1 - l21_ratio) * ||X||_2,2^2 / 2
+    fn value(&self, W: ArrayView2<F>) -> F {
+        let norm_W_j = W.map_axis(Axis(1), |Wj| Wj.dot(&Wj).sqrt());
+        self.alpha
+            * (self.l21_ratio * norm_W_j.sum()
+                + (F::one() - self.l21_ratio)
+                    * F::cast(0.5)
+                    * norm_W_j.iter().map(|&norm_w_j| norm_w_j.powi(2)).sum())
+    }
+
+    /// Computes the proximal operator the Block L1 + L2 penalty for a weight vector
+    fn prox_op(&self, value: ArrayView1<F>, stepsize: F) -> Array1<F> {
+        let prox = block_soft_thresholding(value, self.alpha * stepsize * self.l21_ratio);
+        prox / (F::one() + stepsize * (F::one() - self.l21_ratio) * self.alpha)
+    }
+
+    /// Computes the distance of the gradient to the subdifferential
+    ///
+    /// The distance of the gradient to the subdifferential of Block L1 + L2 is:
+    /// dist(grad, subdiff) = max(0, ||grad|| - alpha * l21_ratio)              if ||W[j]|| = 0
+    ///                       || - grad - alpha * (W[j] / ||W[j]|| * l21_ratio
+    ///                          + (1 - l21_ratio) * W[j]) ||                   otherwise
+    fn subdiff_distance(
+        &self,
+        W: ArrayView2<F>,
+        grad: ArrayView2<F>,
+        ws: ArrayView1<usize>,
+    ) -> (Array1<F>, F) {
+        let subdiff_dist =
+            Array1::from_iter(grad.axis_iter(Axis(0)).zip(ws).map(|(grad_idx, &j)| {
+                let W_j = W.slice(s![j, ..]);
+
+                match W_j.iter().any(|&w_ij| w_ij != F::zero()) {
+                    true => {
+                        let norm_W_j = W_j.map(|&wj| wj.powi(2)).sum().sqrt();
+                        grad_idx
+                            .iter()
+                            .zip(W_j)
+                            .fold(F::zero(), |sum, (&grad_ij, &w_ij)| {
+                                sum + (grad_ij
+                                    + self.alpha
+                                        * (w_ij / norm_W_j * self.l21_ratio
+                                            + (F::one() - self.l21_ratio) * w_ij))
+                                    .powi(2)
+                            })
+                            .sqrt()
+                    }
+                    false => {
+                        let norm_grad_j = grad_idx.map(|&grad_ij| grad_ij.powi(2)).sum().sqrt();
+                        F::max(F::zero(), norm_grad_j - self.alpha * self.l21_ratio)
+                    }
+                }
+            }));
+
+        let max_dist = subdiff_dist.fold(F::neg_infinity(), |max_val, &dist| F::max(max_val, dist));
+        (subdiff_dist, max_dist)
+    }
+}
+
 /// The Block Minimax Concave Penalty
 ///
 /// A block non-convex penalty that yields sparser solutions than the L21 penalty and mitigates

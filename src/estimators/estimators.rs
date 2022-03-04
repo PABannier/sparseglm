@@ -2,8 +2,8 @@ use ndarray::{ArrayBase, Data, Ix1, Ix2, OwnedRepr, ViewRepr};
 
 use super::error::{EstimatorError, Result};
 use super::hyperparams::{
-    BlockMCPValidParams, BlockMCParams, LassoParams, LassoValidParams, MCPValidParams, MCParams,
-    MultiTaskLassoParams, MultiTaskLassoValidParams,
+    BlockMCPValidParams, BlockMCParams, ElasticNetParams, ElasticNetValidParams, LassoParams,
+    LassoValidParams, MCPValidParams, MCParams, MultiTaskLassoParams, MultiTaskLassoValidParams,
 };
 use super::traits::Fit;
 
@@ -12,7 +12,7 @@ use crate::cd::coordinate_descent;
 use crate::datafits::Quadratic;
 use crate::datafits_multitask::QuadraticMultiTask;
 use crate::datasets::{csc_array::CSCArray, AsMultiTargets, AsSingleTargets, DatasetBase};
-use crate::penalties::{L1, MCP};
+use crate::penalties::{L1PlusL2, L1, MCP};
 use crate::penalties_multitask::{BlockMCP, L21};
 use crate::solver::Solver;
 use crate::solver_multitask::MultiTaskSolver;
@@ -369,5 +369,59 @@ impl<F: Float, T: AsMultiTargets<Elem = F>> Fit<CSCArray<'_, F>, T, EstimatorErr
             self.verbose(),
         );
         Ok(BlockMCPEstimator { coefficients: W })
+    }
+}
+
+/// ElasticNet
+///
+/// The ElasticNet is a weighted combination of the Ridge regression and the [`Lasso`]
+/// regression. It combines a weighted L1 + L2 penalty that yields sparse solution.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ElasticNet<F> {
+    coefficients: ArrayBase<OwnedRepr<F>, Ix1>,
+}
+
+impl<F: Float> ElasticNet<F> {
+    /// This method instantiates a [`ElasticNet`] with default coordinate
+    /// descent parameters.
+    pub fn params() -> ElasticNetParams<F> {
+        ElasticNetParams::new()
+    }
+
+    pub fn coefficients(&self) -> ArrayBase<ViewRepr<&F>, Ix1> {
+        self.coefficients.view()
+    }
+}
+
+/// This implements the coordinate descent optimization procedure for
+/// single-task problems and dense design matrices.
+impl<F: Float, S: Data<Elem = F>, T: AsSingleTargets<Elem = F>>
+    Fit<ArrayBase<S, Ix2>, T, EstimatorError> for ElasticNetValidParams<F>
+{
+    /// If successful, the output of the coordinate descent solver is an instance
+    /// of [`ElasticNet`] containing the fitted coefficients.
+    type Object = ElasticNet<F>;
+
+    /// This method fits a [`ElasticNet`] instance to a dataset with a
+    /// dense design matrix.
+    fn fit(&self, dataset: &DatasetBase<ArrayBase<S, Ix2>, T>) -> Result<Self::Object> {
+        let solver = Solver {};
+        let mut datafit = Quadratic::default();
+        let penalty = L1PlusL2::new(self.alpha(), self.l1_ratio());
+
+        let w = coordinate_descent(
+            dataset,
+            &mut datafit,
+            &solver,
+            &penalty,
+            self.p0(),
+            self.max_iterations(),
+            self.max_epochs(),
+            self.tolerance(),
+            self.K(),
+            self.use_acceleration(),
+            self.verbose(),
+        );
+        Ok(ElasticNet { coefficients: w })
     }
 }

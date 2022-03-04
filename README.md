@@ -27,7 +27,7 @@ Currently we support:
 | -------------------------- | :----------------: | :----------------: | :--------: |
 | Lasso                      | :heavy_check_mark: | :heavy_check_mark: |   Convex   |
 | MCP                        | :heavy_check_mark: | :heavy_check_mark: | Non-convex |
-| Elastic-Net                |         -          |         -          |   Convex   |
+| Elastic-Net                | :heavy_check_mark: | :heavy_check_mark: |   Convex   |
 | L0.5                       | :heavy_check_mark: | :heavy_check_mark: | Non-convex |
 | L2/3                       |         -          |         -          | Non-convex |
 | SCAD                       |         -          |         -          | Non-convex |
