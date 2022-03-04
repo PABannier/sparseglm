@@ -281,6 +281,7 @@ where
             break;
         }
 
+        // Construct the working set based on previously computed KKT violation
         let (ws, ws_size) = construct_ws_from_kkt(&mut kkt, w.view(), p0);
 
         let mut last_K_w = Array2::<F>::zeros((K + 1, ws_size));
