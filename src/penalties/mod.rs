@@ -11,7 +11,7 @@ mod tests;
 pub trait Penalty<F: Float> {
     /// This method is called when evaluating the objective value.
     ///
-    /// It is jointly used  with [`Datafit::value`] in order to compute the value
+    /// It is jointly used with [`Datafit::value`] in order to compute the value
     /// of the objective.
     fn value(&self, w: ArrayView1<F>) -> F;
 
@@ -23,8 +23,8 @@ pub trait Penalty<F: Float> {
     /// It allows to compute the distance between the gradient of the datafit
     /// to the subdifferential of the penalty.
     ///
-    /// It outputs the distances of the gradient of each feature to the subdifferential
-    /// of the penalty, as well as the maximum distance.
+    /// It outputs the distances of the gradient of each feature to the
+    /// subdifferential of the penalty, as well as the maximum distance.
     fn subdiff_distance(
         &self,
         w: ArrayView1<F>,
@@ -35,9 +35,9 @@ pub trait Penalty<F: Float> {
 
 /// The L1 penalty
 ///
-/// A widely-used penalty made popular by the LASSO model. It is used in a regression
-/// setting and yields sparse solutions. Note that LASSO yields a biased solution
-/// compared to the ordinary least square solution.
+/// A widely-used penalty made popular by the LASSO model. It is used in a
+/// regression setting and yields sparse solutions. Note that LASSO yields a
+/// biased solution compared to the ordinary least square solution.
 #[derive(Debug, Clone, PartialEq)]
 pub struct L1<F: Float> {
     alpha: F,
@@ -88,8 +88,8 @@ impl<F: Float> Penalty<F> for L1<F> {
 
 /// The Minimax concave penalty
 ///
-/// A non-convex penalty that yields sparser solutions than the L1 penalty and mitigates
-/// the intrinsic L1-penalty bias.
+/// A non-convex penalty that yields sparser solutions than the L1 penalty and
+/// mitigates the intrinsic L1-penalty bias.
 #[derive(Debug, Clone, PartialEq)]
 pub struct MCP<F: Float> {
     alpha: F,
@@ -97,8 +97,8 @@ pub struct MCP<F: Float> {
 }
 
 impl<F: Float> MCP<F> {
-    /// Instantiates a Minimax Concave Penalty (MCP) with a given positive regularization
-    /// and a shaping hyperparameter
+    /// Instantiates a Minimax Concave Penalty (MCP) with a given positive
+    /// regularization and a shaping hyperparameter
     pub fn new(alpha: F, gamma: F) -> Self {
         MCP { alpha, gamma }
     }
@@ -171,8 +171,8 @@ impl<F: Float> Penalty<F> for MCP<F> {
 
 /// The L05 penalty
 ///
-/// A non-convex penalty based on the quasi-norm l0.5. It creates sparser solutions than
-/// the L1 penalty.
+/// A non-convex penalty based on the quasi-norm l0.5. It creates sparser
+/// solutions than the L1 penalty.
 #[derive(Debug, Clone, PartialEq)]
 pub struct L05<F: Float> {
     alpha: F,
@@ -198,10 +198,11 @@ impl<F: Float> Penalty<F> for L05<F> {
         prox_05(value, stepsize * self.alpha)
     }
 
-    /// No distance to the subdifferential is computed for the L0.5 norm since the
-    /// subdifferential is the real line, therefore the distance to the gradient is
-    /// always 0. This makes this criterion uninformative to build the working sets.
-    /// This penalty relies instead on the violation of the fixed point iterate schema.
+    /// No distance to the subdifferential is computed for the L0.5 norm since
+    /// the subdifferential is the real line, therefore the distance to the
+    /// gradient is always 0. This makes this criterion uninformative to build
+    /// the working sets. This penalty relies instead on the violation of the
+    /// fixed point iterate schema.
     fn subdiff_distance(
         &self,
         _w: ArrayView1<F>,
