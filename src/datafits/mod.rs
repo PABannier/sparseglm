@@ -109,19 +109,23 @@ impl<F: Float, D: Data<Elem = F>, T: AsSingleTargets<Elem = F>> Datafit<F, Array
         val
     }
 
-    // Getter for Lipschitz constants
+    // A getter method for the Lipschitz constants.
     fn lipschitz(&self) -> ArrayView1<F> {
         self.lipschitz.view()
     }
 
-    // Getter for Xty
+    // A getter method for Xty.
     fn Xty(&self) -> ArrayView1<F> {
         self.Xty.view()
     }
 }
 
+/// This implementation block implements the `Datafit` for sparse matrices
+/// (CSC arrays). The methods [`Datafit::initialize`] and [`Datafit::gradient_j`]
+/// are modified to exploit the sparse structure of the design matrix.
 impl<F: Float, T: AsSingleTargets<Elem = F>> Datafit<F, CSCArray<'_, F>, T> for Quadratic<F> {
-    /// Initializes the datafit by pre-computing useful quantities with sparse matrices
+    /// This method initializes the datafit by pre-computing useful quantities
+    /// with sparse matrices.
     fn initialize(&mut self, dataset: &DatasetBase<CSCArray<'_, F>, T>) {
         let n_samples = dataset.targets().n_samples();
         let n_features = dataset.design_matrix().n_features();
@@ -141,7 +145,8 @@ impl<F: Float, T: AsSingleTargets<Elem = F>> Datafit<F, CSCArray<'_, F>, T> for 
         }
     }
 
-    /// Computes the value of the gradient at some point w for coordinate j using sparse matrices
+    /// This method computes the value of the gradient at some point w for
+    /// coordinate j using sparse matrices.
     fn gradient_j(
         &self,
         dataset: &DatasetBase<CSCArray<'_, F>, T>,
@@ -157,7 +162,7 @@ impl<F: Float, T: AsSingleTargets<Elem = F>> Datafit<F, CSCArray<'_, F>, T> for 
         return (XjTXw - self.Xty[j]) / F::cast(n_samples);
     }
 
-    /// Computes the gradient at some point w using sparse matrices
+    /// This method computes the gradient at some point w using sparse matrices.
     fn full_grad(&self, dataset: &DatasetBase<CSCArray<'_, F>, T>, Xw: ArrayView1<F>) -> Array1<F> {
         Array1::from_iter(
             (0..dataset.design_matrix().n_features())
@@ -167,7 +172,7 @@ impl<F: Float, T: AsSingleTargets<Elem = F>> Datafit<F, CSCArray<'_, F>, T> for 
         )
     }
 
-    /// Computes the value of the datafit
+    /// This method computes the value of the datafit for some model fit.
     fn value(&self, dataset: &DatasetBase<CSCArray<'_, F>, T>, Xw: ArrayView1<F>) -> F {
         let n_samples = dataset.targets().n_samples();
         let y = dataset.targets().try_single_target().unwrap();
@@ -176,12 +181,12 @@ impl<F: Float, T: AsSingleTargets<Elem = F>> Datafit<F, CSCArray<'_, F>, T> for 
         val
     }
 
-    // A getter method for Lipschitz constants
+    /// A getter method for Lipschitz constants.
     fn lipschitz(&self) -> ArrayView1<F> {
         self.lipschitz.view()
     }
 
-    // A getter method for XTy
+    /// A getter method for the matrix-vector product XTy.
     fn Xty(&self) -> ArrayView1<F> {
         self.Xty.view()
     }
