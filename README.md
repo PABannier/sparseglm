@@ -19,6 +19,8 @@ The philosophy of `rust-sparseglm` consists in offering a highly flexible API. A
 // This is an example
 ```
 
+## Roadmap
+
 Currently we support:
 
 | Model                      |    Single task     |     Multi task     | Convexity  |
@@ -32,6 +34,8 @@ Currently we support:
 | Indicator box              |         -          |         -          |   Convex   |
 | Sparse logistic regression |         -          |         -          |   Convex   |
 | Dual SVM with hinge loss   |         -          |         -          |   Convex   |
+
+## Performance
 
 We provide below a demonstration of `rust-sparseglm` against other fast coordinate descent solvers using the optimization benchmarking tool [Benchopt](https://github.com/benchopt/benchopt).
 
