@@ -58,38 +58,6 @@ impl<F: Float> Default for Quadratic<F> {
     }
 }
 
-impl<F, DM, T, DF> Datafit<F, DM, T> for &DF
-where
-    F: Float,
-    DM: DesignMatrix<Elem = F>,
-    T: AsSingleTargets<Elem = F>,
-    DF: Datafit<F, DM, T>,
-{
-    fn initialize(&mut self, dataset: &DatasetBase<DM, T>) {
-        (*self).initialize(dataset);
-    }
-
-    fn gradient_j(&self, dataset: &DatasetBase<DM, T>, Xw: ArrayView1<F>, j: usize) -> F {
-        (*self).gradient_j(dataset, Xw, j)
-    }
-
-    fn full_grad(&self, dataset: &DatasetBase<DM, T>, Xw: ArrayView1<F>) -> Array1<F> {
-        (*self).full_grad(dataset, Xw)
-    }
-
-    fn value(&self, dataset: &DatasetBase<DM, T>, Xw: ArrayView1<F>) -> F {
-        (*self).value(dataset, Xw)
-    }
-
-    fn lipschitz(&self) -> ArrayView1<F> {
-        (*self).lipschitz()
-    }
-
-    fn Xty(&self) -> ArrayView1<F> {
-        (*self).Xty()
-    }
-}
-
 impl<F: Float, D: Data<Elem = F>, T: AsSingleTargets<Elem = F>> Datafit<F, ArrayBase<D, Ix2>, T>
     for Quadratic<F>
 {
