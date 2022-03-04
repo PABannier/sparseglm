@@ -207,9 +207,9 @@ impl<F: Float> Penalty<F> for L05<F> {
         &self,
         _w: ArrayView1<F>,
         _grad: ArrayView1<F>,
-        _ws: ArrayView1<usize>,
+        ws: ArrayView1<usize>,
     ) -> (Array1<F>, F) {
-        (Array1::<F>::zeros(1), F::zero())
+        (Array1::<F>::zeros(ws.len()), F::zero())
     }
 }
 
