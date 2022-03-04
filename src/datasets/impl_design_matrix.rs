@@ -1,7 +1,7 @@
 use super::{csc_array::CSCArray, DesignMatrix, DesignMatrixType};
 use ndarray::{ArrayBase, Axis, Data, Ix2};
 
-/// Implement DesignMatrix trait for NdArrays
+/// This implements the [`DesignMatrix`] trait for dense matrices.
 impl<F, S: Data<Elem = F>> DesignMatrix for ArrayBase<S, Ix2> {
     type Elem = F;
 
@@ -14,7 +14,7 @@ impl<F, S: Data<Elem = F>> DesignMatrix for ArrayBase<S, Ix2> {
     }
 }
 
-/// Implement DesignMatrix trait for CSCArrays
+/// This implements the [`DesignMatrix`] trait for sparse matrices.
 impl<F> DesignMatrix for CSCArray<'_, F> {
     type Elem = F;
 
@@ -27,7 +27,7 @@ impl<F> DesignMatrix for CSCArray<'_, F> {
     }
 }
 
-/// Implement records for references
+/// This implements the [`DesignMatrix`] trait for references.
 impl<DM: DesignMatrix> DesignMatrix for &DM {
     type Elem = DM::Elem;
 
