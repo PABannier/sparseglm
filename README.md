@@ -9,7 +9,7 @@ penalties, written in Rust with Python bindings.
 
 The algorithm is explained in depth in [CITE PAPER] and theoretical guarantees of convergence are given.
 It also extensively demonstrates the superiority of this solver over existing ones.
-A similar package written in pure Python can be found here: [CITE FLASHCD].
+A similar package written in pure Python can be found here: [FlashCD](https://github.com/mathurinm/flashcd).
 
 `rust-sparseglm` leverages [Anderson acceleration](https://github.com/mathurinm/andersoncd) and [working sets](https://github.com/mathurinm/celer) to propose a **fast** and **memory-efficient** solver on a large variety of algorithms. It can solve problems with millions of samples and features in seconds. It supports **dense** and **sparse** matrices (CSC arrays).
 
@@ -29,7 +29,7 @@ let penalty = L1PlusL2::new(2., 0.3);
 let solver = Solver::default();
 
 // Solve the problem using coordinate descent
-let coefficients = solver.solve(dataset, &mut datafit, &penalty).unwrap();
+let coefficients = solver.solve(&dataset, &mut datafit, &penalty).unwrap();
 ```
 
 For widely-known models like ElasticNet, `rust-sparseglm` already implements

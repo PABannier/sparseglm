@@ -1,4 +1,4 @@
-use ndarray::{ArrayBase, ArrayView1, ArrayView2, Axis, Ix2, OwnedRepr, ViewRepr};
+use ndarray::{Array1, ArrayBase, ArrayView1, ArrayView2, Axis, Ix2, OwnedRepr, ViewRepr};
 use thiserror::Error;
 
 use self::csc_array::CSCArray;
@@ -56,6 +56,17 @@ pub trait DesignMatrix: Sized {
 
     /// This gives the matrix type (either dense or sparse) of the design matrix.
     fn matrix_type(&self) -> DesignMatrixType;
+
+    /// This computes the extrapolated model fit, useful when calling [`anderson_acceleration`].
+    fn compute_extrapolated_fit(
+        &self,
+        ws: ArrayView1<usize>,
+        w_acc: &Array1<Self::Elem>,
+        n_samples: usize,
+    ) -> Array1<Self::Elem>;
+
+    /// This updates the model fit product, useful during the coordinate descent procedure.
+    fn update_model_fit(&self, Xw: &mut Array1<Self::Elem>, diff: Self::Elem, j: usize);
 }
 
 /// This trait implements the basic methods for an array to be considered

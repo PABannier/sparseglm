@@ -5,7 +5,6 @@ use crate::datafits::Datafit;
 use crate::datasets::{AsSingleTargets, DatasetBase, DesignMatrix};
 use crate::helpers::helpers::{argsort_by, solve_lin_sys};
 use crate::penalties::Penalty;
-use crate::solver::{CDSolver, Extrapolator};
 
 #[cfg(test)]
 mod tests;
@@ -100,11 +99,10 @@ pub fn construct_ws_from_kkt<F: 'static + Float>(
 /// point has decreased compared to the previous non-extrapolated point.
 ///
 /// Reference: `https://arxiv.org/pdf/2011.10065.pdf`
-pub fn anderson_accel<F, DM, T, DF, P, S>(
+pub fn anderson_accel<F, DM, T, DF, P>(
     dataset: &DatasetBase<DM, T>,
     datafit: &DF,
     penalty: &P,
-    solver: &S,
     last_K_w: &mut Array2<F>,
     U: &mut Array2<F>,
     w: &mut Array1<F>,
@@ -119,8 +117,8 @@ pub fn anderson_accel<F, DM, T, DF, P, S>(
     T: AsSingleTargets<Elem = F>,
     DF: Datafit<F, DM, T>,
     P: Penalty<F>,
-    S: Extrapolator<F, DM, T>,
 {
+    let n_samples = dataset.targets().n_samples();
     let n_features = dataset.design_matrix().n_features();
 
     // Update the last_K_w array to hold the up-to-date weight vectors
@@ -171,7 +169,11 @@ pub fn anderson_accel<F, DM, T, DF, P, S>(
                     .for_each(|(&extrapolated_pt_j, &j)| {
                         w_acc[j] = extrapolated_pt_j;
                     });
-                let Xw_acc = solver.extrapolate(dataset, w_acc.view(), ws);
+
+                // Computes the extrapolated datafit
+                let Xw_acc = dataset
+                    .design_matrix()
+                    .compute_extrapolated_fit(ws, &w_acc, n_samples);
 
                 // Computes the objective value at the extrapolated point and at the
                 // non-extrapolated point
@@ -227,10 +229,9 @@ pub fn anderson_accel<F, DM, T, DF, P, S>(
 /// regularization, the support is the set of features whose weights are non-
 /// null), Anderson acceleration kicks in and allows to find extrapolated points
 /// thus dramatically speeding the convergence speed.
-pub fn coordinate_descent<F, DM, T, DF, P, S>(
+pub fn coordinate_descent<F, DM, T, DF, P>(
     dataset: &DatasetBase<DM, T>,
     datafit: &mut DF,
-    solver: &S,
     penalty: &P,
     p0: usize,
     max_iterations: usize,
@@ -246,7 +247,6 @@ where
     T: AsSingleTargets<Elem = F>,
     DF: Datafit<F, DM, T>,
     P: Penalty<F>,
-    S: CDSolver<F, DF, P, DM, T> + Extrapolator<F, DM, T>,
 {
     let n_samples = dataset.targets().n_samples();
     let n_features = dataset.design_matrix().n_features();
@@ -293,8 +293,25 @@ where
 
         // Inner loop that implements the actual coordinate descent routine
         for epoch in 0..max_epochs {
+            let lipschitz = datafit.lipschitz();
+
             // Cycle through the features in the working set
-            solver.cd_epoch(dataset, datafit, penalty, &mut w, &mut Xw, ws.view());
+            for &j in ws.iter() {
+                match lipschitz[j] == F::zero() {
+                    true => continue,
+                    false => {
+                        let old_w_j = w[j];
+                        let grad_j = datafit.gradient_j(dataset, Xw.view(), j);
+                        w[j] = penalty
+                            .prox_op(old_w_j - grad_j / lipschitz[j], F::one() / lipschitz[j]);
+
+                        let diff = w[j] - old_w_j;
+                        if diff != F::zero() {
+                            dataset.design_matrix().update_model_fit(&mut Xw, diff, j);
+                        }
+                    }
+                }
+            }
 
             // Attempt to find an extrapolated point using Anderson acceleration
             if use_acceleration {
@@ -302,7 +319,6 @@ where
                     dataset,
                     datafit,
                     penalty,
-                    solver,
                     &mut last_K_w,
                     &mut U,
                     &mut w,

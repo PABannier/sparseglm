@@ -14,7 +14,6 @@ use crate::datafits_multitask::QuadraticMultiTask;
 use crate::datasets::{csc_array::CSCArray, AsMultiTargets, AsSingleTargets, DatasetBase};
 use crate::penalties::{L1, MCP};
 use crate::penalties_multitask::{BlockMCP, L21};
-use crate::solver::Solver;
 use crate::solver_multitask::MultiTaskSolver;
 use crate::Float;
 
@@ -52,14 +51,12 @@ impl<F: Float, S: Data<Elem = F>, T: AsSingleTargets<Elem = F>>
     /// This method fits a [`Lasso`] instance to a dataset with a dense design
     /// matrix.
     fn fit(&self, dataset: &DatasetBase<ArrayBase<S, Ix2>, T>) -> Result<Self::Object> {
-        let solver = Solver {};
         let mut datafit = Quadratic::default();
         let penalty = L1::new(self.alpha());
 
         let w = coordinate_descent(
             dataset,
             &mut datafit,
-            &solver,
             &penalty,
             self.p0(),
             self.max_iterations(),
@@ -85,14 +82,12 @@ impl<F: Float, T: AsSingleTargets<Elem = F>> Fit<CSCArray<'_, F>, T, EstimatorEr
     /// This method fits a [`Lasso`] instance to a dataset with a sparse design
     /// matrix.
     fn fit(&self, dataset: &DatasetBase<CSCArray<F>, T>) -> Result<Self::Object> {
-        let solver = Solver {};
         let mut datafit = Quadratic::default();
         let penalty = L1::new(self.alpha());
 
         let w = coordinate_descent(
             dataset,
             &mut datafit,
-            &solver,
             &penalty,
             self.p0(),
             self.max_iterations(),
@@ -228,14 +223,12 @@ impl<F: Float, S: Data<Elem = F>, T: AsSingleTargets<Elem = F>>
     /// This method fits a [`MCPEstimator`] instance to a dataset with a dense
     /// design matrix.
     fn fit(&self, dataset: &DatasetBase<ArrayBase<S, Ix2>, T>) -> Result<Self::Object> {
-        let solver = Solver {};
         let mut datafit = Quadratic::default();
         let penalty = MCP::new(self.alpha(), self.gamma());
 
         let w = coordinate_descent(
             dataset,
             &mut datafit,
-            &solver,
             &penalty,
             self.p0(),
             self.max_iterations(),
@@ -261,14 +254,12 @@ impl<F: Float, T: AsSingleTargets<Elem = F>> Fit<CSCArray<'_, F>, T, EstimatorEr
     /// This method fits a [`MCPEstimator`] instance to a dataset with a sparse
     /// design matrix.
     fn fit(&self, dataset: &DatasetBase<CSCArray<F>, T>) -> Result<Self::Object> {
-        let solver = Solver {};
         let mut datafit = Quadratic::default();
         let penalty = MCP::new(self.alpha(), self.gamma());
 
         let w = coordinate_descent(
             dataset,
             &mut datafit,
-            &solver,
             &penalty,
             self.p0(),
             self.max_iterations(),
