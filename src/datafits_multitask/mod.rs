@@ -129,10 +129,10 @@ impl<F: Float, D: Data<Elem = F>, T: AsMultiTargets<Elem = F>>
     }
 }
 
-/// This implementation block implements the MultiTaskDatafit for sparse matrices
-/// (CSC arrays). The methods [`MultiTaskDatafit::initialize`] and
-/// [`MultiTaskDatafit::gradient_j`] are modified to exploit the sparse structure
-/// of the design matrix.
+/// This implementation block implements the [`MultiTaskDatafit`] for sparse
+/// matrices (CSC arrays). The methods [`MultiTaskDatafit::initialize`] and
+/// [`MultiTaskDatafit::gradient_j`] are modified to exploit the sparse
+/// structure of the design matrix.
 impl<F: Float, T: AsMultiTargets<Elem = F>> MultiTaskDatafit<F, CSCArray<'_, F>, T>
     for QuadraticMultiTask<F>
 {

@@ -120,7 +120,7 @@ impl<F: Float, D: Data<Elem = F>, T: AsSingleTargets<Elem = F>> Datafit<F, Array
     }
 }
 
-/// This implementation block implements the `Datafit` for sparse matrices
+/// This implementation block implements the [`Datafit`] for sparse matrices
 /// (CSC arrays). The methods [`Datafit::initialize`] and [`Datafit::gradient_j`]
 /// are modified to exploit the sparse structure of the design matrix.
 impl<F: Float, T: AsSingleTargets<Elem = F>> Datafit<F, CSCArray<'_, F>, T> for Quadratic<F> {
