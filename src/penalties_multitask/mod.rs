@@ -1,5 +1,3 @@
-
-
 use ndarray::{s, Array1, ArrayView1, ArrayView2, Axis};
 
 use super::Float;
@@ -8,9 +6,25 @@ use crate::helpers::prox::block_soft_thresholding;
 #[cfg(test)]
 mod tests;
 
+/// This trait provides three methods needed to update the weights in a multi-task
+/// setting during the optimization routine.
 pub trait PenaltyMultiTask<F: Float> {
+    /// This method is called when evaluating the objective value.
+    ///
+    /// It is jointly used with ['DatafitMultiTask::value`] in order to compute the value
+    /// of the objective.
     fn value(&self, W: ArrayView2<F>) -> F;
+
+    /// This method computes the proximal gradient step during the update of the weights.
+    /// For a given penalty, it implements its proximal operator.
     fn prox_op(&self, value: ArrayView1<F>, stepsize: F) -> Array1<F>;
+
+    /// This method is used when ranking the features to build the working set.
+    /// It allows to compute the distance between the gradient of the datafit
+    /// to the subdifferential of the penalty.
+    ///
+    /// It outputs the distances of the gradient of each feature to the subdifferential
+    /// of the penalty, as well as the maximum distance.
     fn subdiff_distance(
         &self,
         W: ArrayView2<F>,
@@ -21,29 +35,38 @@ pub trait PenaltyMultiTask<F: Float> {
 
 /// L21 penalty
 ///
-
+/// The multi-task counterpart of the [`Penalty::L1`] penalty. It is used in the Multi-Task
+/// LASSO model and yields sparse solutions.
 #[derive(Debug, Clone, PartialEq)]
 pub struct L21<F: Float> {
     alpha: F,
 }
 
 impl<F: Float> L21<F> {
-    // Constructor
+    // Instantiates a L21 penalty with a positive regularization hyperparameter.
     pub fn new(alpha: F) -> Self {
         L21 { alpha }
     }
 }
 
 impl<F: 'static + Float> PenaltyMultiTask<F> for L21<F> {
-    /// Gets the current value of the penalty
+    /// Computes the L21-norm of the weights
+    ///
+    /// pen(X) = sum_{t=1}^T ||X_:,t||_2
     fn value(&self, W: ArrayView2<F>) -> F {
         self.alpha * W.map_axis(Axis(1), |Wj| (Wj.dot(&Wj).sqrt())).sum()
     }
-    /// Computes the value of the proximal operator
+
+    /// Applies the block soft-thresholding operator to a weight vector
     fn prox_op(&self, value: ArrayView1<F>, stepsize: F) -> Array1<F> {
         block_soft_thresholding(value, self.alpha * stepsize)
     }
+
     /// Computes the distance of the gradient to the subdifferential
+    ///
+    /// The distance of the gradient to the subdifferential of L21 is:
+    /// dist(grad, subdiff) = max(0, ||grad|| - alpha)             if ||W[j]|| = 0
+    ///                       || grad + alpha * W[j] / ||W[j]|| || otherwise
     fn subdiff_distance(
         &self,
         W: ArrayView2<F>,
@@ -77,9 +100,10 @@ impl<F: 'static + Float> PenaltyMultiTask<F> for L21<F> {
     }
 }
 
-/// Block MCP penalty
+/// The Block Minimax Concave Penalty
 ///
-
+/// A block non-convex penalty that yields sparser solutions than the L21 penalty and mitigates
+/// the intrinsic L21-penalty bias.
 #[derive(Debug, Clone, PartialEq)]
 pub struct BlockMCP<F: Float> {
     alpha: F,
@@ -87,22 +111,23 @@ pub struct BlockMCP<F: Float> {
 }
 
 impl<F: Float> BlockMCP<F> {
-    /// Constructor
-    ///
+    /// Instantiates the Block Minimax Concave Penalty (MCP) with a given positive regularization
+    /// and a shaping hyperparameter
     pub fn new(alpha: F, gamma: F) -> Self {
         BlockMCP { alpha, gamma }
     }
 }
 
 impl<F: Float> PenaltyMultiTask<F> for BlockMCP<F> {
-    /// Gets the current value of the penalty
+    /// Computes the Block MCP for the weight matrix
+    ///
+    /// With W_j the j-th row of W, compute
+    /// pen(||W_j||) = alpha * ||W_j|| - ||W_j||^2 / (2 * gamma)
+    ///                if ||W_j|| =< gamma * alpha
+    ///              = gamma * alpha ** 2 / 2
+    ///                if ||W_j|| > gamma * alpha
+    /// value = sum_{j=1}^{n_features} pen(||W_j||)
     fn value(&self, W: ArrayView2<F>) -> F {
-        // With W_j the j-th row of W, compute
-        // pen(||W_j||) = alpha * ||W_j|| - ||W_j||^2 / (2 * gamma)
-        //                if ||W_j|| =< gamma * alpha
-        //              = gamma * alpha ** 2 / 2
-        //                if ||W_j|| > gamma * alpha
-        // value = sum_{j=1}^{n_features} pen(||W_j||)
         let cast2 = F::cast(2.);
         let norm_rows = W.map_axis(Axis(1), |Wj| (Wj.dot(&Wj).sqrt()));
         norm_rows
@@ -114,16 +139,13 @@ impl<F: Float> PenaltyMultiTask<F> for BlockMCP<F> {
             .sum()
     }
 
-    /// Proximal operator
+    /// Computes the proximal operator of block MCP for a weight vector
+    ///
+    /// prox(x, threshold) = [0.]                                   ||x|| < alpha * threshold
+    ///                       x                                     ||x|| > alpha * gamma
+    ///                       (1 - alpha * threshold / ||x||) * x   otherwise
+    ///                       / (1 - threshold / gamma)
     fn prox_op(&self, value: ArrayView1<F>, stepsize: F) -> Array1<F> {
-        // tau = self.alpha * stepsize
-        // g = self.gamma / stepsize
-        // norm_value = norm(value)
-        // if norm_value <= tau:
-        //     return np.zeros_like(value)
-        // if norm_value > g * tau:
-        //     return value
-        // return (1 - tau / norm_value) * value / (1. - 1./g)
         let cast1 = F::cast(1.);
         let tau = self.alpha * stepsize;
         let g = self.gamma / stepsize;
@@ -142,7 +164,11 @@ impl<F: Float> PenaltyMultiTask<F> for BlockMCP<F> {
         }
     }
 
-    /// Computes the distance of the gradient to the subdifferential
+    /// Computes the distance of the gradient to the subdifferential of block MCP
+    ///
+    /// dist(grad, subdiff) = max(0, ||grad|| - alpha)                          if ||W[j]|| = 0
+    ///                       ||grad + (alpha / ||W[j]|| - 1 / gamma) * W[j]||  if ||W[j]|| < alpha * gamma
+    ///                       ||grad||                                          otherwise
     fn subdiff_distance(
         &self,
         W: ArrayView2<F>,

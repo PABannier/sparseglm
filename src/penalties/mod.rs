@@ -123,9 +123,10 @@ impl<F: Float> Penalty<F> for MCP<F> {
 
     /// Computes the proximal operator of MCP for a weight scalar
     ///
-    /// prox(x, threshold) = 0.                  if |x| < alpha * threshold
-    ///                      x                   if |x| > alpha * gamma
-    ///                      sign(x) * (|x| - alpha * threshold) / (1 - threshold / gamma)
+    /// prox(x, threshold) = 0.                                     if |x| < alpha * threshold
+    ///                      x                                      if |x| > alpha * gamma
+    ///                      sign(x) * (|x| - alpha * threshold)
+    ///                      / (1 - threshold / gamma)              otherwise
     fn prox_op(&self, value: F, stepsize: F) -> F {
         let tau = self.alpha * stepsize;
         let g = self.gamma / stepsize;
