@@ -1,4 +1,46 @@
 //! Fast and modular coordinate descent solver for sparse generalized linear models
+//!
+//! [`rust-sparseglm`]'s philosophy consists in offering a highly flexible API. Any
+//! sparse GLM can be implemented in under 50 lines of code by providing its datafit
+//! term and its penalty term, which makes it very easy to support new estimators.
+//!
+//! A quick example on how to solve a sparse GLM optimization problem by choosing an
+//! arbitrary combination of [`Datafit`] and [`Penalty`].
+//!
+//! ```ignore
+//! // Load some data and wrap them in a Dataset
+//! let dataset = DatasetBase::from((X, y));
+//!
+//! // Define a datafit (here a quadratic datafit for regression)
+//! let mut datafit = Quadratic::default();
+//!
+//! // Define a penalty (here a L1 + L2 penalty for ElasticNet)
+//! let penalty = L1PlusL2::new(2., 0.3);
+//!
+//! // Instantiate a Solver with default parameters
+//! let solver = Solver::default();
+//!
+//! // Solve the problem using coordinate descent
+//! let coefficients = solver.solve(dataset, &mut datafit, &penalty).unwrap();
+//! ```
+//!
+//! For widely-known models like ElasticNet, [`rust-sparseglm`] already implements
+//! those models.
+//!
+//! ```ignore
+//! // Load some data and wrap them in a Dataset
+//! let dataset = DatasetBase::from((X, y));
+//!
+//! // Instantiate and fit the estimator
+//! let estimator = ElasticNet::params()
+//!                     .alpha(2.)
+//!                     .l1_ratio(0.3)
+//!                     .fit(&dataset)
+//!                     .unwrap();
+//!
+//! // Get the fitted coefficients
+//! let coefficients = estimator.coefficients();
+//!
 
 #![allow(non_snake_case)]
 
