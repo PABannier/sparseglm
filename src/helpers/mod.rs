@@ -91,7 +91,7 @@ pub mod helpers {
 
 pub mod cholesky {
     use crate::Float;
-    use ndarray::Array2;
+    use ndarray::{s, Array1, Array2};
     use thiserror::Error;
 
     #[derive(Debug, Clone, Error)]
@@ -100,7 +100,18 @@ pub mod cholesky {
         IllConditionedMatrix,
     }
 
-    pub fn cholesky_factorization<F: Float>(mat: &mut Array2<F>) -> Option<LinAlgError> {
+    pub fn forward_substitution<F: Float>(mat: &Array2<F>) -> Result<Array1<F>, LinAlgError> {
+        // Solves the linear system Lx = 1 with L upper triangular
+        let mut res = Array1::<F>::zeros(mat.len());
+
+        for i in 0..mat.len() {
+            res[i] = (F::one() - res.dot(&mat.slice(s![i, ..]))) / mat[[i, i]];
+        }
+
+        Ok(res)
+    }
+
+    pub fn cholesky_factorization<F: Float>(mat: &Array2<F>) -> Result<Array2<F>, LinAlgError> {
         // O(n^3) time | O(n^2) space
         let n = mat.shape()[0];
         let m = mat.shape()[1];
@@ -109,76 +120,34 @@ pub mod cholesky {
             "Cholesky-factored matrix must be a squared symmetric positive-definite matrix."
         );
 
+        let mut L = Array2::<F>::zeros((n, n));
+
         for i in 0..n {
             for j in 0..(i + 1) {
                 let mut sum = F::zero();
                 for k in 0..j {
-                    sum += mat[[i, k]] * mat[[j, k]];
+                    sum += L[[i, k]] * L[[j, k]];
                 }
 
                 match i == j {
                     true => {
                         if mat[[i, i]] < sum {
-                            return Some(LinAlgError::IllConditionedMatrix);
+                            return Err(LinAlgError::IllConditionedMatrix);
                         }
-                        mat[[i, j]] = (mat[[i, i]] - sum).sqrt();
+                        L[[i, j]] = (mat[[i, i]] - sum).sqrt();
                     }
                     false => {
-                        if mat[[j, j]] < F::cast(1e-15) {
-                            return Some(LinAlgError::IllConditionedMatrix);
+                        if L[[j, j]] < F::cast(1e-15) {
+                            return Err(LinAlgError::IllConditionedMatrix);
                         }
-                        mat[[i, j]] = F::one() / mat[[j, j]] * (mat[[i, j]] - sum);
+                        L[[i, j]] = F::one() / L[[j, j]] * (mat[[i, j]] - sum);
                     }
                 }
             }
         }
 
-        for i in 0..n {
-            for j in (i + 1)..n {
-                mat[[i, j]] = F::zero();
-            }
-        }
-
-        None
+        Ok(L)
     }
-
-    // pub fn cholesky_factorization<F: Float>(mat: &Array2<F>) -> Result<Array2<F>, LinAlgError> {
-    //     // O(n^3) time | O(n^2) space
-    //     let n = mat.shape()[0];
-    //     let m = mat.shape()[1];
-    //     assert_eq!(
-    //         n, m,
-    //         "Cholesky-factored matrix must be a squared symmetric positive-definite matrix."
-    //     );
-
-    //     let mut L = Array2::<F>::zeros((n, n));
-
-    //     for i in 0..n {
-    //         for j in 0..(i + 1) {
-    //             let mut sum = F::zero();
-    //             for k in 0..j {
-    //                 sum += L[[i, k]] * L[[j, k]];
-    //             }
-
-    //             match i == j {
-    //                 true => {
-    //                     if mat[[i, i]] < sum {
-    //                         return Err(LinAlgError::IllConditionedMatrix);
-    //                     }
-    //                     L[[i, j]] = (mat[[i, i]] - sum).sqrt();
-    //                 }
-    //                 false => {
-    //                     if L[[j, j]] < F::cast(1e-15) {
-    //                         return Err(LinAlgError::IllConditionedMatrix);
-    //                     }
-    //                     L[[i, j]] = F::one() / L[[j, j]] * (mat[[i, j]] - sum);
-    //                 }
-    //             }
-    //         }
-    //     }
-
-    //     Ok(L)
-    // }
 }
 
 pub mod test_helpers {
