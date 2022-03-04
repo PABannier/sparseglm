@@ -34,9 +34,6 @@ let w = coordinate_descent(dataset, &mut datafit, &solver, &penalty, p0,
                            use_acceleration, verbose);
 ```
 
-This allows for a wide variety of combinations like a `LogClassification` fit
-and a `L1` penalty, which gives a sparse logistic regression.
-
 For widely-known models like ElasticNet, `rust-sparseglm` already implements
 those models and uses a `Scikit-Learn`-like API.
 
