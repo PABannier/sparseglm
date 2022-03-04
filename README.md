@@ -35,7 +35,7 @@ let w = coordinate_descent(dataset, &mut datafit, &solver, &penalty, p0,
 ```
 
 For widely-known models like ElasticNet, `rust-sparseglm` already implements
-those models and uses a `Scikit-Learn`-like API.
+those models and uses an API à la `Scikit-Learn`.
 
 ```rust
 // Load some data and wrap them in a Dataset
