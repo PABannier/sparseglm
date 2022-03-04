@@ -15,8 +15,44 @@ A similar package written in pure Python can be found here: [CITE FLASHCD].
 
 The philosophy of `rust-sparseglm` consists in offering a highly flexible API. Any sparse GLM can be implemented in under 50 lines of code by providing its datafit term and its penalty term, which makes it very easy to support new estimators.
 
+```rust
+// Load some data and wrap them in a Dataset
+let dataset = DatasetBase::from((X, y));
+
+// Define a datafit (here a quadratic datafit for regression)
+let mut datafit = Quadratic::default();
+
+// Define a penalty (here a L1 + L2 penalty for ElasticNet)
+let penalty = L1PlusL2::new(2., 0.3);
+
+// Instantiate a Solver
+let solver = Solver::new();
+
+// Run coordinate descent
+let w = coordinate_descent(dataset, &mut datafit, &solver, &penalty, p0,
+                           max_iterations, max_epochs, tolerance, K,
+                           use_acceleration, verbose);
 ```
-// This is an example
+
+This allows for a wide variety of combinations like a `LogClassification` fit
+and a `L1` penalty, which gives a sparse logistic regression.
+
+For widely-known models like ElasticNet, `rust-sparseglm` already implements
+those models and uses a `Scikit-Learn`-like API.
+
+```rust
+// Load some data and wrap them in a Dataset
+let dataset = DatasetBase::from((X, y));
+
+// Instantiate and fit the estimator
+let estimator = ElasticNet::params()
+                    .alpha(2)
+                    .l1_ratio(0.3)
+                    .fit(&dataset)
+                    .unwrap();
+
+// Get the fitted coefficients
+let coefficients = estimator.coefficients();
 ```
 
 ## Roadmap
