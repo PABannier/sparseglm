@@ -1,5 +1,3 @@
-
-
 use ndarray::array;
 
 use crate::penalties_multitask::*;
@@ -55,7 +53,7 @@ macro_rules! prox_tests {
     }
 }
 
-struct Payload<T: PenaltyMultiTask<f64>> {
+struct Payload<T: MultiTaskPenalty<f64>> {
     penalty: T,
     value: f64,
     prox: (Array1<f64>, Array1<f64>, Array1<f64>),

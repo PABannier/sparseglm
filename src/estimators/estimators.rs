@@ -1,5 +1,3 @@
-
-
 use ndarray::{ArrayBase, Data, Ix1, Ix2, OwnedRepr, ViewRepr};
 
 use super::error::{EstimatorError, Result};
@@ -8,6 +6,7 @@ use super::hyperparams::{
     MultiTaskLassoParams, MultiTaskLassoValidParams,
 };
 use super::traits::Fit;
+
 use crate::bcd::block_coordinate_descent;
 use crate::cd::coordinate_descent;
 use crate::datafits::Quadratic;
@@ -19,33 +18,39 @@ use crate::solver::Solver;
 use crate::solver_multitask::MultiTaskSolver;
 use crate::Float;
 
-/// Lasso
+/// The Lasso estimator
 ///
 /// The Lasso estimator solves a regularized least-square regression problem.
-/// The L1-regularization used yields sparse solutions. In the Multi-Task case,
-/// the problem is regularized using a L21 norm and yields structured sparse
-/// solutions.
+/// The L1-regularization used yields sparse solutions.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Lasso<F> {
     coefficients: ArrayBase<OwnedRepr<F>, Ix1>,
 }
 
 impl<F: Float> Lasso<F> {
-    /// Creates an instance of the Lasso with default parameters
+    /// This method instantiates a Lasso estimator with default parameters
+    /// for the coordinate descent solvers.
     pub fn params() -> LassoParams<F> {
         LassoParams::new()
     }
 
+    /// This method is a getter for the coefficients vector.
     pub fn coefficients(&self) -> ArrayBase<ViewRepr<&F>, Ix1> {
         self.coefficients.view()
     }
 }
 
+/// This implements the coordinate descent optimization procedure for single-task
+/// problem and dense design matrices.
 impl<F: Float, S: Data<Elem = F>, T: AsSingleTargets<Elem = F>>
     Fit<ArrayBase<S, Ix2>, T, EstimatorError> for LassoValidParams<F>
 {
+    /// If successful, the output of the coordinate descent solver is an instance
+    /// of [`Lasso`] containing the fitted coefficients.
     type Object = Lasso<F>;
-    /// Fits the Lasso estimator to a dense design matrix
+
+    /// This method fits a [`Lasso`] instance to a dataset with a dense design
+    /// matrix.
     fn fit(&self, dataset: &DatasetBase<ArrayBase<S, Ix2>, T>) -> Result<Self::Object> {
         let solver = Solver {};
         let mut datafit = Quadratic::default();
@@ -68,11 +73,17 @@ impl<F: Float, S: Data<Elem = F>, T: AsSingleTargets<Elem = F>>
     }
 }
 
+/// This implements the coordinate descent optimization procedure for single-task
+/// problem and sparse design matrices.
 impl<F: Float, T: AsSingleTargets<Elem = F>> Fit<CSCArray<'_, F>, T, EstimatorError>
     for LassoValidParams<F>
 {
+    /// If successful, the output of the coordinate descent solver is an instance
+    /// of [`Lasso`] containing the fitted coefficients.
     type Object = Lasso<F>;
-    /// Fits the Lasso estimator to a sparse design matrix
+
+    /// This method fits a [`Lasso`] instance to a dataset with a sparse design
+    /// matrix.
     fn fit(&self, dataset: &DatasetBase<CSCArray<F>, T>) -> Result<Self::Object> {
         let solver = Solver {};
         let mut datafit = Quadratic::default();
@@ -95,28 +106,39 @@ impl<F: Float, T: AsSingleTargets<Elem = F>> Fit<CSCArray<'_, F>, T, EstimatorEr
     }
 }
 
+/// The MultiTaskLasso estimator
+///
+/// The MultiTaskLasso estimator solves a regularized multi-task least-squares
+/// regression problem. The L21-regularization used yields sparse solutions.
 #[derive(Debug, Clone, PartialEq)]
 pub struct MultiTaskLasso<F> {
     coefficients: ArrayBase<OwnedRepr<F>, Ix2>,
 }
 
 impl<F: Float> MultiTaskLasso<F> {
-    /// Creates an instance of the MultiTaskLasso with default parameters
+    /// This method instantiates a [`MultiTaskLasso`] estimator with default
+    /// parameters for the block coordinate descent solvers.
     pub fn params() -> MultiTaskLassoParams<F> {
         MultiTaskLassoParams::new()
     }
 
+    /// This method is a getter for the coefficients matrix.
     pub fn coefficients(&self) -> ArrayBase<ViewRepr<&F>, Ix2> {
         self.coefficients.view()
     }
 }
 
+/// This implements the block coordinate descent optimization procedure for multi-task
+/// problem and dense design matrices.
 impl<F: Float, S: Data<Elem = F>, T: AsMultiTargets<Elem = F>>
     Fit<ArrayBase<S, Ix2>, T, EstimatorError> for MultiTaskLassoValidParams<F>
 {
+    /// If successful, the output of the block coordinate descent solver is an
+    /// instance of [`MultiTaskLasso`] containing the fitted coefficients.
     type Object = MultiTaskLasso<F>;
 
-    /// Fits the MultiTaskLasso estimator to a dense design matrix
+    /// This method fits a [`MultiTaskLasso`] instance to a dataset with a
+    /// sparse design matrix.
     fn fit(&self, dataset: &DatasetBase<ArrayBase<S, Ix2>, T>) -> Result<Self::Object> {
         let solver = MultiTaskSolver {};
         let mut datafit = QuadraticMultiTask::default();
@@ -138,12 +160,17 @@ impl<F: Float, S: Data<Elem = F>, T: AsMultiTargets<Elem = F>>
     }
 }
 
+/// This implements the block coordinate descent optimization procedure for
+/// multi-task problem and sparse design matrices.
 impl<F: Float, T: AsMultiTargets<Elem = F>> Fit<CSCArray<'_, F>, T, EstimatorError>
     for MultiTaskLassoValidParams<F>
 {
+    /// If successful, the output of the block coordinate descent solver is an
+    /// instance of [`MultiTaskLasso`] containing the fitted coefficients.
     type Object = MultiTaskLasso<F>;
 
-    /// Fits the MultiTask estimator to a sparse design matrix
+    /// This method fits a [`MultiTaskLasso`] instance to a dataset with a dense
+    /// sparse matrix.
     fn fit(&self, dataset: &DatasetBase<CSCArray<'_, F>, T>) -> Result<Self::Object> {
         let solver = MultiTaskSolver {};
         let mut datafit = QuadraticMultiTask::default();
@@ -169,31 +196,37 @@ impl<F: Float, T: AsMultiTargets<Elem = F>> Fit<CSCArray<'_, F>, T, EstimatorErr
 /// MCP Regressor
 ///
 /// The Minimax Concave Penalty (MCP) estimator yields sparser solution than the
-/// Lasso thanks to a non-convex penalty. This mitigates the intrinsic Lasso bias
-/// and offers sparser solutions.
-
+/// [`Lasso`] thanks to a non-convex penalty. This mitigates the intrinsic
+/// [`Lasso`] bias and offers sparser solutions.
 #[derive(Debug, Clone, PartialEq)]
 pub struct MCPEstimator<F> {
     coefficients: ArrayBase<OwnedRepr<F>, Ix1>,
 }
 
 impl<F: Float> MCPEstimator<F> {
-    /// Creates an instance of the Lasso with default parameters
+    /// This method instantiates a [`MCPEstimator`] with default parameters
+    /// for the coordinate descent optimization procedure.
     pub fn params() -> MCParams<F> {
         MCParams::new()
     }
 
+    /// This is a getter method for the coefficients of the estimator.
     pub fn coefficients(&self) -> ArrayBase<ViewRepr<&F>, Ix1> {
         self.coefficients.view()
     }
 }
 
+/// This implements the coordinate descent optimization procedure for single-task
+/// problems and dense design matrices.
 impl<F: Float, S: Data<Elem = F>, T: AsSingleTargets<Elem = F>>
     Fit<ArrayBase<S, Ix2>, T, EstimatorError> for MCPValidParams<F>
 {
+    /// If successful, the output of the coordinate descent solver is an
+    /// instance of [`MCPEstimator`] containing the fitted coefficients.
     type Object = MCPEstimator<F>;
 
-    /// Fits the MCP estimator to a dense design matrix
+    /// This method fits a [`MCPEstimator`] instance to a dataset with a dense
+    /// design matrix.
     fn fit(&self, dataset: &DatasetBase<ArrayBase<S, Ix2>, T>) -> Result<Self::Object> {
         let solver = Solver {};
         let mut datafit = Quadratic::default();
@@ -216,12 +249,17 @@ impl<F: Float, S: Data<Elem = F>, T: AsSingleTargets<Elem = F>>
     }
 }
 
+/// This implements the coordinate descent optimization procedure for single-task
+/// problems and sparse design matrices.
 impl<F: Float, T: AsSingleTargets<Elem = F>> Fit<CSCArray<'_, F>, T, EstimatorError>
     for MCPValidParams<F>
 {
+    /// If successful, the output of the coordinate descent solver is an
+    /// instance of [`MCPEstimator`] containing the fitted coefficients.
     type Object = MCPEstimator<F>;
 
-    /// Fits the MCP estimator to a dense design matrix
+    /// This method fits a [`MCPEstimator`] instance to a dataset with a sparse
+    /// design matrix.
     fn fit(&self, dataset: &DatasetBase<CSCArray<F>, T>) -> Result<Self::Object> {
         let solver = Solver {};
         let mut datafit = Quadratic::default();
@@ -246,32 +284,39 @@ impl<F: Float, T: AsSingleTargets<Elem = F>> Fit<CSCArray<'_, F>, T, EstimatorEr
 
 /// Block MCP Regressor
 ///
-/// The Block Minimax Concave Penalty (MCP) estimator yields sparser solution than the
-/// MultiTaskLasso thanks to a block non-convex penalty. This mitigates the intrinsic Lasso bias
-/// and offers sparser solutions.
-
+/// The Block Minimax Concave Penalty (MCP) estimator yields sparser solution
+/// than the [`MultiTaskLasso`] thanks to a block non-convex penalty.
+/// This mitigates the intrinsic [`MultiTaskLasso`] bias and offers sparser
+/// solutions.
 #[derive(Debug, Clone, PartialEq)]
 pub struct BlockMCPEstimator<F> {
     coefficients: ArrayBase<OwnedRepr<F>, Ix2>,
 }
 
 impl<F: Float> BlockMCPEstimator<F> {
-    /// Creates an instance of the Lasso with default parameters
+    /// This method instantiates a [`BlockMCPEstimator`] with default block
+    /// coordinate descent parameters.
     pub fn params() -> BlockMCParams<F> {
         BlockMCParams::new()
     }
 
+    /// This method is a getter for the coefficients of the estimator.
     pub fn coefficients(&self) -> ArrayBase<ViewRepr<&F>, Ix2> {
         self.coefficients.view()
     }
 }
 
+/// This implements the block coordinate descent optimization procedure for
+/// multi-task problems and dense design matrices.
 impl<F: Float, S: Data<Elem = F>, T: AsMultiTargets<Elem = F>>
     Fit<ArrayBase<S, Ix2>, T, EstimatorError> for BlockMCPValidParams<F>
 {
+    /// If successful, the output of the block coordinate descent solver is an
+    /// instance of [`BlockMCPEstimator`] containing the fitted coefficients.
     type Object = BlockMCPEstimator<F>;
 
-    /// Fits the Block MCP estimator to a dense design matrix
+    /// This method fits a [`BlockMCPEstimator`] instance to a dataset with a
+    /// dense design matrix.
     fn fit(&self, dataset: &DatasetBase<ArrayBase<S, Ix2>, T>) -> Result<Self::Object> {
         let solver = MultiTaskSolver {};
         let mut datafit = QuadraticMultiTask::default();
@@ -294,12 +339,17 @@ impl<F: Float, S: Data<Elem = F>, T: AsMultiTargets<Elem = F>>
     }
 }
 
+/// This implements the block coordinate descent optimization procedure for
+/// multi-task problems and sparse design matrices.
 impl<F: Float, T: AsMultiTargets<Elem = F>> Fit<CSCArray<'_, F>, T, EstimatorError>
     for BlockMCPValidParams<F>
 {
+    /// If successful, the output of the block coordinate descent solver is an
+    /// instance of [`BlockMCPEstimator`] containing the fitted coefficients.
     type Object = BlockMCPEstimator<F>;
 
-    /// Fits the Block MCP estimator to a sparse design matrix
+    /// This method fits a [`BlockMCPEstimator`] instance to a dataset with a
+    /// sparse design matrix.
     fn fit(&self, dataset: &DatasetBase<CSCArray<'_, F>, T>) -> Result<Self::Object> {
         let solver = MultiTaskSolver {};
         let mut datafit = QuadraticMultiTask::default();

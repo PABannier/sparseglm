@@ -1,11 +1,9 @@
-
-
 use ndarray::{s, Array1, Array2, ArrayBase, ArrayView1, ArrayView2, Data, Ix2};
 
 use super::Float;
 use crate::datafits_multitask::MultiTaskDatafit;
 use crate::datasets::{csc_array::CSCArray, AsMultiTargets, DatasetBase, DesignMatrix};
-use crate::penalties_multitask::PenaltyMultiTask;
+use crate::penalties_multitask::MultiTaskPenalty;
 
 #[cfg(test)]
 mod tests;
@@ -16,7 +14,7 @@ pub trait BCDSolver<F, DF, P, DM, T>
 where
     F: Float,
     DF: MultiTaskDatafit<F, DM, T>,
-    P: PenaltyMultiTask<F>,
+    P: MultiTaskPenalty<F>,
     DM: DesignMatrix<Elem = F>,
     T: AsMultiTargets<Elem = F>,
 {
@@ -48,7 +46,7 @@ where
     F: Float,
     D: Data<Elem = F>,
     DF: MultiTaskDatafit<F, ArrayBase<D, Ix2>, T>,
-    P: PenaltyMultiTask<F>,
+    P: MultiTaskPenalty<F>,
     T: AsMultiTargets<Elem = F>,
 {
     fn bcd_epoch(
@@ -106,7 +104,7 @@ impl<'a, F, DF, P, T> BCDSolver<F, DF, P, CSCArray<'a, F>, T> for MultiTaskSolve
 where
     F: Float,
     DF: MultiTaskDatafit<F, CSCArray<'a, F>, T>,
-    P: PenaltyMultiTask<F>,
+    P: MultiTaskPenalty<F>,
     T: AsMultiTargets<Elem = F>,
 {
     fn bcd_epoch(
