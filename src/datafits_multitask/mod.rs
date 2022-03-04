@@ -17,7 +17,7 @@ pub trait MultiTaskDatafit<F: Float, DM: DesignMatrix<Elem = F>, T: AsMultiTarge
 
     /// This method is called when evaluating the objective value.
     ///
-    /// It is jointly used with [`PenaltyMultiTask::value`] in order to compute the
+    /// It is jointly used with [`MultiTaskPenalty::value`] in order to compute the
     /// value of the objective.
     fn value(&self, dataset: &DatasetBase<DM, T>, XW: ArrayView2<F>) -> F;
 
@@ -39,7 +39,7 @@ pub trait MultiTaskDatafit<F: Float, DM: DesignMatrix<Elem = F>, T: AsMultiTarge
 /// Multi-Task Quadratic datafit
 ///
 /// The squared-norm residuals datafit used in most multi-task regression
-/// settings. Conjointly used with penalties implementing the [`PenaltyMultiTask`]
+/// settings. Conjointly used with penalties implementing the [`MultiTaskPenalty`]
 /// trait, it allows to create a wide variety of regression models (e.g.
 /// MultiTask LASSO, Block MCP Regression, etc.). It stores the pre-computed
 /// quantities useful during the optimization routine.

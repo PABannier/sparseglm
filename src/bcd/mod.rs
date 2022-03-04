@@ -5,7 +5,7 @@ use crate::datafits_multitask::MultiTaskDatafit;
 use crate::datasets::DesignMatrix;
 use crate::datasets::{AsMultiTargets, DatasetBase};
 use crate::helpers::helpers::{argsort_by, solve_lin_sys};
-use crate::penalties_multitask::PenaltyMultiTask;
+use crate::penalties_multitask::MultiTaskPenalty;
 use crate::solver_multitask::{BCDSolver, MultiTaskExtrapolator};
 
 #[cfg(test)]
@@ -55,7 +55,7 @@ where
     DM: DesignMatrix<Elem = F>,
     T: AsMultiTargets<Elem = F>,
     DF: MultiTaskDatafit<F, DM, T>,
-    P: PenaltyMultiTask<F>,
+    P: MultiTaskPenalty<F>,
 {
     let grad_ws = construct_grad(dataset, XW, ws, datafit);
     let (kkt_ws, kkt_ws_max) = penalty.subdiff_distance(W, grad_ws.view(), ws);
@@ -120,7 +120,7 @@ pub fn anderson_accel<F, DM, T, DF, P, S>(
     DM: DesignMatrix<Elem = F>,
     T: AsMultiTargets<Elem = F>,
     DF: MultiTaskDatafit<F, DM, T>,
-    P: PenaltyMultiTask<F>,
+    P: MultiTaskPenalty<F>,
     S: BCDSolver<F, DF, P, DM, T> + MultiTaskExtrapolator<F, DM, T>,
 {
     let n_features = dataset.design_matrix().n_features();
@@ -236,7 +236,7 @@ where
     DM: DesignMatrix<Elem = F>,
     T: AsMultiTargets<Elem = F>,
     DF: MultiTaskDatafit<F, DM, T>,
-    P: PenaltyMultiTask<F>,
+    P: MultiTaskPenalty<F>,
     S: BCDSolver<F, DF, P, DM, T> + MultiTaskExtrapolator<F, DM, T>,
 {
     let n_samples = dataset.targets().n_samples();

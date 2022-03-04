@@ -8,7 +8,7 @@ mod tests;
 
 /// This trait provides three methods needed to update the weights in a multi-task
 /// setting during the optimization routine.
-pub trait PenaltyMultiTask<F: Float> {
+pub trait MultiTaskPenalty<F: Float> {
     /// This method is called when evaluating the objective value.
     ///
     /// It is jointly used with ['DatafitMultiTask::value`] in order to compute the value
@@ -49,7 +49,7 @@ impl<F: Float> L21<F> {
     }
 }
 
-impl<F: 'static + Float> PenaltyMultiTask<F> for L21<F> {
+impl<F: 'static + Float> MultiTaskPenalty<F> for L21<F> {
     /// Computes the L21-norm of the weights
     ///
     /// pen(X) = sum_{t=1}^T ||X_:,t||_2
@@ -118,7 +118,7 @@ impl<F: Float> BlockMCP<F> {
     }
 }
 
-impl<F: Float> PenaltyMultiTask<F> for BlockMCP<F> {
+impl<F: Float> MultiTaskPenalty<F> for BlockMCP<F> {
     /// Computes the Block MCP for the weight matrix
     ///
     /// With W_j the j-th row of W, compute
