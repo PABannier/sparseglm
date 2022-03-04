@@ -7,14 +7,14 @@
 A fast and modular coordinate descent solver for sparse generalized linear models
 with **convex** and **non-convex** penalties, written in Rust with Python bindings.
 
-The algorithm is explained in depth in [CITE PAPER] and theoretical guarantees of
-convergence are given. It also extensively demonstrates the superiority of this
-solver over existing ones. A similar package written in pure Python can be found
+The details of the `rust-sparseglm` solver are explored in [CITE PAPER]. We provide
+theoretical guarantees of convergence. We extensively demonstrate the superiority
+of this solver over existing ones. A similar package written in pure Python can be found
 here: [FlashCD](https://github.com/mathurinm/flashcd).
 
 `rust-sparseglm` leverages [Anderson acceleration](https://github.com/mathurinm/andersoncd)
 and [working sets](https://github.com/mathurinm/celer) to propose a **fast** and
-**memory-efficient** solver on a large variety of algorithms. It can solve problems
+**memory-efficient** solver on a wide variety of algorithms. It can solve problems
 with millions of samples and features in seconds. It supports **dense** and
 **sparse** matrices via CSC arrays.
 
@@ -24,7 +24,7 @@ term and its penalty term, which makes it very easy to support new estimators.
 
 ```rust
 // Load some data and wrap them in a Dataset
-let dataset = DatasetBase::from((X, y));
+let dataset = DatasetBase::from((x, y));
 
 // Define a datafit (here a quadratic datafit for regression)
 let mut datafit = Quadratic::default();
@@ -44,7 +44,7 @@ these estimators and offers an API à la `Scikit-Learn`.
 
 ```rust
 // Load some data and wrap them in a Dataset
-let dataset = DatasetBase::from((X, y));
+let dataset = DatasetBase::from((x, y));
 
 // Instantiate and fit the estimator
 let estimator = ElasticNet::params()

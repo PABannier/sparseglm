@@ -8,6 +8,9 @@ use crate::datasets::AsSingleTargets;
 use crate::datasets::{DatasetBase, DesignMatrix};
 use crate::penalties::Penalty;
 
+#[cfg(test)]
+pub mod tests;
+
 pub mod impl_solver;
 
 #[derive(Debug, PartialEq, Clone)]

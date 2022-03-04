@@ -9,7 +9,7 @@
 //!
 //! ```ignore
 //! // Load some data and wrap them in a Dataset
-//! let dataset = DatasetBase::from((X, y));
+//! let dataset = DatasetBase::from((x, y));
 //!
 //! // Define a datafit (here a quadratic datafit for regression)
 //! let mut datafit = Quadratic::default();
@@ -29,7 +29,7 @@
 //!
 //! ```ignore
 //! // Load some data and wrap them in a Dataset
-//! let dataset = DatasetBase::from((X, y));
+//! let dataset = DatasetBase::from((x, y));
 //!
 //! // Instantiate and fit the estimator
 //! let estimator = ElasticNet::params()
