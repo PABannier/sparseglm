@@ -1,5 +1,3 @@
-
-
 use ndarray::{s, Array1, Array2, ArrayBase, ArrayView1, ArrayView2, Data, Ix2};
 
 use super::Float;

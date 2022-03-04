@@ -1,3 +1,5 @@
+//! Fast and modular coordinate descent solver for sparse generalized linear models
+
 #![allow(non_snake_case)]
 
 extern crate approx;
