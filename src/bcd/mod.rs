@@ -6,7 +6,6 @@ use crate::datasets::DesignMatrix;
 use crate::datasets::{AsMultiTargets, DatasetBase};
 use crate::helpers::helpers::{argsort_by, solve_lin_sys};
 use crate::penalties_multitask::MultiTaskPenalty;
-use crate::solver_multitask::{BCDSolver, MultiTaskExtrapolator};
 
 #[cfg(test)]
 mod tests;
@@ -102,9 +101,8 @@ where
 
 /// This function is a multi-task variant of the [`anderson_accel`] function in
 /// the single-task case.
-pub fn anderson_accel<F, DM, T, DF, P, S>(
+pub fn anderson_accel<F, DM, T, DF, P>(
     dataset: &DatasetBase<DM, T>,
-    solver: &S,
     W: &mut Array2<F>,
     XW: &mut Array2<F>,
     datafit: &DF,
@@ -121,8 +119,8 @@ pub fn anderson_accel<F, DM, T, DF, P, S>(
     T: AsMultiTargets<Elem = F>,
     DF: MultiTaskDatafit<F, DM, T>,
     P: MultiTaskPenalty<F>,
-    S: BCDSolver<F, DF, P, DM, T> + MultiTaskExtrapolator<F, DM, T>,
 {
+    let n_samples = dataset.targets().n_samples();
     let n_features = dataset.design_matrix().n_features();
     let n_tasks = dataset.targets().n_tasks();
 
@@ -187,7 +185,9 @@ pub fn anderson_accel<F, DM, T, DF, P, S>(
 
                 // Computes the objective value at the extrapolated point and at the
                 // non-extrapolated point
-                let XW_acc = solver.extrapolate(dataset, W_acc.view(), ws);
+                let XW_acc = dataset
+                    .design_matrix()
+                    .compute_extrapolated_fit_multi_task(ws, &W_acc, n_samples, n_tasks);
                 let p_obj = datafit.value(dataset, XW.view()) + penalty.value(W.view());
                 let p_obj_acc = datafit.value(dataset, XW_acc.view()) + penalty.value(W_acc.view());
 
@@ -218,10 +218,9 @@ pub fn anderson_accel<F, DM, T, DF, P, S>(
 
 /// This is the backbone function for the crate, in the multi-task case. For a
 /// detailed description, see [`coordinate_descent`] function.
-pub fn block_coordinate_descent<F, DM, T, DF, P, S>(
+pub fn block_coordinate_descent<F, DM, T, DF, P>(
     dataset: &DatasetBase<DM, T>,
     datafit: &mut DF,
-    solver: &S,
     penalty: &P,
     p0: usize,
     max_iterations: usize,
@@ -237,7 +236,6 @@ where
     T: AsMultiTargets<Elem = F>,
     DF: MultiTaskDatafit<F, DM, T>,
     P: MultiTaskPenalty<F>,
-    S: BCDSolver<F, DF, P, DM, T> + MultiTaskExtrapolator<F, DM, T>,
 {
     let n_samples = dataset.targets().n_samples();
     let n_features = dataset.design_matrix().n_features();
@@ -246,6 +244,7 @@ where
     // Pre-computes the Lipschitz constants and the matrix-matrix XTY product
     // that is later used in the optimization procedure.
     datafit.initialize(dataset);
+    let lipschitz = datafit.lipschitz();
 
     let all_feats = Array1::from_shape_vec(n_features, (0..n_features).collect()).unwrap();
 
@@ -286,13 +285,40 @@ where
         // Inner loop that implements the actual block coordinate descent routine
         for epoch in 0..max_epochs {
             // Cycle through the features in the working set
-            solver.bcd_epoch(dataset, datafit, penalty, &mut W, &mut XW, ws.view());
+            for &j in ws.iter() {
+                match lipschitz[j] == F::zero() {
+                    true => continue,
+                    false => {
+                        let old_W_j = W.slice(s![j, ..]).to_owned();
+                        let grad_j = datafit.gradient_j(dataset, XW.view(), j);
+
+                        let step = &old_W_j - grad_j / lipschitz[j];
+                        let upd = penalty.prox_op(step.view(), F::one() / lipschitz[j]);
+                        W.slice_mut(s![j, ..]).assign(&upd);
+
+                        let diff = Array1::from_iter(
+                            old_W_j
+                                .iter()
+                                .enumerate()
+                                .map(|(t, &old_w_jt)| W[[j, t]] - old_w_jt)
+                                .collect::<Vec<F>>(),
+                        );
+
+                        if diff.iter().any(|&x| x != F::zero()) {
+                            dataset.design_matrix().update_model_fit_multi_task(
+                                &mut XW,
+                                diff.view(),
+                                j,
+                            );
+                        }
+                    }
+                }
+            }
 
             // Attempt to find an extrapolated point using Anderson acceleration
             if use_acceleration {
                 anderson_accel(
                     dataset,
-                    solver,
                     &mut W,
                     &mut XW,
                     datafit,

@@ -14,7 +14,6 @@ use crate::datafits_multitask::QuadraticMultiTask;
 use crate::datasets::{csc_array::CSCArray, AsMultiTargets, AsSingleTargets, DatasetBase};
 use crate::penalties::{L1, MCP};
 use crate::penalties_multitask::{BlockMCP, L21};
-use crate::solver_multitask::MultiTaskSolver;
 use crate::Float;
 
 /// The Lasso estimator
@@ -135,13 +134,11 @@ impl<F: Float, S: Data<Elem = F>, T: AsMultiTargets<Elem = F>>
     /// This method fits a [`MultiTaskLasso`] instance to a dataset with a
     /// sparse design matrix.
     fn fit(&self, dataset: &DatasetBase<ArrayBase<S, Ix2>, T>) -> Result<Self::Object> {
-        let solver = MultiTaskSolver {};
-        let mut datafit = QuadraticMultiTask::default();
+        let mut datafit = QuadraticMultiTask::new();
         let penalty = L21::new(self.alpha());
         let W = block_coordinate_descent(
             dataset,
             &mut datafit,
-            &solver,
             &penalty,
             self.p0(),
             self.max_iterations(),
@@ -167,14 +164,12 @@ impl<F: Float, T: AsMultiTargets<Elem = F>> Fit<CSCArray<'_, F>, T, EstimatorErr
     /// This method fits a [`MultiTaskLasso`] instance to a dataset with a dense
     /// sparse matrix.
     fn fit(&self, dataset: &DatasetBase<CSCArray<'_, F>, T>) -> Result<Self::Object> {
-        let solver = MultiTaskSolver {};
-        let mut datafit = QuadraticMultiTask::default();
+        let mut datafit = QuadraticMultiTask::new();
         let penalty = L21::new(self.alpha());
 
         let W = block_coordinate_descent(
             dataset,
             &mut datafit,
-            &solver,
             &penalty,
             self.p0(),
             self.max_iterations(),
@@ -309,14 +304,12 @@ impl<F: Float, S: Data<Elem = F>, T: AsMultiTargets<Elem = F>>
     /// This method fits a [`BlockMCPEstimator`] instance to a dataset with a
     /// dense design matrix.
     fn fit(&self, dataset: &DatasetBase<ArrayBase<S, Ix2>, T>) -> Result<Self::Object> {
-        let solver = MultiTaskSolver {};
-        let mut datafit = QuadraticMultiTask::default();
+        let mut datafit = QuadraticMultiTask::new();
         let penalty = BlockMCP::new(self.alpha(), self.gamma());
 
         let W = block_coordinate_descent(
             dataset,
             &mut datafit,
-            &solver,
             &penalty,
             self.p0(),
             self.max_iterations(),
@@ -342,14 +335,12 @@ impl<F: Float, T: AsMultiTargets<Elem = F>> Fit<CSCArray<'_, F>, T, EstimatorErr
     /// This method fits a [`BlockMCPEstimator`] instance to a dataset with a
     /// sparse design matrix.
     fn fit(&self, dataset: &DatasetBase<CSCArray<'_, F>, T>) -> Result<Self::Object> {
-        let solver = MultiTaskSolver {};
-        let mut datafit = QuadraticMultiTask::default();
+        let mut datafit = QuadraticMultiTask::new();
         let penalty = BlockMCP::new(self.alpha(), self.gamma());
 
         let W = block_coordinate_descent(
             dataset,
             &mut datafit,
-            &solver,
             &penalty,
             self.p0(),
             self.max_iterations(),

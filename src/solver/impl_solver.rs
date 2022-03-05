@@ -1,13 +1,15 @@
-use ndarray::Array1;
+use ndarray::{Array1, Array2};
 use std::fmt::Error;
 
-use super::{CDSolver, Solver};
+use super::{BCDSolver, CDSolver, Solver};
 
+use crate::bcd::block_coordinate_descent;
 use crate::cd::coordinate_descent;
 use crate::datafits::Datafit;
-use crate::datasets::AsSingleTargets;
-use crate::datasets::{DatasetBase, DesignMatrix};
+use crate::datafits_multitask::MultiTaskDatafit;
+use crate::datasets::{AsMultiTargets, AsSingleTargets, DatasetBase, DesignMatrix};
 use crate::penalties::Penalty;
+use crate::penalties_multitask::MultiTaskPenalty;
 use crate::Float;
 
 impl<F: Float> Default for Solver<F> {
@@ -111,5 +113,38 @@ where
         );
 
         Ok(w)
+    }
+}
+
+/// This implements the [`BCDSolver`] trait by calling the [`block_coordinate_descent`]
+/// backbone function for multi-task optimization problems.
+impl<F, DM, T, DF, P> BCDSolver<F, DM, T, DF, P> for Solver<F>
+where
+    F: Float,
+    DM: DesignMatrix<Elem = F>,
+    T: AsMultiTargets<Elem = F>,
+    DF: MultiTaskDatafit<F, DM, T>,
+    P: MultiTaskPenalty<F>,
+{
+    fn solve_multi_task(
+        &self,
+        dataset: &DatasetBase<DM, T>,
+        datafit: &mut DF,
+        penalty: &P,
+    ) -> Result<Array2<F>, Error> {
+        let W = block_coordinate_descent(
+            dataset,
+            datafit,
+            penalty,
+            self.p0,
+            self.max_iterations,
+            self.max_epochs,
+            self.tolerance,
+            self.K,
+            self.use_acceleration,
+            self.verbose,
+        );
+
+        Ok(W)
     }
 }

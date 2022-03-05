@@ -1,12 +1,14 @@
 use std::fmt::Error;
 
-use ndarray::Array1;
+use ndarray::{Array1, Array2};
 
 use super::Float;
 use crate::datafits::Datafit;
-use crate::datasets::AsSingleTargets;
+use crate::datafits_multitask::MultiTaskDatafit;
+use crate::datasets::{AsMultiTargets, AsSingleTargets};
 use crate::datasets::{DatasetBase, DesignMatrix};
 use crate::penalties::Penalty;
+use crate::penalties_multitask::MultiTaskPenalty;
 
 #[cfg(test)]
 pub mod tests;
@@ -55,4 +57,21 @@ where
         datafit: &mut DF,
         penalty: &P,
     ) -> Result<Array1<F>, Error>;
+}
+
+pub trait BCDSolver<F, DM, T, DF, P>
+where
+    F: Float,
+    DM: DesignMatrix<Elem = F>,
+    T: AsMultiTargets<Elem = F>,
+    DF: MultiTaskDatafit<F, DM, T>,
+    P: MultiTaskPenalty<F>,
+{
+    /// This method calls the [`block_coordinate_descent`] backbone function.
+    fn solve_multi_task(
+        &self,
+        dataset: &DatasetBase<DM, T>,
+        datafit: &mut DF,
+        penalty: &P,
+    ) -> Result<Array2<F>, Error>;
 }

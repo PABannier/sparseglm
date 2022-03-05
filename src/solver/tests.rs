@@ -1,7 +1,8 @@
-use crate::datafits::*;
-use crate::penalties::*;
+use crate::datasets::DatasetBase;
+use crate::{datafits::*, datafits_multitask::QuadraticMultiTask};
+use crate::{penalties::*, penalties_multitask::L21};
 
-use super::*;
+use super::{BCDSolver, CDSolver, Solver};
 use ndarray::array;
 
 #[test]
@@ -22,15 +23,33 @@ fn test_lasso() {
 }
 
 #[test]
-fn test_mcp() {
-    let x = array![[1.3, 2.1, 1.7], [-0.5, 1.4, 4.2]];
-    let y = array![12., 42.];
+fn test_multi_task_lasso() {
+    let x = array![[-0.3, -2.1, 1.4, 3.4], [3.4, 1.2, -0.3, -0.1]];
+    let y = array![[0.3, 0.2], [-0.2, -0.1]];
     let dataset = DatasetBase::from((x, y));
 
-    let mut datafit = Quadratic::new();
-    let penalty = MCP::new(0.7, 2.);
+    let mut datafit = QuadraticMultiTask::new();
+    let penalty = L21::new(0.07);
     let solver = Solver::default();
 
-    let coefficients = solver.solve(&dataset, &mut datafit, &penalty).unwrap();
-    assert_eq!(coefficients, array![-17.81234024, 14.1919048, 3.14884837]);
+    let coefficients = solver
+        .solve_multi_task(&dataset, &mut datafit, &penalty)
+        .unwrap();
+    assert_eq!(
+        coefficients,
+        array![
+            [-0.04664696969076872, -0.023139825340769624],
+            [0., 0.],
+            [0., 0.],
+            [0.07437213388897676, 0.050151821872412336]
+        ]
+    );
 }
+
+// Add one test for sparse matrices
+
+// Add one test for multitask lasso (dense and sparse)
+
+// Add one test for estimators
+
+// Write it with macros

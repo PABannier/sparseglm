@@ -1,4 +1,4 @@
-use ndarray::{Array1, ArrayBase, ArrayView1, ArrayView2, Axis, Ix2, OwnedRepr, ViewRepr};
+use ndarray::{Array1, Array2, ArrayBase, ArrayView1, ArrayView2, Axis, Ix2, OwnedRepr, ViewRepr};
 use thiserror::Error;
 
 use self::csc_array::CSCArray;
@@ -65,8 +65,27 @@ pub trait DesignMatrix: Sized {
         n_samples: usize,
     ) -> Array1<Self::Elem>;
 
+    /// This computes the extrapolated model fit for multi-tasks, useful when
+    /// calling [`anderson_acceleration`] in a multi-task setting.
+    fn compute_extrapolated_fit_multi_task(
+        &self,
+        ws: ArrayView1<usize>,
+        W_acc: &Array2<Self::Elem>,
+        n_samples: usize,
+        n_tasks: usize,
+    ) -> Array2<Self::Elem>;
+
     /// This updates the model fit product, useful during the coordinate descent procedure.
     fn update_model_fit(&self, Xw: &mut Array1<Self::Elem>, diff: Self::Elem, j: usize);
+
+    /// This updates the multi-task model fit product, useful during the block
+    /// coordinate descent procedure.
+    fn update_model_fit_multi_task(
+        &self,
+        XW: &mut Array2<Self::Elem>,
+        diff: ArrayView1<Self::Elem>,
+        j: usize,
+    );
 }
 
 /// This trait implements the basic methods for an array to be considered
