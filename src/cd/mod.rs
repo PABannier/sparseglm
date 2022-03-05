@@ -314,21 +314,21 @@ where
             }
 
             // Attempt to find an extrapolated point using Anderson acceleration
-            if use_acceleration {
-                anderson_accel(
-                    dataset,
-                    datafit,
-                    penalty,
-                    &mut last_K_w,
-                    &mut U,
-                    &mut w,
-                    &mut Xw,
-                    ws.view(),
-                    epoch,
-                    K,
-                    verbose,
-                );
-            }
+            // if use_acceleration {
+            //     anderson_accel(
+            //         dataset,
+            //         datafit,
+            //         penalty,
+            //         &mut last_K_w,
+            //         &mut U,
+            //         &mut w,
+            //         &mut Xw,
+            //         ws.view(),
+            //         epoch,
+            //         K,
+            //         verbose,
+            //     );
+            // }
 
             // Check that the maximum distance between the gradient of the datafit
             // and the subdifferential of the penalty is smaller than the tolerance
