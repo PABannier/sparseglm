@@ -14,8 +14,8 @@
 //! // Define a datafit (here a quadratic datafit for regression)
 //! let mut datafit = Quadratic::default();
 //!
-//! // Define a penalty (here a L1 + L2 penalty for ElasticNet)
-//! let penalty = L1PlusL2::new(2., 0.3);
+//! // Define a penalty (here a L1 penalty for Lasso)
+//! let penalty = L1::new(0.7);
 //!
 //! // Instantiate a Solver with default parameters
 //! let solver = Solver::default();
@@ -24,7 +24,7 @@
 //! let coefficients = solver.solve(dataset, &mut datafit, &penalty).unwrap();
 //! ```
 //!
-//! For widely-known models like ElasticNet, [`rust-sparseglm`] already implements
+//! For widely-used models like Lasso, [`rust-sparseglm`] already implements
 //! those models.
 //!
 //! ```ignore
@@ -32,11 +32,10 @@
 //! let dataset = DatasetBase::from((x, y));
 //!
 //! // Instantiate and fit the estimator
-//! let estimator = ElasticNet::params()
-//!                     .alpha(2.)
-//!                     .l1_ratio(0.3)
-//!                     .fit(&dataset)
-//!                     .unwrap();
+//! let estimator = Lasso::params()
+//!                   .alpha(0.7)
+//!                   .fit(&dataset)
+//!                   .unwrap();
 //!
 //! // Get the fitted coefficients
 //! let coefficients = estimator.coefficients();
