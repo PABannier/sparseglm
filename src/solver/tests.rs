@@ -11,11 +11,14 @@ fn test_lasso() {
     let dataset = DatasetBase::from((x, y));
 
     let mut datafit = Quadratic::default();
-    let penalty = L1::new(0.7);
+    let penalty = L1::new(0.1);
     let solver = Solver::default();
 
     let coefficients = solver.solve(&dataset, &mut datafit, &penalty).unwrap();
-    assert_eq!(coefficients, array![-0.15004725, 1.12181002, 0.]);
+    assert_eq!(
+        coefficients,
+        array![-0.4798204158784847, 1.3621219281657122, 0.]
+    );
 }
 
 #[test]
@@ -29,5 +32,5 @@ fn test_mcp() {
     let solver = Solver::default();
 
     let coefficients = solver.solve(&dataset, &mut datafit, &penalty).unwrap();
-    assert_eq!(coefficients, array![-2.60231414, 0., 9.53172209]);
+    assert_eq!(coefficients, array![-17.81234024, 14.1919048, 3.14884837]);
 }
