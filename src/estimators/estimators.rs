@@ -3,7 +3,8 @@ use ndarray::{ArrayBase, Data, Ix1, Ix2, OwnedRepr, ViewRepr};
 use super::error::{EstimatorError, Result};
 use super::hyperparams::{
     BlockMCPValidParams, BlockMCParams, ElasticNetParams, ElasticNetValidParams, LassoParams,
-    LassoValidParams, MCPValidParams, MCParams, MultiTaskLassoParams, MultiTaskLassoValidParams,
+    LassoValidParams, MCPValidParams, MCParams, MultiTaskElasticNetParams,
+    MultiTaskElasticNetValidParams, MultiTaskLassoParams, MultiTaskLassoValidParams,
 };
 use super::traits::Fit;
 
@@ -13,7 +14,7 @@ use crate::datafits::Quadratic;
 use crate::datafits_multitask::QuadraticMultiTask;
 use crate::datasets::{csc_array::CSCArray, AsMultiTargets, AsSingleTargets, DatasetBase};
 use crate::penalties::{L1PlusL2, L1, MCP};
-use crate::penalties_multitask::{BlockMCP, L21};
+use crate::penalties_multitask::{BlockL1PlusL2, BlockMCP, L21};
 use crate::solver::Solver;
 use crate::solver_multitask::MultiTaskSolver;
 use crate::Float;
@@ -423,5 +424,126 @@ impl<F: Float, S: Data<Elem = F>, T: AsSingleTargets<Elem = F>>
             self.verbose(),
         );
         Ok(ElasticNet { coefficients: w })
+    }
+}
+
+/// This implements the coordinate descent optimization procedure for
+/// single-task problems and sparse design matrices.
+impl<F: Float, T: AsSingleTargets<Elem = F>> Fit<CSCArray<'_, F>, T, EstimatorError>
+    for ElasticNetValidParams<F>
+{
+    /// If successful, the output of the coordinate descent solver is an instance
+    /// of [`ElasticNet`] containing the fitted coefficients.
+    type Object = ElasticNet<F>;
+
+    /// This method fits a [`ElasticNet`] instance to a dataset with a
+    /// dense design matrix.
+    fn fit(&self, dataset: &DatasetBase<CSCArray<'_, F>, T>) -> Result<Self::Object> {
+        let solver = Solver {};
+        let mut datafit = Quadratic::default();
+        let penalty = L1PlusL2::new(self.alpha(), self.l1_ratio());
+
+        let w = coordinate_descent(
+            dataset,
+            &mut datafit,
+            &solver,
+            &penalty,
+            self.p0(),
+            self.max_iterations(),
+            self.max_epochs(),
+            self.tolerance(),
+            self.K(),
+            self.use_acceleration(),
+            self.verbose(),
+        );
+        Ok(ElasticNet { coefficients: w })
+    }
+}
+
+/// Block ElasticNet
+///
+/// The Block ElasticNet is a weighted combination of the Ridge multi-task
+/// regression and the [`MultiTaskLasso`] regression. It combines a weighted
+/// L1 + L2 block penalty that yields structured sparse solution.
+#[derive(Debug, Clone, PartialEq)]
+pub struct MultiTaskElasticNet<F> {
+    coefficients: ArrayBase<OwnedRepr<F>, Ix2>,
+}
+
+impl<F: Float> MultiTaskElasticNet<F> {
+    /// This method instantiates a [`MultiTaskElasticNet`] with default block
+    /// coordinate descent parameters.
+    pub fn params() -> MultiTaskElasticNetParams<F> {
+        MultiTaskElasticNetParams::new()
+    }
+
+    pub fn coefficients(&self) -> ArrayBase<ViewRepr<&F>, Ix2> {
+        self.coefficients.view()
+    }
+}
+
+/// This implements the coordinate descent optimization procedure for
+/// single-task problems and dense design matrices.
+impl<F: Float, S: Data<Elem = F>, T: AsMultiTargets<Elem = F>>
+    Fit<ArrayBase<S, Ix2>, T, EstimatorError> for MultiTaskElasticNetValidParams<F>
+{
+    /// If successful, the output of the coordinate descent solver is an instance
+    /// of [`MultiTaskElasticNet`] containing the fitted coefficients.
+    type Object = MultiTaskElasticNet<F>;
+
+    /// This method fits a [`MultiTaskElasticNet`] instance to a dataset with a
+    /// dense design matrix.
+    fn fit(&self, dataset: &DatasetBase<ArrayBase<S, Ix2>, T>) -> Result<Self::Object> {
+        let solver = MultiTaskSolver {};
+        let mut datafit = QuadraticMultiTask::default();
+        let penalty = BlockL1PlusL2::new(self.alpha(), self.l1_ratio());
+
+        let W = block_coordinate_descent(
+            dataset,
+            &mut datafit,
+            &solver,
+            &penalty,
+            self.p0(),
+            self.max_iterations(),
+            self.max_epochs(),
+            self.tolerance(),
+            self.K(),
+            self.use_acceleration(),
+            self.verbose(),
+        );
+        Ok(MultiTaskElasticNet { coefficients: W })
+    }
+}
+
+/// This implements the coordinate descent optimization procedure for
+/// single-task problems and sparse design matrices.
+impl<F: Float, T: AsMultiTargets<Elem = F>> Fit<CSCArray<'_, F>, T, EstimatorError>
+    for MultiTaskElasticNetValidParams<F>
+{
+    /// If successful, the output of the coordinate descent solver is an instance
+    /// of [`MultiTaskElasticNet`] containing the fitted coefficients.
+    type Object = MultiTaskElasticNet<F>;
+
+    /// This method fits a [`MultiTaskElasticNet`] instance to a dataset with a
+    /// dense design matrix.
+    fn fit(&self, dataset: &DatasetBase<CSCArray<'_, F>, T>) -> Result<Self::Object> {
+        let solver = MultiTaskSolver {};
+        let mut datafit = QuadraticMultiTask::default();
+        let penalty = BlockL1PlusL2::new(self.alpha(), self.l1_ratio());
+
+        let W = block_coordinate_descent(
+            dataset,
+            &mut datafit,
+            &solver,
+            &penalty,
+            self.p0(),
+            self.max_iterations(),
+            self.max_epochs(),
+            self.tolerance(),
+            self.K(),
+            self.use_acceleration(),
+            self.verbose(),
+        );
+        Ok(MultiTaskElasticNet { coefficients: W })
     }
 }
