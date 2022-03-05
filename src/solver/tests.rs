@@ -10,7 +10,7 @@ fn test_lasso() {
     let y = array![1.2, 4.5];
     let dataset = DatasetBase::from((x, y));
 
-    let mut datafit = Quadratic::default();
+    let mut datafit = Quadratic::new();
     let penalty = L1::new(0.1);
     let solver = Solver::default();
 
@@ -27,7 +27,7 @@ fn test_mcp() {
     let y = array![12., 42.];
     let dataset = DatasetBase::from((x, y));
 
-    let mut datafit = Quadratic::default();
+    let mut datafit = Quadratic::new();
     let penalty = MCP::new(0.7, 2.);
     let solver = Solver::default();
 

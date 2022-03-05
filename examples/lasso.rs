@@ -13,8 +13,8 @@ fn main() {
     let (x, y) = generate_random_data(30, 100);
     let dataset = DatasetBase::from((x, y));
 
-    // Penalty - datafit API
-    let mut datafit = Quadratic::default();
+    // Penalty - Datafit - Solver API
+    let mut datafit = Quadratic::new();
     let penalty = L1::new(1.);
     let solver = Solver::default();
 

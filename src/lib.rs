@@ -12,7 +12,7 @@
 //! let dataset = DatasetBase::from((x, y));
 //!
 //! // Define a datafit (here a quadratic datafit for regression)
-//! let mut datafit = Quadratic::default();
+//! let mut datafit = Quadratic::new();
 //!
 //! // Define a penalty (here a L1 penalty for Lasso)
 //! let penalty = L1::new(0.7);

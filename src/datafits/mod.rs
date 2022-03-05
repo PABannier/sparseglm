@@ -49,8 +49,8 @@ pub struct Quadratic<F: Float> {
     Xty: Array1<F>,
 }
 
-impl<F: Float> Default for Quadratic<F> {
-    fn default() -> Quadratic<F> {
+impl<F: Float> Quadratic<F> {
+    pub fn new() -> Self {
         Quadratic {
             lipschitz: Array1::<F>::zeros(1),
             Xty: Array1::<F>::zeros(1),

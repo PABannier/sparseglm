@@ -51,7 +51,7 @@ impl<F: Float, S: Data<Elem = F>, T: AsSingleTargets<Elem = F>>
     /// This method fits a [`Lasso`] instance to a dataset with a dense design
     /// matrix.
     fn fit(&self, dataset: &DatasetBase<ArrayBase<S, Ix2>, T>) -> Result<Self::Object> {
-        let mut datafit = Quadratic::default();
+        let mut datafit = Quadratic::new();
         let penalty = L1::new(self.alpha());
 
         let w = coordinate_descent(
@@ -82,7 +82,7 @@ impl<F: Float, T: AsSingleTargets<Elem = F>> Fit<CSCArray<'_, F>, T, EstimatorEr
     /// This method fits a [`Lasso`] instance to a dataset with a sparse design
     /// matrix.
     fn fit(&self, dataset: &DatasetBase<CSCArray<F>, T>) -> Result<Self::Object> {
-        let mut datafit = Quadratic::default();
+        let mut datafit = Quadratic::new();
         let penalty = L1::new(self.alpha());
 
         let w = coordinate_descent(
@@ -223,7 +223,7 @@ impl<F: Float, S: Data<Elem = F>, T: AsSingleTargets<Elem = F>>
     /// This method fits a [`MCPEstimator`] instance to a dataset with a dense
     /// design matrix.
     fn fit(&self, dataset: &DatasetBase<ArrayBase<S, Ix2>, T>) -> Result<Self::Object> {
-        let mut datafit = Quadratic::default();
+        let mut datafit = Quadratic::new();
         let penalty = MCP::new(self.alpha(), self.gamma());
 
         let w = coordinate_descent(
@@ -254,7 +254,7 @@ impl<F: Float, T: AsSingleTargets<Elem = F>> Fit<CSCArray<'_, F>, T, EstimatorEr
     /// This method fits a [`MCPEstimator`] instance to a dataset with a sparse
     /// design matrix.
     fn fit(&self, dataset: &DatasetBase<CSCArray<F>, T>) -> Result<Self::Object> {
-        let mut datafit = Quadratic::default();
+        let mut datafit = Quadratic::new();
         let penalty = MCP::new(self.alpha(), self.gamma());
 
         let w = coordinate_descent(
