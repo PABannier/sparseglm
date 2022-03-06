@@ -9,7 +9,7 @@ from sklearn.linear_model import ElasticNet as ElasticNet_sk
 from sklearn.linear_model import MultiTaskLasso as MultiTaskLasso_sk
 from sklearn.linear_model import MultiTaskElasticNet as MultiTaskElasticNet_sk
 
-from sparseglm.estimators import (Lasso, MultiTaskLasso, ElasticNet, 
+from sparseglm.estimators import (Lasso, MultiTaskLasso, ElasticNet,
                                   MultiTaskElasticNet)
 
 from ..utils import make_correlated_data
@@ -58,7 +58,7 @@ def test_lasso(X, type):
 @pytest.mark.parametrize('type', [np.float64])
 def test_elastic_net(X, type):
     clf = ElasticNet(alpha, l1_ratio, tol=tol)
-    clf_sk = ElasticNet_sk(alpha, l1_ratio=l1_ratio, tol=tol, 
+    clf_sk = ElasticNet_sk(alpha, l1_ratio=l1_ratio, tol=tol,
                            fit_intercept=False)
 
     X_conv = X.astype(type)
