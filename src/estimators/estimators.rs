@@ -15,8 +15,6 @@ use crate::datafits_multitask::QuadraticMultiTask;
 use crate::datasets::{csc_array::CSCArray, AsMultiTargets, AsSingleTargets, DatasetBase};
 use crate::penalties::{L1PlusL2, L1, MCP};
 use crate::penalties_multitask::{BlockL1PlusL2, BlockMCP, L21};
-use crate::solver::Solver;
-use crate::solver_multitask::MultiTaskSolver;
 use crate::Float;
 
 /// The Lasso estimator
@@ -390,14 +388,12 @@ impl<F: Float, S: Data<Elem = F>, T: AsSingleTargets<Elem = F>>
     /// This method fits a [`ElasticNet`] instance to a dataset with a
     /// dense design matrix.
     fn fit(&self, dataset: &DatasetBase<ArrayBase<S, Ix2>, T>) -> Result<Self::Object> {
-        let solver = Solver {};
-        let mut datafit = Quadratic::default();
+        let mut datafit = Quadratic::new();
         let penalty = L1PlusL2::new(self.alpha(), self.l1_ratio());
 
         let w = coordinate_descent(
             dataset,
             &mut datafit,
-            &solver,
             &penalty,
             self.p0(),
             self.max_iterations(),
@@ -423,14 +419,12 @@ impl<F: Float, T: AsSingleTargets<Elem = F>> Fit<CSCArray<'_, F>, T, EstimatorEr
     /// This method fits a [`ElasticNet`] instance to a dataset with a
     /// dense design matrix.
     fn fit(&self, dataset: &DatasetBase<CSCArray<'_, F>, T>) -> Result<Self::Object> {
-        let solver = Solver {};
-        let mut datafit = Quadratic::default();
+        let mut datafit = Quadratic::new();
         let penalty = L1PlusL2::new(self.alpha(), self.l1_ratio());
 
         let w = coordinate_descent(
             dataset,
             &mut datafit,
-            &solver,
             &penalty,
             self.p0(),
             self.max_iterations(),
@@ -478,14 +472,12 @@ impl<F: Float, S: Data<Elem = F>, T: AsMultiTargets<Elem = F>>
     /// This method fits a [`MultiTaskElasticNet`] instance to a dataset with a
     /// dense design matrix.
     fn fit(&self, dataset: &DatasetBase<ArrayBase<S, Ix2>, T>) -> Result<Self::Object> {
-        let solver = MultiTaskSolver {};
-        let mut datafit = QuadraticMultiTask::default();
+        let mut datafit = QuadraticMultiTask::new();
         let penalty = BlockL1PlusL2::new(self.alpha(), self.l1_ratio());
 
         let W = block_coordinate_descent(
             dataset,
             &mut datafit,
-            &solver,
             &penalty,
             self.p0(),
             self.max_iterations(),
@@ -511,14 +503,12 @@ impl<F: Float, T: AsMultiTargets<Elem = F>> Fit<CSCArray<'_, F>, T, EstimatorErr
     /// This method fits a [`MultiTaskElasticNet`] instance to a dataset with a
     /// dense design matrix.
     fn fit(&self, dataset: &DatasetBase<CSCArray<'_, F>, T>) -> Result<Self::Object> {
-        let solver = MultiTaskSolver {};
-        let mut datafit = QuadraticMultiTask::default();
+        let mut datafit = QuadraticMultiTask::new();
         let penalty = BlockL1PlusL2::new(self.alpha(), self.l1_ratio());
 
         let W = block_coordinate_descent(
             dataset,
             &mut datafit,
-            &solver,
             &penalty,
             self.p0(),
             self.max_iterations(),
