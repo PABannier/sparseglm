@@ -78,3 +78,17 @@ We provide below a demonstration of `rust-sparseglm` against other fast coordina
 descent solvers using the optimization benchmarking tool [Benchopt](https://github.com/benchopt/benchopt).
 
 [INSERT IMAGE]
+
+## Building the Python package
+
+This repo includes Python bindings to run the existing estimators (in the `Estimators`crate)
+in a Python environment. To install it, run at the root of the repo:
+
+```bash
+
+# Install Maturin (PyO3) runtime to generate Python package
+pip install maturin
+
+# Compile and build Python wheel
+maturin develop --release
+```
