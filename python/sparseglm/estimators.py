@@ -7,7 +7,8 @@ from sklearn.utils import check_array
 import sparseglm_solver
 
 
-__all__ = ["Lasso", "MultiTaskLasso", "MCPRegressor", "BlockMCPRegressor"]
+__all__ = ["Lasso", "MultiTaskLasso", "MCPRegressor", "BlockMCPRegressor",
+           "ElasticNet", "MultiTaskElasticNet"]
 
 
 class Estimator(BaseEstimator):
@@ -391,6 +392,195 @@ class BlockMCPRegressor(Estimator):
             p0=self.p0, k=self.K, max_epochs=self.max_epochs,
             tolerance=self.tol, use_acceleration=self.use_accel,
             verbose=self.verbose)
+
+        if sp.issparse(X):
+            coefs = self._inner.fit_sparse(X.data, X.indices, X.indptr, Y)
+        else:
+            coefs = self._inner.fit(X, Y)
+
+        self.coef_ = coefs.T
+        return self
+
+
+class ElasticNet(Estimator):
+    r"""Solves a L1+L2-regularized least square linear regression.
+
+    The solver uses Anderson acceleration combined with a working set strategy
+    for faster convergence.
+
+    Parameters
+    ----------
+    alpha : float
+        The regularization hyperparameter.
+
+    l1_ratio : float
+        The weighting between L1 regularization and L2 regularization.
+
+    max_iter : int, default = 50
+        The number of iterations of the outer CD solver.
+
+    max_epochs : int, default = 1000
+        The number of iterations used by the inner CD solver.
+
+    tolerance : float, default = 1e-9
+        Stopping criterion used.
+
+    p0 : int, default = 10
+        The starting size of the working set.
+
+    use_accel : bool, default = True
+        Usage of Anderson acceleration.
+
+    K : int, default = 5
+        Number of primal points used to extrapolate.
+
+    verbose : bool, default = True
+        Verbosity.
+
+    Examples
+    --------
+    >>> from sparseglm.estimators import ElasticNet
+    >>> clf = ElasticNet(alpha, l1_ratio)
+    >>> clf.fit(X, y)
+    """
+    def __init__(self, alpha, l1_ratio, max_iter=50, max_epochs=1000, tol=1e-9,
+                 p0=10, use_accel=True, K=5, verbose=True):
+        super(ElasticNet, self).__init__(
+            max_iter=max_iter, tol=tol, p0=p0, max_epochs=max_epochs, K=K,
+            use_accel=use_accel, verbose=verbose)
+        if not isinstance(alpha, float) or alpha < 0:
+            raise ValueError("alpha={} must be a positive float".format(alpha))
+        else:
+            self.alpha = alpha
+
+        if not isinstance(l1_ratio, float) or alpha < 0 or alpha > 1:
+            raise ValueError("l1_ratio={} must be between 0 and 1"
+                             .format(l1_ratio))
+        else:
+            self.l1_ratio = l1_ratio
+
+    def fit(self, X, y):
+        r"""Solves the L1+L2-regularized linear regression to the data (X, y)
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            Design matrix.
+
+        y : array-like, shape (n_samples)
+            Measurements.
+        """
+        self._validate_params()
+        X = check_array(X, 'csc', dtype=[np.float64, np.float32], order='F',
+                        copy=False, accept_large_sparse=False)
+        y = check_array(y, 'csc', dtype=X.dtype.type, order='F', copy=False,
+                        ensure_2d=False)
+
+        self._inner = sparseglm_solver.ElasticNetWrapper(
+            alpha=self.alpha, l1_ratio=self.l1_ratio,
+            max_iterations=self.max_iter, p0=self.p0, k=self.K,
+            max_epochs=self.max_epochs, tolerance=self.tol,
+            use_acceleration=self.use_accel, verbose=self.verbose)
+
+        if sp.issparse(X):
+            coefs = self._inner.fit_sparse(X.data, X.indices, X.indptr, y)
+        else:
+            coefs = self._inner.fit(X, y)
+
+        self.coef_ = coefs.T
+        return self
+
+
+class MultiTaskElasticNet(Estimator):
+    r"""Solves a Block L2+L1-regularized least square linear regression.
+
+    The solver uses Anderson acceleration combined with a working set strategy
+    for faster convergence.
+
+    Parameters
+    ----------
+    alpha : float
+        The regularization hyperparameter.
+
+    l1_ratio : float
+        The weighting between the L1 and L2 regularizations.
+
+    max_iter : int, default = 50
+        The number of iterations of the outer CD solver.
+
+    max_epochs : int, default = 1000
+        The number of iterations used by the inner CD solver.
+
+    tolerance : float, default = 1e-9
+        Stopping criterion used.
+
+    p0 : int, default = 10
+        The starting size of the working set.
+
+    use_accel : bool, default = True
+        Usage of Anderson acceleration.
+
+    K : int, default = 5
+        Number of primal points used to extrapolate.
+
+    verbose : bool, default = True
+        Verbosity.
+
+    Examples
+    --------
+    >>> from sparseglm.estimators import MultiTaskElasticNet
+    >>> clf = MultiTaskElasticNet(alpha, l1_ratio)
+    >>> clf.fit(X, Y)
+    """
+    def __init__(self, alpha, l1_ratio, max_iter=50, max_epochs=1000, tol=1e-9,
+                 p0=10, use_accel=True, K=5, verbose=True):
+        super(MultiTaskElasticNet, self).__init__(
+            max_iter=max_iter, max_epochs=max_epochs, tol=tol, p0=p0,
+            use_accel=use_accel, K=K, verbose=verbose)
+        if not isinstance(alpha, float) or alpha < 0:
+            raise ValueError("alpha={} must be a positive float".format(alpha))
+        else:
+            self.alpha = alpha
+        if not isinstance(l1_ratio, float) or alpha < 0 or alpha > 1:
+            raise ValueError("l1_ratio={} must be between 0 and 1"
+                             .format(l1_ratio))
+        else:
+            self.l1_ratio = l1_ratio
+
+    def fit(self, X, Y):
+        r"""Solves the Block L1+L2-regularized linear regression to the data
+        (X, Y).
+
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            Design matrix.
+
+        Y : array-like, shape (n_samples, n_tasks)
+            Measurements.
+        """
+        self._validate_params()
+        check_X_params = dict(dtype=[np.float64, np.float32], order='F',
+                              accept_sparse='csc')
+        check_Y_params = dict(ensure_2d=False, order='F')
+        X, Y = self._validate_data(X, Y, validate_separately=(check_X_params,
+                                                              check_Y_params))
+        Y = Y.astype(X.dtype)
+
+        if Y.ndim == 1:
+            raise ValueError("For mono-task outputs, use ElasticNet")
+
+        n_samples = X.shape[0]
+
+        if n_samples != Y.shape[0]:
+            raise ValueError("X and Y have inconsistent dimensions (%d != %d)"
+                             % (n_samples, Y.shape[0]))
+
+        self._inner = sparseglm_solver.MultiTaskElasticNetWrapper(
+            alpha=self.alpha, l1_ratio=self.l1_ratio,
+            max_iterations=self.max_iter, p0=self.p0, k=self.K,
+            max_epochs=self.max_epochs, tolerance=self.tol,
+            use_acceleration=self.use_accel, verbose=self.verbose)
 
         if sp.issparse(X):
             coefs = self._inner.fit_sparse(X.data, X.indices, X.indptr, Y)
