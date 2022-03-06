@@ -1,5 +1,3 @@
-
-
 use ndarray::{s, Array1, ArrayBase, ArrayView1, Data, Ix2};
 
 use super::Float;
@@ -11,6 +9,12 @@ use crate::penalties::Penalty;
 mod tests;
 
 pub struct Solver {}
+
+impl Solver {
+    pub fn new() -> Self {
+        Solver {}
+    }
+}
 
 pub trait CDSolver<F, DF, P, DM, T>
 where

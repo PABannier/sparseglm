@@ -10,6 +10,12 @@ mod tests;
 
 pub struct MultiTaskSolver {}
 
+impl MultiTaskSolver {
+    pub fn new() -> Self {
+        MultiTaskSolver {}
+    }
+}
+
 pub trait BCDSolver<F, DF, P, DM, T>
 where
     F: Float,
