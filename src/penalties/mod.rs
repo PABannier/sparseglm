@@ -53,7 +53,7 @@ impl<F: Float> L1<F> {
 impl<F: Float> Penalty<F> for L1<F> {
     /// Computes the L1-norm of the weights
     fn value(&self, w: ArrayView1<F>) -> F {
-        self.alpha * w.map(|&wj| wj.abs()).sum()
+        self.alpha * w.iter().map(|&wj| wj.abs()).sum()
     }
 
     /// Applies the soft-thresholding operator to a weight scalar
@@ -78,6 +78,71 @@ impl<F: Float> Penalty<F> for L1<F> {
                 .map(|(&grad_idx, &j)| match w[j] == F::zero() {
                     true => F::max(F::zero(), grad_idx.abs() - self.alpha),
                     false => (-grad_idx - w[j].signum() * self.alpha).abs(),
+                })
+                .collect(),
+        );
+        let max_dist = subdiff_dist.fold(F::neg_infinity(), |max_val, &dist| F::max(max_val, dist));
+        (subdiff_dist, max_dist)
+    }
+}
+
+/// The L1 + L2 penalty
+///
+/// A convex penalty used by the Elastic Net model. It is used in a regression setting
+/// and is a combination of a L2-regularized OLS model (Ridge) and a L1-regularized OLS
+/// model (Lasso).
+#[derive(Debug, Clone, PartialEq)]
+pub struct L1PlusL2<F: Float> {
+    alpha: F,
+    l1_ratio: F,
+}
+
+impl<F: Float> L1PlusL2<F> {
+    /// Instantiates a L1 + L2 penalty with a positive regularization hyperparameter
+    /// and a weighting hyperparameter between 0 and 1 that weights the amount of L1
+    /// and L2 regularizations.
+    pub fn new(alpha: F, l1_ratio: F) -> Self {
+        L1PlusL2 { alpha, l1_ratio }
+    }
+}
+
+impl<F: Float> Penalty<F> for L1PlusL2<F> {
+    /// Computes the L1 + L2 - norm of the weights
+    ///
+    /// pen(x) = alpha * l1_ratio * ||x||_1 + alpha * (1 - l1_ratio) * ||x||_2^2 / 2
+    fn value(&self, w: ArrayView1<F>) -> F {
+        self.alpha
+            * (self.l1_ratio * w.iter().map(|&wj| wj.abs()).sum()
+                + F::cast(0.5) * (F::one() - self.l1_ratio) * w.dot(&w))
+    }
+
+    /// Computes the proximal operator of the L1 + L2 penalty for a weight scalar
+    fn prox_op(&self, value: F, stepsize: F) -> F {
+        let prox = soft_thresholding(value, self.l1_ratio * self.alpha * stepsize);
+        prox / (F::one() + stepsize * (F::one() - self.l1_ratio) * self.alpha)
+    }
+
+    /// Computes the distance of the gradient to the subdifferential
+    ///
+    /// The distance of the gradient to the subdifferential of L1 + L2 is:
+    /// dist(grad, subdiff) = max(0, |grad| - alpha * l1_ratio)         if w[j] = 0
+    ///                       |- grad - alpha * (sign(w[j]) * l1_ratio
+    ///                        + (1 - l1_ratio) * w[j])|                otherwise
+    fn subdiff_distance(
+        &self,
+        w: ArrayView1<F>,
+        grad: ArrayView1<F>,
+        ws: ArrayView1<usize>,
+    ) -> (Array1<F>, F) {
+        let subdiff_dist = Array1::from_vec(
+            grad.iter()
+                .zip(ws)
+                .map(|(&grad_idx, &j)| match w[j] == F::zero() {
+                    true => F::max(F::zero(), grad_idx.abs() - self.alpha * self.l1_ratio),
+                    false => (-grad_idx
+                        - self.alpha
+                            * (w[j].signum() * self.l1_ratio + (F::one() - self.l1_ratio) * w[j]))
+                        .abs(),
                 })
                 .collect(),
         );
