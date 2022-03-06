@@ -58,27 +58,11 @@ estimator_test! {
         truth: array![0.,  0.01717855,  0.].view(),
     },
 
-    // lasso_sparse: Payload {
-    //     design_matrix: sparse_matrix,
-    //     target: array![1.4, 0.3],
-    //     penalty: L1::new(0.7),
-    //     datafit: Quadratic::new(),
-    //     truth: array![0., 0., 0.].view(),
-    // },
-
     mcp_dense: Payload {
         design_matrix: array![[3., 2., 1.], [0.5, 3.4, 1.2]],
         target: array![1.2, 4.5],
         penalty: MCP::new(0.3, 2.),
         datafit: Quadratic::new(),
-        truth: array![-0.05802919, 1.0841646 , 0.].view(),
+        truth: array![-0.52009245, 1.39490436, 0.].view(),
     },
-
-    // mcp_sparse: Payload {
-    //     design_matrix: CSCArray::new(),
-    //     target: array![1.2, 4.5],
-    //     penalty: MCP::new(0.7, 2.5),
-    //     datafit: Quadratic::new(),
-    //     truth: array![0., 0., 0.].view(),
-    // },
 }
