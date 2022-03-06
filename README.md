@@ -5,10 +5,10 @@
 ![build](https://github.com/PABannier/rust-sparseglm/actions/workflows/build_doc.yml/badge.svg)
 
 A fast and modular coordinate descent solver for sparse generalized linear models
-with **convex** and **non-convex** penalties, written in Rust with Python bindings.
+with **convex** and **non-convex** penalties.
 
-The details of the `rust-sparseglm` solver are explored in [CITE PAPER]. We provide
-theoretical guarantees of convergence. We extensively demonstrate the superiority
+The details of the `rust-sparseglm` solver are explored in [CITE PAPER]. It provides
+theoretical guarantees of convergence and extensively demonstrates the superiority
 of this solver over existing ones. A similar package written in pure Python can be found
 here: [FlashCD](https://github.com/mathurinm/flashcd).
 
