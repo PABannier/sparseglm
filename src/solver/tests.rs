@@ -64,29 +64,29 @@ struct Payload<
 }
 
 estimator_test! {
-    lasso_dense: Payload {
-        design_matrix: array![[3., 2., 1.], [0.5, 3.4, 1.2]],
-        target: array![1.2, 4.5],
-        penalty: L1::new(1.),
-        datafit: Quadratic::new(),
-        truth: array![0., 1.00899743, 0.].view(),
-    },
+    // lasso_dense: Payload {
+    //     design_matrix: array![[3., 2., 1.], [0.5, 3.4, 1.2]],
+    //     target: array![1.2, 4.5],
+    //     penalty: L1::new(1.),
+    //     datafit: Quadratic::new(),
+    //     truth: array![0., 1.00899743, 0.].view(),
+    // },
 
-    elastic_net_dense: Payload {
-        design_matrix: array![[3.1, -3.4, 0.3], [0.9, -0.01, 2.3]],
-        target: array![-0.3, 0.08],
-        penalty: L1PlusL2::new(1., 0.4),
-        datafit: Quadratic::new(),
-        truth: array![0.,  0.01717855,  0.].view(),
-    },
+    // elastic_net_dense: Payload {
+    //     design_matrix: array![[3.1, -3.4, 0.3], [0.9, -0.01, 2.3]],
+    //     target: array![-0.3, 0.08],
+    //     penalty: L1PlusL2::new(1., 0.4),
+    //     datafit: Quadratic::new(),
+    //     truth: array![0.,  0.01717855,  0.].view(),
+    // },
 
-    mcp_dense: Payload {
-        design_matrix: array![[3., 2., 1.], [0.5, 3.4, 1.2]],
-        target: array![1.2, 4.5],
-        penalty: MCP::new(0.3, 2.),
-        datafit: Quadratic::new(),
-        truth: array![-0.52009245, 1.39490436, 0.].view(),
-    },
+    // mcp_dense: Payload {
+    //     design_matrix: array![[3., 2., 1.], [0.5, 3.4, 1.2]],
+    //     target: array![1.2, 4.5],
+    //     penalty: MCP::new(0.3, 2.),
+    //     datafit: Quadratic::new(),
+    //     truth: array![-0.52009245, 1.39490436, 0.].view(),
+    // },
 }
 
 struct MultiTaskPayload<
