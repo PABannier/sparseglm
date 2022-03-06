@@ -50,6 +50,14 @@ estimator_test! {
         truth: array![0., 1.00899743, 0.].view(),
     },
 
+    elastic_net_dense: Payload {
+        design_matrix: array![[3.1, -3.4, 0.3], [0.9, -0.01, 2.3]],
+        target: array![-0.3, 0.08],
+        penalty: L1PlusL2::new(1., 0.4),
+        datafit: Quadratic::new(),
+        truth: array![0.,  0.01717855,  0.].view(),
+    },
+
     // lasso_sparse: Payload {
     //     design_matrix: sparse_matrix,
     //     target: array![1.4, 0.3],
