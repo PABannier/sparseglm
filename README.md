@@ -4,49 +4,53 @@
 ![build](https://github.com/PABannier/rust-sparseglm/actions/workflows/pytest.yml/badge.svg)
 ![build](https://github.com/PABannier/rust-sparseglm/actions/workflows/build_doc.yml/badge.svg)
 
-A fast and modular coordinate descent solver for sparse generalized linear models with **convex** and **non-convex**
-penalties, written in Rust with Python bindings.
+A fast and modular coordinate descent solver for sparse generalized linear models
+with **convex** and **non-convex** penalties, written in Rust with Python bindings.
 
-The algorithm is explained in depth in [CITE PAPER] and theoretical guarantees of convergence are given.
-It also extensively demonstrates the superiority of this solver over existing ones.
-A similar package written in pure Python can be found here: [CITE FLASHCD].
+The details of the `rust-sparseglm` solver are explored in [CITE PAPER]. We provide
+theoretical guarantees of convergence. We extensively demonstrate the superiority
+of this solver over existing ones. A similar package written in pure Python can be found
+here: [FlashCD](https://github.com/mathurinm/flashcd).
 
-`rust-sparseglm` leverages [Anderson acceleration](https://github.com/mathurinm/andersoncd) and [working sets](https://github.com/mathurinm/celer) to propose a **fast** and **memory-efficient** solver on a large variety of algorithms. It can solve problems with millions of samples and features in seconds. It supports **dense** and **sparse** matrices (CSC arrays).
+`rust-sparseglm` leverages [Anderson acceleration](https://github.com/mathurinm/andersoncd)
+and [working sets](https://github.com/mathurinm/celer) to propose a **fast** and
+**memory-efficient** solver on a wide variety of algorithms. It can solve problems
+with millions of samples and features in seconds. It supports **dense** and
+**sparse** matrices via CSC arrays.
 
-The philosophy of `rust-sparseglm` consists in offering a highly flexible API. Any sparse GLM can be implemented in under 50 lines of code by providing its datafit term and its penalty term, which makes it very easy to support new estimators.
+The philosophy of `rust-sparseglm` consists in offering a highly flexible API.
+Any sparse GLM can be implemented in under 50 lines of code by providing its datafit
+term and its penalty term, which makes it very easy to support new estimators.
 
 ```rust
 // Load some data and wrap them in a Dataset
-let dataset = DatasetBase::from((X, y));
+let dataset = DatasetBase::from((x, y));
 
 // Define a datafit (here a quadratic datafit for regression)
-let mut datafit = Quadratic::default();
+let mut datafit = Quadratic::new();
 
-// Define a penalty (here a L1 + L2 penalty for ElasticNet)
-let penalty = L1PlusL2::new(2., 0.3);
+// Define a penalty (here a L1 penalty for Lasso)
+let penalty = L1::new(0.7);
 
-// Instantiate a Solver
-let solver = Solver::new();
+// Instantiate a Solver with default parameters
+let solver = Solver::default();
 
-// Run coordinate descent
-let w = coordinate_descent(dataset, &mut datafit, &solver, &penalty, p0,
-                           max_iterations, max_epochs, tolerance, K,
-                           use_acceleration, verbose);
+// Solve the problem using coordinate descent
+let coefficients = solver.solve(&dataset, &mut datafit, &penalty).unwrap();
 ```
 
 For widely-known models like ElasticNet, `rust-sparseglm` already implements
-those models and uses an API à la `Scikit-Learn`.
+these estimators and offers an API à la `Scikit-Learn`.
 
 ```rust
 // Load some data and wrap them in a Dataset
-let dataset = DatasetBase::from((X, y));
+let dataset = DatasetBase::from((x, y));
 
 // Instantiate and fit the estimator
-let estimator = ElasticNet::params()
-                    .alpha(2)
-                    .l1_ratio(0.3)
-                    .fit(&dataset)
-                    .unwrap();
+let estimator = Lasso::params()
+                  .alpha(2.)
+                  .fit(&dataset)
+                  .unwrap();
 
 // Get the fitted coefficients
 let coefficients = estimator.coefficients();
@@ -70,6 +74,7 @@ Currently we support:
 
 ## Performance
 
-We provide below a demonstration of `rust-sparseglm` against other fast coordinate descent solvers using the optimization benchmarking tool [Benchopt](https://github.com/benchopt/benchopt).
+We provide below a demonstration of `rust-sparseglm` against other fast coordinate
+descent solvers using the optimization benchmarking tool [Benchopt](https://github.com/benchopt/benchopt).
 
 [INSERT IMAGE]

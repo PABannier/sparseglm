@@ -10,7 +10,7 @@ fn test_initialization_quadratic_mtl() {
     let Y = Array2::from_shape_vec((2, 2), vec![-3.4, 2.1, -0.3, 2.3]).unwrap();
 
     let dataset = DatasetBase::from((X, Y));
-    let mut df = QuadraticMultiTask::default();
+    let mut df = QuadraticMultiTask::new();
     df.initialize(&dataset);
 
     let XtY =
@@ -34,10 +34,10 @@ fn test_initialization_sparse_quadratic_mtl() {
     let Y = dataset.targets();
     let dataset_sparse = SparseDataset::from((X_sparse, Y.view()));
 
-    let mut df_sparse = QuadraticMultiTask::default();
+    let mut df_sparse = QuadraticMultiTask::new();
     df_sparse.initialize(&dataset_sparse);
 
-    let mut df = QuadraticMultiTask::default();
+    let mut df = QuadraticMultiTask::new();
     df.initialize(&dataset);
 
     assert_array2d_all_close(df.XtY.view(), df_sparse.XtY.view(), 1e-8);
@@ -52,7 +52,7 @@ fn test_value_quadratic_mtl() {
     let XW = X.dot(&W);
 
     let dataset = DenseDataset::from((X, Y));
-    let mut df = QuadraticMultiTask::default();
+    let mut df = QuadraticMultiTask::new();
     df.initialize(&dataset);
 
     let val = df.value(&dataset, XW.view());
@@ -67,7 +67,7 @@ fn test_gradient_quadratic_mtl() {
     let XW = X.dot(&W);
 
     let dataset = DenseDataset::from((X, Y));
-    let mut df = QuadraticMultiTask::default();
+    let mut df = QuadraticMultiTask::new();
     df.initialize(&dataset);
 
     let grad = df.gradient_j(&dataset, XW.view(), 1);
@@ -91,8 +91,8 @@ fn test_gradient_sparse_quadratic_mtl() {
     let Y = dataset.targets();
     let dataset_sparse = SparseDataset::from((X_sparse, Y));
 
-    let mut df = QuadraticMultiTask::default();
-    let mut df_sparse = QuadraticMultiTask::default();
+    let mut df = QuadraticMultiTask::new();
+    let mut df_sparse = QuadraticMultiTask::new();
 
     df.initialize(&dataset);
     df_sparse.initialize(&dataset_sparse);

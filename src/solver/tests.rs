@@ -1,67 +1,129 @@
-
-
-use ndarray::{Array1, Array2};
-
 use crate::datafits::*;
-use crate::datasets::csc_array::*;
-use crate::datasets::*;
-use crate::helpers::test_helpers::*;
+use crate::datafits_multitask::*;
+use crate::datasets::{DatasetBase, DesignMatrix};
+use crate::helpers::test_helpers::{assert_array2d_all_close, assert_array_all_close};
 use crate::penalties::*;
-use crate::solver::*;
+use crate::penalties_multitask::*;
 
-#[test]
-fn test_cd_epoch() {
-    let X = Array2::from_shape_vec((2, 3), vec![3.4, -1.2, 2.3, 9.8, -2.7, -0.2]).unwrap();
-    let y = Array1::from_shape_vec(2, vec![1.2, -0.9]).unwrap();
-    let ws = Array1::from_shape_vec(3, (0..3).collect()).unwrap();
+use super::{BCDSolver, CDSolver, Solver};
+use ndarray::{array, Array1, Array2, ArrayBase, ArrayView1, ArrayView2, Ix1, Ix2, OwnedRepr};
 
-    let mut w = Array1::from_shape_vec(3, vec![1.3, -1.4, 1.5]).unwrap();
-    let mut Xw = X.dot(&w);
+macro_rules! estimator_test {
+    ($($penalty_name:ident: $payload:expr,)*) => {
+        $(
+            #[test]
+            fn $penalty_name() {
+                let x = $payload.design_matrix;
+                let y = $payload.target;
+                let dataset = DatasetBase::from((x, y));
 
-    let dataset = DenseDataset::from((X, y));
+                let mut datafit = $payload.datafit;
+                let penalty = $payload.penalty;
+                let solver = Solver::default();
 
-    let mut datafit = Quadratic::default();
-    datafit.initialize(&dataset);
+                let coefficients = solver.solve(&dataset, &mut datafit, &penalty).unwrap();
+                assert_array_all_close(coefficients.view(), $payload.truth, 1e-5);
 
-    let penalty = L1::new(0.3);
-
-    let solver = Solver {};
-    solver.cd_epoch(&dataset, &datafit, &penalty, &mut w, &mut Xw, ws.view());
-
-    let true_w = Array1::from_shape_vec(3, vec![-0.51752788, -1.24688448, 0.48867352]).unwrap();
-    let true_Xw = Array1::from_shape_vec(2, vec![0.86061567, -1.80291985]).unwrap();
-
-    assert_array_all_close(w.view(), true_w.view(), 1e-8);
-    assert_array_all_close(Xw.view(), true_Xw.view(), 1e-8);
+            }
+        )*
+    }
 }
 
-#[test]
-fn test_cd_epoch_sparse() {
-    let indptr = Array1::from_shape_vec(4, vec![0, 2, 3, 6]).unwrap();
-    let indices = Array1::from_shape_vec(6, vec![0, 2, 2, 0, 1, 2]).unwrap();
-    let data = Array1::from_shape_vec(6, vec![1., 2., 3., 4., 5., 6.]).unwrap();
-    let X = CSCArray::new(data.view(), indices.view(), indptr.view());
+macro_rules! multi_task_estimator_test {
+    ($($penalty_name:ident: $payload:expr,)*) => {
+        $(
+            #[test]
+            fn $penalty_name() {
+                let x = $payload.design_matrix;
+                let y = $payload.target;
+                let dataset = DatasetBase::from((x, y));
 
-    let X_full = Array2::from_shape_vec((3, 3), vec![1., 0., 2., 0., 0., 3., 4., 5., 6.]).unwrap();
-    let y = Array1::from_shape_vec(3, vec![1.2, -0.9, 0.1]).unwrap();
-    let ws = Array1::from_shape_vec(3, (0..3).collect()).unwrap();
+                let mut datafit = $payload.datafit;
+                let penalty = $payload.penalty;
+                let solver = Solver::default();
 
-    let mut w = Array1::from_shape_vec(3, vec![2.1, -0.9, 3.4]).unwrap();
-    let mut Xw = X_full.dot(&w);
+                let coefficients = solver.solve_multi_task(&dataset, &mut datafit, &penalty).unwrap();
+                assert_array2d_all_close(coefficients.view(), $payload.truth, 1e-5);
 
-    let dataset = SparseDataset::from((X, y));
+            }
+        )*
+    }
+}
 
-    let mut datafit = Quadratic::default();
-    datafit.initialize(&dataset);
+struct Payload<
+    'a,
+    DM: DesignMatrix<Elem = f64>,
+    P: Penalty<f64>,
+    DF: Datafit<f64, DM, ArrayBase<OwnedRepr<f64>, Ix1>>,
+> {
+    design_matrix: DM,
+    target: Array1<f64>,
+    penalty: P,
+    datafit: DF,
+    truth: ArrayView1<'a, f64>,
+}
 
-    let penalty = L1::new(0.7);
+estimator_test! {
+    // lasso_dense: Payload {
+    //     design_matrix: array![[3., 2., 1.], [0.5, 3.4, 1.2]],
+    //     target: array![1.2, 4.5],
+    //     penalty: L1::new(1.),
+    //     datafit: Quadratic::new(),
+    //     truth: array![0., 1.00899743, 0.].view(),
+    // },
 
-    let solver = Solver {};
-    solver.cd_epoch(&dataset, &datafit, &penalty, &mut w, &mut Xw, ws.view());
+    // elastic_net_dense: Payload {
+    //     design_matrix: array![[3.1, -3.4, 0.3], [0.9, -0.01, 2.3]],
+    //     target: array![-0.3, 0.08],
+    //     penalty: L1PlusL2::new(1., 0.4),
+    //     datafit: Quadratic::new(),
+    //     truth: array![0.,  0.01717855,  0.].view(),
+    // },
 
-    let true_w = Array1::from_shape_vec(3, vec![-8.7, -1.53333333, 2.75844156]).unwrap();
-    let true_Xw = Array1::from_shape_vec(3, vec![-4.46623377, 6.99220779, -3.04935065]).unwrap();
+    // mcp_dense: Payload {
+    //     design_matrix: array![[3., 2., 1.], [0.5, 3.4, 1.2]],
+    //     target: array![1.2, 4.5],
+    //     penalty: MCP::new(0.3, 2.),
+    //     datafit: Quadratic::new(),
+    //     truth: array![-0.52009245, 1.39490436, 0.].view(),
+    // },
+}
 
-    assert_array_all_close(w.view(), true_w.view(), 1e-8);
-    assert_array_all_close(Xw.view(), true_Xw.view(), 1e-8);
+struct MultiTaskPayload<
+    'a,
+    DM: DesignMatrix<Elem = f64>,
+    P: MultiTaskPenalty<f64>,
+    DF: MultiTaskDatafit<f64, DM, ArrayBase<OwnedRepr<f64>, Ix2>>,
+> {
+    design_matrix: DM,
+    target: Array2<f64>,
+    penalty: P,
+    datafit: DF,
+    truth: ArrayView2<'a, f64>,
+}
+
+multi_task_estimator_test! {
+    multi_task_lasso_dense: MultiTaskPayload {
+        design_matrix: array![[0.3, 4.4, 1.2], [-1.2, 0.3, 1.2]],
+        target: array![[0.3, 1.2, 0.2, -0.3], [1.3, 4.2, 1., -0.3]],
+        penalty: L21::new(1.7),
+        datafit: QuadraticMultiTask::new(),
+        truth: array![[-0.08312622, -0.2596302, -0.06513197, 0.0102676 ], [0., 0.,  0.,  0.], [0.31036133, 1.05129801, 0.23226053, -0.12021403]].view(),
+    },
+
+    multi_task_elastic_net_dense: MultiTaskPayload {
+        design_matrix: array![[0.3, 4.4, 1.2], [-1.2, 0.3, 1.2]],
+        target: array![[0.3, 1.2, 0.2, -0.3], [1.3, 4.2, 1., -0.3]],
+        penalty: BlockL1PlusL2::new(1.7, 0.3),
+        datafit: QuadraticMultiTask::new(),
+        truth: array![[-0.23643401, -0.75067860, -0.18362717,  0.04140032], [ 0.01676151,  0.080385968,  0.00939374, -0.030116  ], [ 0.24411237,  0.8109393,  0.18481232, -0.07858179]].view(),
+    },
+
+    // multi_task_mcp_dense: MultiTaskPayload {
+    //     design_matrix: array![[0.3, 4.4, 1.2], [-1.2, 0.3, 1.2]],
+    //     target: array![[0.3, 1.2, 0.2, -0.3], [1.3, 4.2, 1., -0.3]],
+    //     penalty: BlockMCP::new(0.89, 2.5),
+    //     datafit: QuadraticMultiTask::new(),
+    //     truth: array![[]],
+    // },
 }

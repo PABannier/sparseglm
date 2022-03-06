@@ -49,8 +49,8 @@ pub struct QuadraticMultiTask<F: Float> {
     XtY: Array2<F>,
 }
 
-impl<F: Float> Default for QuadraticMultiTask<F> {
-    fn default() -> QuadraticMultiTask<F> {
+impl<F: Float> QuadraticMultiTask<F> {
+    pub fn new() -> Self {
         QuadraticMultiTask {
             lipschitz: Array1::zeros(1),
             XtY: Array2::zeros((1, 1)),

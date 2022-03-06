@@ -225,6 +225,7 @@ pub mod test_helpers {
         let data_x = fill_random_vector(n_samples * n_features);
         let data_w = fill_random_vector(n_features);
         let data_e = fill_random_vector(n_samples);
+        // Note that data are generated in Fortran order (column-major) which has consequences on the tests
         let X = Array2::from_shape_vec((n_samples, n_features).f(), data_x).unwrap();
         let true_w = Array1::from_shape_vec(n_features, data_w).unwrap();
         let noise = Array1::from_shape_vec(n_samples, data_e).unwrap();
@@ -241,6 +242,7 @@ pub mod test_helpers {
         let data_x = fill_random_vector(n_samples * n_features);
         let data_w = fill_random_vector(n_features * n_tasks);
         let data_e = fill_random_vector(n_samples * n_tasks);
+        // Note that data are generated in Fortran order (column-major) which has consequences on the tests
         let X = Array2::from_shape_vec((n_samples, n_features).f(), data_x).unwrap();
         let true_W = Array2::from_shape_vec((n_features, n_tasks), data_w).unwrap();
         let noise = Array2::from_shape_vec((n_samples, n_tasks), data_e).unwrap();
