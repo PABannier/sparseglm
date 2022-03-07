@@ -39,7 +39,7 @@ let solver = Solver::default();
 let coefficients = solver.solve(&dataset, &mut datafit, &penalty).unwrap();
 ```
 
-For widely-known models like ElasticNet, `rust-sparseglm` already implements
+For widely-known models like Lasso, `rust-sparseglm` already implements
 these estimators and offers an API à la `Scikit-Learn`.
 
 ```rust
