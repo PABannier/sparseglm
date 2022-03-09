@@ -1,165 +1,77 @@
-extern crate ndarray;
+use std::fmt::Error;
 
-use ndarray::{s, Array1, ArrayBase, ArrayView1, Data, Ix2};
+use ndarray::{Array1, Array2};
 
 use super::Float;
 use crate::datafits::Datafit;
-use crate::datasets::{csc_array::CSCArray, AsSingleTargets, DatasetBase, DesignMatrix};
+use crate::datafits_multitask::MultiTaskDatafit;
+use crate::datasets::{AsMultiTargets, AsSingleTargets};
+use crate::datasets::{DatasetBase, DesignMatrix};
 use crate::penalties::Penalty;
+use crate::penalties_multitask::MultiTaskPenalty;
 
 #[cfg(test)]
-mod tests;
+pub mod tests;
 
-pub struct Solver {}
+pub mod impl_solver;
 
-pub trait CDSolver<F, DF, P, DM, T>
+/// [`rust-sparseglm`] offers two ways to solve optimization problems. Either
+/// using a pre-defined estimator and using an API à la Scikit-Learn, or using
+/// a [`Solver`] jointly with a [`Datafit`] and a [`Penalty`] object. The
+/// [`Solver`] object contains all the hyperparameters needed for the optimization
+/// routine.
+#[derive(Debug, PartialEq, Clone)]
+pub struct Solver<F> {
+    /// The start size of the working set
+    pub p0: usize,
+    /// The maximum number of iterations in the outer loop
+    pub max_iterations: usize,
+    /// The maximum number of epochs in the inner loop
+    pub max_epochs: usize,
+    /// The tolerance for the suboptimality gap
+    pub tolerance: F,
+    /// The number of iterates used to construct an extrapolated point
+    pub K: usize,
+    /// The use of Anderson acceleration
+    pub use_acceleration: bool,
+    /// The verbosity of the solver
+    pub verbose: bool,
+}
+
+/// This trait calls the [`coordinate_descent`] backbone function to solve an
+/// optimization problem given a [`Penalty`], a [`Datafit`] and a [`Solver`].
+/// They contain all the hyperparameters needed by the coordinate descent
+/// solver function.
+pub trait CDSolver<F, DM, T, DF, P>
 where
     F: Float,
-    DF: Datafit<F, DM, T>,
-    P: Penalty<F>,
     DM: DesignMatrix<Elem = F>,
     T: AsSingleTargets<Elem = F>,
+    DF: Datafit<F, DM, T>,
+    P: Penalty<F>,
 {
-    fn cd_epoch(
+    /// This method calls the [`coordinate_descent`] backbone function.
+    fn solve(
         &self,
         dataset: &DatasetBase<DM, T>,
-        datafit: &DF,
+        datafit: &mut DF,
         penalty: &P,
-        w: &mut Array1<F>,
-        Xw: &mut Array1<F>,
-        ws: ArrayView1<usize>,
-    );
+    ) -> Result<Array1<F>, Error>;
 }
 
-pub trait Extrapolator<F: Float, DM: DesignMatrix<Elem = F>, T: AsSingleTargets<Elem = F>> {
-    fn extrapolate(
+pub trait BCDSolver<F, DM, T, DF, P>
+where
+    F: Float,
+    DM: DesignMatrix<Elem = F>,
+    T: AsMultiTargets<Elem = F>,
+    DF: MultiTaskDatafit<F, DM, T>,
+    P: MultiTaskPenalty<F>,
+{
+    /// This method calls the [`block_coordinate_descent`] backbone function.
+    fn solve_multi_task(
         &self,
         dataset: &DatasetBase<DM, T>,
-        w_acc: ArrayView1<F>,
-        ws: ArrayView1<usize>,
-    ) -> Array1<F>;
-}
-
-/// This implementation block implements the coordinate descent epoch for dense
-/// design matrices.
-
-impl<F, D, DF, P, T> CDSolver<F, DF, P, ArrayBase<D, Ix2>, T> for Solver
-where
-    F: Float,
-    D: Data<Elem = F>,
-    DF: Datafit<F, ArrayBase<D, Ix2>, T>,
-    P: Penalty<F>,
-    T: AsSingleTargets<Elem = F>,
-{
-    fn cd_epoch(
-        &self,
-        dataset: &DatasetBase<ArrayBase<D, Ix2>, T>,
-        datafit: &DF,
+        datafit: &mut DF,
         penalty: &P,
-        w: &mut Array1<F>,
-        Xw: &mut Array1<F>,
-        ws: ArrayView1<usize>,
-    ) {
-        let X = dataset.design_matrix();
-        let lipschitz = datafit.lipschitz();
-        for &j in ws {
-            match lipschitz[j] == F::zero() {
-                true => continue,
-                false => {
-                    let old_w_j = w[j];
-                    let grad_j = datafit.gradient_j(dataset, Xw.view(), j);
-                    w[j] =
-                        penalty.prox_op(old_w_j - grad_j / lipschitz[j], F::one() / lipschitz[j]);
-                    if w[j] != old_w_j {
-                        Xw.scaled_add(w[j] - old_w_j, &X.slice(s![.., j]));
-                    }
-                }
-            }
-        }
-    }
-}
-
-/// This implementation block implements the coordinate descent epoch for sparse
-/// design matrices.
-
-impl<'a, F, DF, P, T> CDSolver<F, DF, P, CSCArray<'a, F>, T> for Solver
-where
-    F: Float,
-    DF: Datafit<F, CSCArray<'a, F>, T>,
-    P: Penalty<F>,
-    T: AsSingleTargets<Elem = F>,
-{
-    fn cd_epoch(
-        &self,
-        dataset: &DatasetBase<CSCArray<'a, F>, T>,
-        datafit: &DF,
-        penalty: &P,
-        w: &mut Array1<F>,
-        Xw: &mut Array1<F>,
-        ws: ArrayView1<usize>,
-    ) {
-        let lipschitz = datafit.lipschitz();
-        let X = dataset.design_matrix();
-        for &j in ws {
-            if lipschitz[j] == F::zero() {
-                continue;
-            }
-            let old_w_j = w[j];
-            let grad_j = datafit.gradient_j(dataset, Xw.view(), j);
-            w[j] = penalty.prox_op(old_w_j - grad_j / lipschitz[j], F::one() / lipschitz[j]);
-            let diff = w[j] - old_w_j;
-            if diff != F::zero() {
-                for i in X.indptr[j]..X.indptr[j + 1] {
-                    Xw[X.indices[i as usize] as usize] += diff * X.data[i as usize];
-                }
-            }
-        }
-    }
-}
-
-/// This implementation block implements the extrapolation method for coordinate
-/// descent solvers, using dense matrices.
-///
-impl<F, D, T> Extrapolator<F, ArrayBase<D, Ix2>, T> for Solver
-where
-    F: Float,
-    D: Data<Elem = F>,
-    T: AsSingleTargets<Elem = F>,
-{
-    fn extrapolate(
-        &self,
-        dataset: &DatasetBase<ArrayBase<D, Ix2>, T>,
-        w_acc: ArrayView1<F>,
-        ws: ArrayView1<usize>,
-    ) -> Array1<F> {
-        Array1::from_iter(
-            dataset
-                .design_matrix()
-                .rows()
-                .into_iter()
-                .map(|row| ws.iter().map(|&j| row[j] * w_acc[j]).sum())
-                .collect::<Vec<F>>(),
-        )
-    }
-}
-
-/// This implementation block implements the extrapolation method for coordinate
-/// descent solvers, using sparse matrices.
-///
-impl<'a, F: Float, T: AsSingleTargets<Elem = F>> Extrapolator<F, CSCArray<'a, F>, T> for Solver {
-    fn extrapolate(
-        &self,
-        dataset: &DatasetBase<CSCArray<'a, F>, T>,
-        w_acc: ArrayView1<F>,
-        ws: ArrayView1<usize>,
-    ) -> Array1<F> {
-        let mut Xw_acc = Array1::<F>::zeros(dataset.targets().n_samples());
-        let X = dataset.design_matrix();
-        for &j in ws {
-            for idx in X.indptr[j]..X.indptr[j + 1] {
-                Xw_acc[X.indices[idx as usize] as usize] += X.data[idx as usize] * w_acc[j];
-            }
-        }
-        Xw_acc
-    }
+    ) -> Result<Array2<F>, Error>;
 }

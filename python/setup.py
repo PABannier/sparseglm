@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 with open("./requirements.txt", "rt") as infile:
     install_requires = infile.read().splitlines()
@@ -20,5 +20,5 @@ with open("./requirements.txt", "rt") as infile:
 # )
 
 setup(
-    name="rustylasso", version="0.1.0", python_requires=">=3.6",
-    install_requires=install_requires, packages=['rustylasso'])
+    name="sparseglm", version="0.1.0", python_requires=">=3.6",
+    install_requires=install_requires, packages=find_packages())

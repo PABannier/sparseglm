@@ -2,20 +2,21 @@ use numpy::{PyArray, PyArray1, PyArray2};
 use pyo3::prelude::*;
 use rust_sparseglm::{
     datasets::{csc_array::CSCArray, DenseDatasetView, SparseDataset},
-    estimators::hyperparams::MultiTaskLassoParams,
+    estimators::hyperparams::MultiTaskElasticNetParams,
     estimators::traits::Fit,
 };
 
 #[pyclass]
-pub struct MultiTaskLassoWrapper {
-    inner: MultiTaskLassoParams<f64>,
+pub struct MultiTaskElasticNetWrapper {
+    inner: MultiTaskElasticNetParams<f64>,
 }
 
 #[pymethods]
-impl MultiTaskLassoWrapper {
+impl MultiTaskElasticNetWrapper {
     #[new]
     fn new(
         alpha: f64,
+        l1_ratio: f64,
         max_iterations: usize,
         max_epochs: usize,
         tolerance: f64,
@@ -24,8 +25,9 @@ impl MultiTaskLassoWrapper {
         k: usize,
         verbose: bool,
     ) -> PyResult<Self> {
-        let _estimator = MultiTaskLassoParams::new()
+        let _estimator = MultiTaskElasticNetParams::new()
             .alpha(alpha)
+            .l1_ratio(l1_ratio)
             .max_iterations(max_iterations)
             .max_epochs(max_epochs)
             .tolerance(tolerance)
@@ -33,7 +35,7 @@ impl MultiTaskLassoWrapper {
             .use_acceleration(use_acceleration)
             .K(k)
             .verbose(verbose);
-        Ok(MultiTaskLassoWrapper { inner: _estimator })
+        Ok(MultiTaskElasticNetWrapper { inner: _estimator })
     }
 
     unsafe fn fit<'py>(

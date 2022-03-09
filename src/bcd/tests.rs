@@ -1,5 +1,3 @@
-extern crate ndarray;
-
 use ndarray::linalg::general_mat_mul;
 use ndarray::{Array1, Array2};
 
@@ -22,7 +20,7 @@ fn test_kkt_violation() {
 
     let dataset = DatasetBase::from((X, Y));
 
-    let mut datafit = QuadraticMultiTask::default();
+    let mut datafit = QuadraticMultiTask::new();
     datafit.initialize(&dataset);
     let penalty = L21::new(0.3);
 
@@ -67,7 +65,7 @@ fn test_kkt_violation_sparse() {
     )
     .unwrap();
 
-    let mut datafit = QuadraticMultiTask::default();
+    let mut datafit = QuadraticMultiTask::new();
     datafit.initialize(&dataset);
     let penalty = L21::new(0.3);
 

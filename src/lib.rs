@@ -1,4 +1,55 @@
+//! Fast and modular coordinate descent solver for sparse generalized linear models
+//!
+//! [`rust-sparseglm`]'s philosophy consists in offering a highly flexible API. Any
+//! sparse GLM can be implemented in under 50 lines of code by providing its datafit
+//! term and its penalty term, which makes it very easy to support new estimators.
+//!
+//! A quick example on how to solve a sparse GLM optimization problem by choosing an
+//! arbitrary combination of [`Datafit`] and [`Penalty`].
+//!
+//! ```ignore
+//! // Load some data and wrap them in a Dataset
+//! let dataset = DatasetBase::from((x, y));
+//!
+//! // Define a datafit (here a quadratic datafit for regression)
+//! let mut datafit = Quadratic::new();
+//!
+//! // Define a penalty (here a L1 penalty for Lasso)
+//! let penalty = L1::new(0.7);
+//!
+//! // Instantiate a Solver with default parameters
+//! let solver = Solver::default();
+//!
+//! // Solve the problem using coordinate descent
+//! let coefficients = solver.solve(dataset, &mut datafit, &penalty).unwrap();
+//! ```
+//!
+//! For widely-used models like Lasso, [`rust-sparseglm`] already implements
+//! those models.
+//!
+//! ```ignore
+//! // Load some data and wrap them in a Dataset
+//! let dataset = DatasetBase::from((x, y));
+//!
+//! // Instantiate and fit the estimator
+//! let estimator = Lasso::params()
+//!                   .alpha(0.7)
+//!                   .fit(&dataset)
+//!                   .unwrap();
+//!
+//! // Get the fitted coefficients
+//! let coefficients = estimator.coefficients();
+//!
+
 #![allow(non_snake_case)]
+
+extern crate approx;
+extern crate ndarray;
+extern crate ndarray_stats;
+extern crate num_traits;
+extern crate rand;
+extern crate rand_distr;
+extern crate thiserror;
 
 use ndarray::ScalarOperand;
 
@@ -13,7 +64,7 @@ use std::ops::{AddAssign, DivAssign, MulAssign, SubAssign};
 ///
 /// This trait bound multiplexes to the most common assumption of floating point
 /// number and implement them for 32bit and 64bit float points.
-/// Ref: https://github.com/rust-ml/linfa/blob/master/src/dataset/mod.rs#L36
+/// Ref: `<https://github.com/rust-ml/linfa/blob/master/src/dataset/mod.rs#L36>`
 pub trait Float:
     FromPrimitive
     + num_traits::Float
@@ -54,4 +105,3 @@ pub mod helpers;
 pub mod penalties;
 pub mod penalties_multitask;
 pub mod solver;
-pub mod solver_multitask;

@@ -5,12 +5,14 @@ use crate::datafits_multitask::MultiTaskDatafit;
 use crate::datasets::DesignMatrix;
 use crate::datasets::{AsMultiTargets, DatasetBase};
 use crate::helpers::helpers::argsort_by;
-use crate::penalties_multitask::PenaltyMultiTask;
-use crate::solver_multitask::{BCDSolver, MultiTaskExtrapolator};
+use crate::penalties_multitask::MultiTaskPenalty;
 
 #[cfg(test)]
 mod tests;
 
+/// This function allows to construct the gradient of a datafit restricted to
+/// the features present in the working set. It is used in [`kkt_violation`] to
+/// rank features included in the working set.
 pub fn construct_grad<F, DF, DM, T>(
     dataset: &DatasetBase<DM, T>,
     XW: ArrayView2<F>,
@@ -35,6 +37,10 @@ where
     .unwrap()
 }
 
+/// This function computes the distance of the gradient of the datafit to the
+/// subdifferential of the penalty restricted to the working set. It returns
+/// an array containing the distances for each feature in the working set as well
+/// as the maximum distance.
 pub fn kkt_violation<F, DF, P, DM, T>(
     dataset: &DatasetBase<DM, T>,
     W: ArrayView2<F>,
@@ -48,13 +54,17 @@ where
     DM: DesignMatrix<Elem = F>,
     T: AsMultiTargets<Elem = F>,
     DF: MultiTaskDatafit<F, DM, T>,
-    P: PenaltyMultiTask<F>,
+    P: MultiTaskPenalty<F>,
 {
     let grad_ws = construct_grad(dataset, XW, ws, datafit);
     let (kkt_ws, kkt_ws_max) = penalty.subdiff_distance(W, grad_ws.view(), ws);
     (kkt_ws, kkt_ws_max)
 }
 
+/// This function is used to construct a working set by sorting the indices
+/// of the features having the smallest distance between their gradient and
+/// the subdifferential of the penalty. The inner block coordinate descent solver then
+/// cycles through the working set (a subset of the features in the design matrix).
 pub fn construct_ws_from_kkt<F>(
     kkt: &mut Array1<F>,
     W: ArrayView2<F>,
@@ -66,6 +76,8 @@ where
     let n_features = W.shape()[0];
     let mut nnz_features: usize = 0;
 
+    // Counts number of feature whose weights have a non-null norm and initializes
+    // the distance to be infinity
     for j in 0..n_features {
         if W.slice(s![j, ..]).iter().any(|&x| x != F::zero()) {
             nnz_features += 1;
@@ -73,8 +85,10 @@ where
         }
     }
 
+    // Geometric growth of the working set size
     let ws_size = usize::max(p0, usize::min(2 * nnz_features, n_features));
 
+    // Sort indices by descending order (argmin)
     let mut sorted_indices = argsort_by(&kkt, |a, b| {
         // Swapped order for sorting in descending order
         b.partial_cmp(a).expect("Elements must not be NaN.")
@@ -85,9 +99,10 @@ where
     (ws, ws_size)
 }
 
-pub fn anderson_accel<F, DM, T, DF, P, S>(
+/// This function is a multi-task variant of the [`anderson_accel`] function in
+/// the single-task case.
+pub fn anderson_accel<F, DM, T, DF, P>(
     dataset: &DatasetBase<DM, T>,
-    solver: &S,
     W: &mut Array2<F>,
     XW: &mut Array2<F>,
     datafit: &DF,
@@ -103,9 +118,9 @@ pub fn anderson_accel<F, DM, T, DF, P, S>(
     DM: DesignMatrix<Elem = F>,
     T: AsMultiTargets<Elem = F>,
     DF: MultiTaskDatafit<F, DM, T>,
-    P: PenaltyMultiTask<F>,
-    S: BCDSolver<F, DF, P, DM, T> + MultiTaskExtrapolator<F, DM, T>,
+    P: MultiTaskPenalty<F>,
 {
+    let n_samples = dataset.targets().n_samples();
     let n_features = dataset.design_matrix().n_features();
     let n_tasks = dataset.targets().n_tasks();
 
@@ -142,6 +157,7 @@ pub fn anderson_accel<F, DM, T, DF, P, S>(
         )
         .unwrap();
 
+        // Computes the extrapolation matrix à la Anderson
         let C = U.t().dot(U);
         // let _res = C.invc();
         let _res: std::result::Result<Array2<_>, &str> = Err("hello");
@@ -157,7 +173,7 @@ pub fn anderson_accel<F, DM, T, DF, P, S>(
                 );
                 let c = &z / z.sum();
 
-                // Extrapolation
+                // Computes the extrapolated point
                 let mut W_acc = Array2::<F>::zeros((n_features, n_tasks));
                 last_K_W
                     .rows()
@@ -175,10 +191,18 @@ pub fn anderson_accel<F, DM, T, DF, P, S>(
                         W_acc.slice_mut(s![j, ..]).assign(&row);
                     });
 
-                let XW_acc = solver.extrapolate(dataset, W_acc.view(), ws);
+                // Computes the objective value at the extrapolated point and at the
+                // non-extrapolated point
+                let XW_acc = dataset
+                    .design_matrix()
+                    .compute_extrapolated_fit_multi_task(ws, &W_acc, n_samples, n_tasks);
                 let p_obj = datafit.value(dataset, XW.view()) + penalty.value(W.view());
                 let p_obj_acc = datafit.value(dataset, XW_acc.view()) + penalty.value(W_acc.view());
 
+                // Compares the objective value at the extrapolated point and the objective
+                // value at the non-extrapolated point. The extrapolated point is retained
+                // if and only if it decreases the objective. This ensures that the routine
+                // converges.
                 if p_obj_acc < p_obj {
                     W.assign(&W_acc);
                     XW.assign(&XW_acc);
@@ -188,6 +212,9 @@ pub fn anderson_accel<F, DM, T, DF, P, S>(
                     }
                 }
             }
+            // Some extrapolation matrix can be very ill-conditioned which makes
+            // the inversion computationally intractable (inf or NaN) values.
+            // This is expected, thus the non-panicking way of handling the error.
             Err(_) => {
                 if verbose {
                     println!("---- Warning: Singular extrapolation matrix.");
@@ -197,10 +224,11 @@ pub fn anderson_accel<F, DM, T, DF, P, S>(
     }
 }
 
-pub fn block_coordinate_descent<F, DM, T, DF, P, S>(
+/// This is the backbone function for the crate, in the multi-task case. For a
+/// detailed description, see [`coordinate_descent`] function.
+pub fn block_coordinate_descent<F, DM, T, DF, P>(
     dataset: &DatasetBase<DM, T>,
     datafit: &mut DF,
-    solver: &S,
     penalty: &P,
     p0: usize,
     max_iterations: usize,
@@ -215,22 +243,26 @@ where
     DM: DesignMatrix<Elem = F>,
     T: AsMultiTargets<Elem = F>,
     DF: MultiTaskDatafit<F, DM, T>,
-    P: PenaltyMultiTask<F>,
-    S: BCDSolver<F, DF, P, DM, T> + MultiTaskExtrapolator<F, DM, T>,
+    P: MultiTaskPenalty<F>,
 {
     let n_samples = dataset.targets().n_samples();
     let n_features = dataset.design_matrix().n_features();
     let n_tasks = dataset.targets().n_tasks();
 
+    // Pre-computes the Lipschitz constants and the matrix-matrix XTY product
+    // that is later used in the optimization procedure.
     datafit.initialize(dataset);
+    let lipschitz = datafit.lipschitz();
 
     let all_feats = Array1::from_shape_vec(n_features, (0..n_features).collect()).unwrap();
 
+    // The starting working set can't be greater than the number of features
     let p0 = if p0 > n_features { n_features } else { p0 };
 
     let mut W = Array2::<F>::zeros((n_features, n_tasks));
     let mut XW = Array2::<F>::zeros((n_samples, n_tasks));
 
+    // Outer loop in charge of constructing the working set
     for t in 0..max_iterations {
         let (mut kkt, kkt_max) = kkt_violation(
             dataset,
@@ -248,6 +280,7 @@ where
             break;
         }
 
+        // Construct the working set based on previously computed KKT violation
         let (ws, ws_size) = construct_ws_from_kkt(&mut kkt, W.view(), p0);
 
         let mut last_K_W = Array2::<F>::zeros((K + 1, ws_size * n_tasks));
@@ -257,14 +290,43 @@ where
             println!("Iteration {}, {} features in subproblem.", t + 1, ws_size);
         }
 
+        // Inner loop that implements the actual block coordinate descent routine
         for epoch in 0..max_epochs {
-            solver.bcd_epoch(dataset, datafit, penalty, &mut W, &mut XW, ws.view());
+            // Cycle through the features in the working set
+            for &j in ws.iter() {
+                match lipschitz[j] == F::zero() {
+                    true => continue,
+                    false => {
+                        let old_W_j = W.slice(s![j, ..]).to_owned();
+                        let grad_j = datafit.gradient_j(dataset, XW.view(), j);
 
-            // Anderson acceleration
+                        let step = &old_W_j - grad_j / lipschitz[j];
+                        let upd = penalty.prox_op(step.view(), F::one() / lipschitz[j]);
+                        W.slice_mut(s![j, ..]).assign(&upd);
+
+                        let diff = Array1::from_iter(
+                            old_W_j
+                                .iter()
+                                .enumerate()
+                                .map(|(t, &old_w_jt)| W[[j, t]] - old_w_jt)
+                                .collect::<Vec<F>>(),
+                        );
+
+                        if diff.iter().any(|&x| x != F::zero()) {
+                            dataset.design_matrix().update_model_fit_multi_task(
+                                &mut XW,
+                                diff.view(),
+                                j,
+                            );
+                        }
+                    }
+                }
+            }
+
+            // Attempt to find an extrapolated point using Anderson acceleration
             if use_acceleration {
                 anderson_accel(
                     dataset,
-                    solver,
                     &mut W,
                     &mut XW,
                     datafit,
@@ -278,7 +340,8 @@ where
                 );
             }
 
-            // KKT violation check
+            // Check that the maximum distance between the gradient of the datafit
+            // and the subdifferential of the penalty is smaller than the tolerance
             if epoch > 0 && epoch % 10 == 0 {
                 let p_obj = datafit.value(dataset, XW.view()) + penalty.value(W.view());
 
@@ -293,6 +356,7 @@ where
                 }
 
                 if ws_size == n_features {
+                    // If it is, we stop the optimization procedure
                     if kkt_ws_max <= tolerance {
                         break;
                     }

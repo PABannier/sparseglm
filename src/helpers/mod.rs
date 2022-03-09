@@ -1,10 +1,13 @@
 #[cfg(test)]
 mod tests;
 
+/// This module implements the proximal operator of some penalties.
 pub mod prox {
     use crate::Float;
     use ndarray::{Array1, ArrayView1};
 
+    /// The soft-thresholding operator is the proximal operator used by
+    /// [`Penalty::L1`].
     pub fn soft_thresholding<F: Float>(x: F, threshold: F) -> F {
         if x > threshold {
             x - threshold
@@ -15,6 +18,8 @@ pub mod prox {
         }
     }
 
+    /// The block soft-thresholding operator is the proximal operator used by
+    /// [`MultiTaskPenalty::L21`].
     pub fn block_soft_thresholding<F: Float>(x: ArrayView1<F>, threshold: F) -> Array1<F> {
         let norm_x = x.dot(&x).sqrt();
         if norm_x < threshold {
@@ -24,6 +29,7 @@ pub mod prox {
         &x * scale
     }
 
+    /// This function implements the proximal operator of [`Penalty::L05`].
     pub fn prox_05<F: Float>(x: F, threshold: F) -> F {
         let t = F::cast(F::cast(3. / 2.) * threshold.powf(F::cast(2. / 3.)));
         if x.abs() < t {
@@ -42,6 +48,9 @@ pub mod prox {
     }
 }
 
+/// This module contains helper functions to compute the maximum regularization
+/// hyperparameter for sparse models. A regularization hyperparameter value
+/// larger than this maximum value yields a null solution.
 pub mod helpers {
     use crate::datasets::csc_array::CSCArray;
     use crate::Float;
@@ -49,6 +58,8 @@ pub mod helpers {
     use ndarray::{Array1, ArrayBase, ArrayView1, ArrayView2, Axis, Ix1};
     use std::cmp::Ordering;
 
+    /// This function computes the maximum regularization hyperparameter value
+    /// for single task models.
     pub fn compute_alpha_max<F: 'static + Float>(X: ArrayView2<F>, y: ArrayView1<F>) -> F {
         let n_samples = F::cast(X.shape()[0]);
         let Xty = X.t().dot(&y);
@@ -56,6 +67,8 @@ pub mod helpers {
         alpha_max / n_samples
     }
 
+    /// This function computes the maximum regularization hyperparameter value
+    /// for multi task models.
     pub fn compute_alpha_max_mtl<F: 'static + Float>(X: ArrayView2<F>, Y: ArrayView2<F>) -> F {
         let n_samples = X.shape()[0];
         let XtY = X.t().dot(&Y);
@@ -64,6 +77,9 @@ pub mod helpers {
         alpha_max / F::cast(n_samples)
     }
 
+    /// Much like [`compute_alpha_max`], this function computes the maximum
+    /// regularization hyperparameter value for single task models with
+    /// sparse design matrix.
     pub fn compute_alpha_max_sparse<F: 'static + Float>(X: &CSCArray<F>, y: ArrayView1<F>) -> F {
         let n_samples = F::cast(y.len());
         let n_features = X.indptr.len() - 1;
@@ -77,12 +93,16 @@ pub mod helpers {
         alpha_max / n_samples
     }
 
+    /// This is a helper method that sorts the indices of an array based on some
+    /// `compare` closure. It is used in [`construct_ws_from_kkt`] in order to
+    /// sort the features in the working set based on how far their gradient
+    /// are from the penalty subdifferential.
+    /// Reference: `https://github.com/rust-ndarray/ndarray/issues/1145`
     pub fn argsort_by<S, F>(arr: &ArrayBase<S, Ix1>, mut compare: F) -> Vec<usize>
     where
         S: Data,
         F: FnMut(&S::Elem, &S::Elem) -> Ordering,
     {
-        // https://github.com/rust-ndarray/ndarray/issues/1145
         let mut indices: Vec<usize> = (0..arr.len()).collect();
         indices.sort_unstable_by(move |&i, &j| compare(&arr[i], &arr[j]));
         indices
@@ -150,6 +170,7 @@ pub mod cholesky {
     }
 }
 
+/// This module contains helpers functions to efficiently write tests.
 pub mod test_helpers {
     use crate::Float;
     use approx::AbsDiffEq;
@@ -206,6 +227,7 @@ pub mod test_helpers {
         let data_x = fill_random_vector(n_samples * n_features);
         let data_w = fill_random_vector(n_features);
         let data_e = fill_random_vector(n_samples);
+        // Note that data are generated in Fortran order (column-major) which has consequences on the tests
         let X = Array2::from_shape_vec((n_samples, n_features).f(), data_x).unwrap();
         let true_w = Array1::from_shape_vec(n_features, data_w).unwrap();
         let noise = Array1::from_shape_vec(n_samples, data_e).unwrap();
@@ -222,6 +244,7 @@ pub mod test_helpers {
         let data_x = fill_random_vector(n_samples * n_features);
         let data_w = fill_random_vector(n_features * n_tasks);
         let data_e = fill_random_vector(n_samples * n_tasks);
+        // Note that data are generated in Fortran order (column-major) which has consequences on the tests
         let X = Array2::from_shape_vec((n_samples, n_features).f(), data_x).unwrap();
         let true_W = Array2::from_shape_vec((n_features, n_tasks), data_w).unwrap();
         let noise = Array2::from_shape_vec((n_samples, n_tasks), data_e).unwrap();

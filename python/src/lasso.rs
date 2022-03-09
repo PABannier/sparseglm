@@ -1,6 +1,6 @@
 use numpy::{PyArray, PyArray1, PyArray2};
 use pyo3::prelude::*;
-use rustylasso::{
+use rust_sparseglm::{
     datasets::{csc_array::CSCArray, DenseDatasetView, SparseDataset},
     estimators::hyperparams::LassoParams,
     estimators::traits::Fit,

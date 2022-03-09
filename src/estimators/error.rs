@@ -1,12 +1,11 @@
 use thiserror::Error;
 
-/// Simplified `Result` using [`EstimatorError`](crate::EstimatorError) as error type
+/// A shortcut type to return an [`EstimatorError`] when fitting an estimator.
 pub type Result<T> = std::result::Result<T, EstimatorError>;
 
 /// Error variants from hyperparameter construction or model estimation
 #[derive(Debug, Clone, Error)]
 pub enum EstimatorError {
-    /// The input has not enough samples
     #[error("invalid alpha {0}")]
     InvalidRegularization(f32),
     #[error("invalid gamma {0}")]
@@ -17,4 +16,6 @@ pub enum EstimatorError {
     InvalidK(usize),
     #[error("invalid p0 {0}")]
     InvalidP0(usize),
+    #[error("invalid l1 ratio {0}")]
+    InvalidL1Ratio(f32),
 }

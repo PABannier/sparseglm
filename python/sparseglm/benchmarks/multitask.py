@@ -4,9 +4,9 @@ import numpy as np
 import scipy.sparse as sp
 
 from sklearn.linear_model import MultiTaskLasso as MultiTaskLasso_sk
-from rustylasso.estimators import MultiTaskLasso
+from sparseglm.estimators import MultiTaskLasso
 
-from rustylasso.utils import make_correlated_data, compute_alpha_max
+from sparseglm.utils import make_correlated_data, compute_alpha_max
 
 n_samples = 100
 n_features = 3000
@@ -66,7 +66,7 @@ np.testing.assert_allclose(coef_sk_sparse, coef_rl_sparse, atol=1e-5)
 print("=" * 5 + " RESULTS " + "=" * 5)
 
 print(f"[DENSE] Scikit-learn :: {duration_sk} s")
-print(f"[DENSE] RustyLasso :: {duration_rl} s")
+print(f"[DENSE] SparseGLM :: {duration_rl} s")
 print("--" * 5)
 print(f"[SPARSE] Scikit-learn :: {duration_sk_sparse} s")
-print(f"[SPARSE] RustyLasso :: {duration_rl_sparse} s")
+print(f"[SPARSE] SparseGLM :: {duration_rl_sparse} s")

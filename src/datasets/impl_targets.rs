@@ -1,6 +1,7 @@
 use super::{AsMultiTargets, AsSingleTargets};
 use ndarray::{ArrayBase, ArrayView2, Axis, Data, Ix1, Ix2};
 
+/// This implements the [`AsMultiTargets`] trait for 2-dimensional targets.
 impl<'a, F, S: Data<Elem = F>> AsMultiTargets for ArrayBase<S, Ix2> {
     type Elem = F;
 
@@ -17,6 +18,7 @@ impl<'a, F, S: Data<Elem = F>> AsMultiTargets for ArrayBase<S, Ix2> {
     }
 }
 
+/// This implements the [`AsMultiTargets`] trait for 1-dimensional target.
 impl<'a, F, S: Data<Elem = F>> AsMultiTargets for ArrayBase<S, Ix1> {
     type Elem = F;
 
@@ -33,8 +35,10 @@ impl<'a, F, S: Data<Elem = F>> AsMultiTargets for ArrayBase<S, Ix1> {
     }
 }
 
+/// This implements the [`AsSingleTargets`] trait for 1-dimension target.
 impl<'a, F, S: Data<Elem = F>> AsSingleTargets for ArrayBase<S, Ix1> {}
 
+/// This implements the [`AsMultiTargets`] trait for references.
 impl<T: AsMultiTargets> AsMultiTargets for &T {
     type Elem = T::Elem;
 

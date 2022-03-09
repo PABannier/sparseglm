@@ -1,5 +1,5 @@
 [package]
-name = "rustylasso"
+name = "rust_sparseglm"
 version = "0.1.0"
 edition = "2021"
 

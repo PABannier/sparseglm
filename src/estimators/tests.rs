@@ -1,6 +1,3 @@
-extern crate ndarray;
-extern crate rand;
-
 use ndarray::{Array1, Array2};
 
 use crate::datasets::*;
@@ -76,8 +73,8 @@ kkt_check_tests! {
 }
 
 kkt_check_mtl_tests! {
-    kkt_check_mtl_small: (10, 30, 8),
-    kkt_check_mtl_medium: (70, 150, 20),
+    kkt_check_mtl_small: (5, 10, 7),
+    kkt_check_mtl_medium: (30, 50, 20),
 }
 
 #[test]

@@ -1,5 +1,3 @@
-extern crate ndarray;
-
 use ndarray::{Array1, Array2};
 
 use crate::cd::*;
@@ -19,7 +17,7 @@ fn test_kkt_violation() {
 
     let dataset = DatasetBase::from((X, y));
 
-    let mut datafit = Quadratic::default();
+    let mut datafit = Quadratic::new();
     datafit.initialize(&dataset);
 
     let penalty = L1::new(0.3);
@@ -48,7 +46,7 @@ fn test_kkt_violation_sparse() {
 
     let dataset = DatasetBase::from((X, y));
 
-    let mut datafit = Quadratic::default();
+    let mut datafit = Quadratic::new();
     datafit.initialize(&dataset);
     let penalty = L1::new(0.3);
 
