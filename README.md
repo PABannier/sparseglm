@@ -69,7 +69,7 @@ Currently we support:
 | L2/3                       |         -          |         -          | Non-convex |
 | SCAD                       |         -          |         -          | Non-convex |
 | Indicator box              |         -          |         -          |   Convex   |
-| Sparse logistic regression |         -          |         -          |   Convex   |
+| Sparse logistic regression | :heavy_check_mark: |         -          |   Convex   |
 | Dual SVM with hinge loss   |         -          |         -          |   Convex   |
 
 ## Performance

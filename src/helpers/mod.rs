@@ -166,6 +166,10 @@ pub mod helpers {
 
         Ok(x)
     }
+
+    pub fn sigmoid<F: Float>(x: F) -> F {
+        F::one() / (F::one() + F::exp(-x))
+    }
 }
 
 /// This module contains helpers functions to efficiently write tests.
