@@ -200,7 +200,7 @@ pub fn anderson_accel<F, DM, T, DF, P>(
                     XW.assign(&XW_acc);
 
                     if verbose {
-                        println!("[ACCEL] p_obj {:#?} :: p_obj_acc {:#?}", p_obj, p_obj_acc);
+                        println!("[ACCEL] obj {:#?} :: obj_acc {:#?}", p_obj, p_obj_acc);
                     }
                 }
             }
