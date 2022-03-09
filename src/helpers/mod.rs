@@ -111,7 +111,7 @@ pub mod helpers {
 
 pub mod cholesky {
     use crate::Float;
-    use ndarray::{s, Array1, Array2};
+    use ndarray::{s, Array1, Array2, ArrayView2};
     use thiserror::Error;
 
     #[derive(Debug, Clone, Error)]
@@ -120,12 +120,58 @@ pub mod cholesky {
         IllConditionedMatrix,
     }
 
-    pub fn forward_substitution<F: Float>(mat: &Array2<F>) -> Result<Array1<F>, LinAlgError> {
-        // Solves the linear system Lx = 1 with L upper triangular
-        let mut res = Array1::<F>::zeros(mat.len());
+    pub fn solve_lin_sys_one_by_cholesky<F: Float>(
+        mat: &Array2<F>,
+    ) -> Result<Array1<F>, LinAlgError> {
+        // Solves the linear system Ax = 1 with A symmetric positive definite
+        // O(n^3) time | O(n) space
+        let n = mat.shape()[0];
+        match cholesky_factorization(mat) {
+            Ok(lower_triangular) => match forward_substitution_one(&lower_triangular, n) {
+                Ok(mut y) => match backward_substitution(lower_triangular.t(), &mut y) {
+                    Ok(x) => Ok(x),
+                    Err(e) => Err(e),
+                },
+                Err(e) => Err(e),
+            },
+            Err(e) => Err(e),
+        }
+    }
 
-        for i in 0..mat.len() {
-            res[i] = (F::one() - res.dot(&mat.slice(s![i, ..]))) / mat[[i, i]];
+    pub fn forward_substitution_one<F: Float>(
+        mat: &Array2<F>,
+        out_size: usize,
+    ) -> Result<Array1<F>, LinAlgError> {
+        // Solves the linear system Lx = 1 with L lower triangular
+        // O(n^2) time | O(n) space
+        let mut res = Array1::<F>::zeros(out_size);
+
+        for i in 0..out_size {
+            match mat[[i, i]] == F::zero() {
+                true => return Err(LinAlgError::IllConditionedMatrix),
+                false => res[i] = (F::one() - res.dot(&mat.slice(s![i, ..]))) / mat[[i, i]],
+            }
+        }
+
+        Ok(res)
+    }
+
+    pub fn backward_substitution<F: Float>(
+        mat: ArrayView2<F>,
+        b: &mut Array1<F>,
+    ) -> Result<Array1<F>, LinAlgError> {
+        // Solves the linear system Ux = b with U upper triangular
+        // O(n^2) time | O(n) space
+        let mut res = Array1::<F>::zeros(b.len());
+
+        for i in (0..b.len()).rev() {
+            for j in (i + 1)..(b.len()) {
+                b[i] = b[i] - mat[[i, j]] * res[j];
+            }
+            match mat[[i, i]] == F::zero() {
+                true => return Err(LinAlgError::IllConditionedMatrix),
+                false => res[i] = b[i] / mat[[i, i]],
+            }
         }
 
         Ok(res)
@@ -137,7 +183,7 @@ pub mod cholesky {
         let m = mat.shape()[1];
         assert_eq!(
             n, m,
-            "Cholesky-factored matrix must be a squared symmetric positive-definite matrix."
+            "Cholesky factorization only applies to square symmetric positive-definite matrices."
         );
 
         let mut L = Array2::<F>::zeros((n, n));

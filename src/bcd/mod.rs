@@ -4,7 +4,7 @@ use super::Float;
 use crate::datafits_multitask::MultiTaskDatafit;
 use crate::datasets::DesignMatrix;
 use crate::datasets::{AsMultiTargets, DatasetBase};
-use crate::helpers::helpers::argsort_by;
+use crate::helpers::{cholesky::solve_lin_sys_one_by_cholesky, helpers::argsort_by};
 use crate::penalties_multitask::MultiTaskPenalty;
 
 #[cfg(test)]
@@ -159,8 +159,7 @@ pub fn anderson_accel<F, DM, T, DF, P>(
 
         // Computes the extrapolation matrix à la Anderson
         let C = U.t().dot(U);
-        // let _res = C.invc();
-        let _res: std::result::Result<Array2<_>, &str> = Err("hello");
+        let _res = solve_lin_sys_one_by_cholesky(&C);
 
         match _res {
             Ok(C_inv) => {
