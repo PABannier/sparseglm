@@ -241,7 +241,7 @@ impl<F: Float, D: Data<Elem = F>, T: AsSingleTargets<Elem = F>> Datafit<F, Array
                 .map(|(&y_i, &xw_i)| y_i * sigmoid(-y_i * xw_i))
                 .collect::<Vec<F>>(),
         );
-        dataset.design_matrix().slice(s![.., j]).dot(&tmp) / F::cast(Xw.len())
+        -dataset.design_matrix().slice(s![.., j]).dot(&tmp) / F::cast(Xw.len())
     }
 
     fn full_grad(
