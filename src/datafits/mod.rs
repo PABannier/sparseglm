@@ -1,7 +1,10 @@
+use std::f64::consts::E;
+
 use ndarray::{s, Array1, ArrayBase, ArrayView1, Axis, Data, Ix2};
 
 use super::Float;
 use crate::datasets::{csc_array::CSCArray, AsSingleTargets, DatasetBase, DesignMatrix};
+use crate::helpers::helpers::sigmoid;
 
 #[cfg(test)]
 mod tests;
@@ -31,9 +34,6 @@ pub trait Datafit<F: Float, DM: DesignMatrix<Elem = F>, T: AsSingleTargets<Elem 
 
     /// A getter method for the pre-computed Lipschitz constants.
     fn lipschitz(&self) -> ArrayView1<F>;
-
-    /// A getter method for the matrix-vector product XTy.
-    fn Xty(&self) -> ArrayView1<F>;
 }
 
 /// Quadratic datafit
@@ -113,11 +113,6 @@ impl<F: Float, D: Data<Elem = F>, T: AsSingleTargets<Elem = F>> Datafit<F, Array
     fn lipschitz(&self) -> ArrayView1<F> {
         self.lipschitz.view()
     }
-
-    // A getter method for Xty.
-    fn Xty(&self) -> ArrayView1<F> {
-        self.Xty.view()
-    }
 }
 
 /// This implementation block implements the [`Datafit`] for sparse matrices
@@ -185,9 +180,148 @@ impl<F: Float, T: AsSingleTargets<Elem = F>> Datafit<F, CSCArray<'_, F>, T> for 
     fn lipschitz(&self) -> ArrayView1<F> {
         self.lipschitz.view()
     }
+}
 
-    /// A getter method for the matrix-vector product XTy.
-    fn Xty(&self) -> ArrayView1<F> {
-        self.Xty.view()
+/// Logistic datafit
+///
+/// The logistic datafit used in classification tasks.
+/// Conjointly used with penalties implementing the [`Penalty`] trait, it allows
+/// to create a wide variety of classification models (e.g. sparse logistic
+/// regression, etc.). It stores the pre-computed quantities useful during the
+/// optimization routine.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Logistic<F: Float> {
+    lipschitz: Array1<F>,
+}
+
+impl<F: Float> Logistic<F> {
+    pub fn new() -> Self {
+        Logistic {
+            lipschitz: Array1::<F>::zeros(1),
+        }
+    }
+}
+
+impl<F: Float, D: Data<Elem = F>, T: AsSingleTargets<Elem = F>> Datafit<F, ArrayBase<D, Ix2>, T>
+    for Logistic<F>
+{
+    /// This method pre-computes the Lipschitz constants and the matrix-vector
+    /// product XTy useful during the optimization routine.
+    fn initialize(&mut self, dataset: &DatasetBase<ArrayBase<D, Ix2>, T>) {
+        let n_samples = dataset.targets().n_samples();
+        let X = dataset.design_matrix();
+        self.lipschitz = X.map_axis(Axis(0), |Xj| Xj.dot(&Xj) / (F::cast(4 * n_samples)));
+    }
+
+    /// This method computes the value of the datafit for some model fit.
+    fn value(&self, dataset: &DatasetBase<ArrayBase<D, Ix2>, T>, Xw: ArrayView1<F>) -> F {
+        let y = dataset.targets().try_single_target().unwrap();
+        Xw.iter()
+            .zip(y)
+            .map(|(&xw_i, &y_i)| F::log(F::one() + F::exp(-xw_i * y_i), F::cast(E)))
+            .sum::<F>()
+            / F::cast(y.len())
+    }
+
+    /// This method computes the value of the gradient at some point w for
+    /// coordinate j.
+    fn gradient_j(
+        &self,
+        dataset: &DatasetBase<ArrayBase<D, Ix2>, T>,
+        Xw: ArrayView1<F>,
+        j: usize,
+    ) -> F {
+        let tmp = Array1::from_iter(
+            dataset
+                .targets()
+                .try_single_target()
+                .unwrap()
+                .iter()
+                .zip(Xw)
+                .map(|(&y_i, &xw_i)| y_i * sigmoid(-y_i * xw_i))
+                .collect::<Vec<F>>(),
+        );
+        dataset.design_matrix().slice(s![.., j]).dot(&tmp) / F::cast(Xw.len())
+    }
+
+    fn full_grad(
+        &self,
+        dataset: &DatasetBase<ArrayBase<D, Ix2>, T>,
+        Xw: ArrayView1<F>,
+    ) -> Array1<F> {
+        Array1::from_iter(
+            (0..dataset.design_matrix().n_features())
+                .into_iter()
+                .map(|j| self.gradient_j(dataset, Xw, j))
+                .collect::<Vec<F>>(),
+        )
+    }
+
+    /// A getter method for Lipschitz constants.
+    fn lipschitz(&self) -> ArrayView1<F> {
+        self.lipschitz.view()
+    }
+}
+
+impl<F: Float, T: AsSingleTargets<Elem = F>> Datafit<F, CSCArray<'_, F>, T> for Logistic<F> {
+    /// This method pre-computes the Lipschitz constants and the matrix-vector
+    /// product XTy useful during the optimization routine.
+    fn initialize(&mut self, dataset: &DatasetBase<CSCArray<'_, F>, T>) {
+        let n_samples = dataset.targets().n_samples();
+        let n_features = dataset.design_matrix().n_features();
+        let X = dataset.design_matrix();
+        self.lipschitz = Array1::<F>::zeros(n_features);
+        for j in 0..n_features {
+            let mut nrm2 = F::zero();
+            for idx in X.indptr[j]..X.indptr[j + 1] {
+                nrm2 += X.data[idx as usize] * X.data[idx as usize];
+            }
+            self.lipschitz[j] = nrm2 / F::cast(4 * n_samples);
+        }
+    }
+
+    /// This method computes the value of the datafit for some model fit.
+    fn value(&self, dataset: &DatasetBase<CSCArray<'_, F>, T>, Xw: ArrayView1<F>) -> F {
+        let y = dataset.targets().try_single_target().unwrap();
+        Xw.iter()
+            .zip(y)
+            .map(|(&xw_i, &y_i)| F::log(F::one() + F::exp(-xw_i * y_i), F::cast(E)))
+            .sum::<F>()
+            / F::cast(y.len())
+    }
+
+    /// This method computes the value of the gradient at some point w for
+    /// coordinate j.
+    fn gradient_j(
+        &self,
+        dataset: &DatasetBase<CSCArray<'_, F>, T>,
+        Xw: ArrayView1<F>,
+        j: usize,
+    ) -> F {
+        let X = dataset.design_matrix();
+        let y = dataset.targets().try_single_target().unwrap();
+        let n_samples = dataset.targets().n_samples();
+        let mut grad = F::zero();
+        for i in X.indptr[j]..X.indptr[j + 1] {
+            grad -= X.data[i as usize]
+                * y[X.indices[i as usize] as usize]
+                * sigmoid(-y[X.indices[i as usize] as usize] * Xw[X.indices[i as usize] as usize])
+                / F::cast(n_samples);
+        }
+        grad
+    }
+
+    fn full_grad(&self, dataset: &DatasetBase<CSCArray<'_, F>, T>, Xw: ArrayView1<F>) -> Array1<F> {
+        Array1::from_iter(
+            (0..dataset.design_matrix().n_features())
+                .into_iter()
+                .map(|j| self.gradient_j(dataset, Xw, j))
+                .collect::<Vec<F>>(),
+        )
+    }
+
+    /// A getter method for Lipschitz constants.
+    fn lipschitz(&self) -> ArrayView1<F> {
+        self.lipschitz.view()
     }
 }
