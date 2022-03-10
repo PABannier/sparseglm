@@ -1,14 +1,20 @@
 import numpy as np
 import scipy.sparse as sp
 
+from . import _lib
+
 from sklearn.base import BaseEstimator
 from sklearn.utils import check_array
 
-import sparseglm_solver
 
-
-__all__ = ["Lasso", "MultiTaskLasso", "MCPRegressor", "BlockMCPRegressor",
-           "ElasticNet", "MultiTaskElasticNet"]
+__all__ = [
+    "Lasso",
+    "MultiTaskLasso",
+    "MCPRegressor",
+    "BlockMCPRegressor",
+    "ElasticNet",
+    "MultiTaskElasticNet"
+]
 
 
 class Estimator(BaseEstimator):
@@ -108,7 +114,7 @@ class Lasso(Estimator):
         y = check_array(y, 'csc', dtype=X.dtype.type, order='F', copy=False,
                         ensure_2d=False)
 
-        self._inner = sparseglm_solver.LassoWrapper(
+        self._inner = _lib.LassoWrapper(
             alpha=self.alpha, max_iterations=self.max_iter, p0=self.p0,
             k=self.K, max_epochs=self.max_epochs, tolerance=self.tol,
             use_acceleration=self.use_accel, verbose=self.verbose)
@@ -199,7 +205,7 @@ class MultiTaskLasso(Estimator):
             raise ValueError("X and Y have inconsistent dimensions (%d != %d)"
                              % (n_samples, Y.shape[0]))
 
-        self._inner = sparseglm_solver.MultiTaskLassoWrapper(
+        self._inner = _lib.MultiTaskLassoWrapper(
             alpha=self.alpha, max_iterations=self.max_iter, p0=self.p0,
             k=self.K, max_epochs=self.max_epochs, tolerance=self.tol,
             use_acceleration=self.use_accel, verbose=self.verbose)
@@ -287,7 +293,7 @@ class MCPRegressor(Estimator):
         y = check_array(y, 'csc', dtype=X.dtype.type, order='F', copy=False,
                         ensure_2d=False)
 
-        self._inner = sparseglm_solver.MCPWrapper(
+        self._inner = _lib.MCPWrapper(
             alpha=self.alpha, gamma=self.gamma, max_iterations=self.max_iter,
             p0=self.p0, k=self.K, max_epochs=self.max_epochs,
             tolerance=self.tol, use_acceleration=self.use_accel,
@@ -387,7 +393,7 @@ class BlockMCPRegressor(Estimator):
             raise ValueError("X and Y have inconsistent dimensions (%d != %d)"
                              % (n_samples, Y.shape[0]))
 
-        self._inner = sparseglm_solver.BlockMCPWrapper(
+        self._inner = _lib.BlockMCPWrapper(
             alpha=self.alpha, gamma=self.gamma, max_iterations=self.max_iter,
             p0=self.p0, k=self.K, max_epochs=self.max_epochs,
             tolerance=self.tol, use_acceleration=self.use_accel,
@@ -476,7 +482,7 @@ class ElasticNet(Estimator):
         y = check_array(y, 'csc', dtype=X.dtype.type, order='F', copy=False,
                         ensure_2d=False)
 
-        self._inner = sparseglm_solver.ElasticNetWrapper(
+        self._inner = _lib.ElasticNetWrapper(
             alpha=self.alpha, l1_ratio=self.l1_ratio,
             max_iterations=self.max_iter, p0=self.p0, k=self.K,
             max_epochs=self.max_epochs, tolerance=self.tol,
@@ -576,7 +582,7 @@ class MultiTaskElasticNet(Estimator):
             raise ValueError("X and Y have inconsistent dimensions (%d != %d)"
                              % (n_samples, Y.shape[0]))
 
-        self._inner = sparseglm_solver.MultiTaskElasticNetWrapper(
+        self._inner = _lib.MultiTaskElasticNetWrapper(
             alpha=self.alpha, l1_ratio=self.l1_ratio,
             max_iterations=self.max_iter, p0=self.p0, k=self.K,
             max_epochs=self.max_epochs, tolerance=self.tol,

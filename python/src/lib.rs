@@ -8,7 +8,7 @@ mod mtl_lasso;
 mod multi_task_elastic_net;
 
 #[pymodule]
-fn sparseglm_solver(_py: Python, m: &PyModule) -> PyResult<()> {
+fn _lib(_py: Python, m: &PyModule) -> PyResult<()> {
     // Lasso
     m.add_class::<lasso::LassoWrapper>()?;
     m.add_class::<mtl_lasso::MultiTaskLassoWrapper>()?;

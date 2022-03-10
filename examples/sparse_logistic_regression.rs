@@ -1,6 +1,6 @@
-extern crate rust_sparseglm;
+extern crate sparseglm;
 
-use rust_sparseglm::{
+use sparseglm::{
     datafits::Logistic,
     datasets::DatasetBase,
     helpers::test_helpers::generate_random_data,

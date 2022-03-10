@@ -1,6 +1,6 @@
 use numpy::{PyArray, PyArray1, PyArray2};
 use pyo3::prelude::*;
-use rust_sparseglm::{
+use sparseglm::{
     datasets::{csc_array::CSCArray, DenseDatasetView, SparseDataset},
     estimators::hyperparams::MCParams,
     estimators::traits::Fit,

@@ -1,6 +1,6 @@
-extern crate rust_sparseglm;
+extern crate sparseglm;
 
-use rust_sparseglm::{
+use sparseglm::{
     datafits::Quadratic,
     datasets::DatasetBase,
     estimators::{estimators::ElasticNet, traits::Fit},

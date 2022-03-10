@@ -86,9 +86,10 @@ in a Python environment. To install it, run at the root of the repo:
 
 ```bash
 
-# Install Maturin (PyO3) runtime to generate Python package
-pip install maturin
+# Install requirements
+pip install -r requirements.txt
 
 # Compile and build Python wheel
-maturin develop --release
+cd python
+python ./setup.py bdist_wheel
 ```
