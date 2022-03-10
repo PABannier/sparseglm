@@ -81,7 +81,7 @@ descent solvers using the optimization benchmarking tool [Benchopt](https://gith
 
 ## Building the Python package
 
-This repo includes Python bindings to run the existing estimators (in the `Estimators`crate)
+This repo includes Python bindings to run the existing estimators (in the `Estimators` crate)
 in a Python environment. To install it, run at the root of the repo:
 
 ```bash
