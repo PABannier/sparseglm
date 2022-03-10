@@ -15,7 +15,7 @@ pub mod tests;
 
 pub mod impl_solver;
 
-/// [`rust-sparseglm`] offers two ways to solve optimization problems. Either
+/// [`sparseglm`] offers two ways to solve optimization problems. Either
 /// using a pre-defined estimator and using an API à la Scikit-Learn, or using
 /// a [`Solver`] jointly with a [`Datafit`] and a [`Penalty`] object. The
 /// [`Solver`] object contains all the hyperparameters needed for the optimization

@@ -10,7 +10,7 @@ mod impl_targets;
 
 /// [`DatasetBase`] is a basic structure that holds a design matrix and a target
 /// vector or matrix. It is the most basic building block needed to use the
-/// estimators offered by [`rust-sparseglm`].
+/// estimators offered by [`sparseglm`].
 ///
 /// It is inspired from: `https://github.com/rust-ml/linfa`.
 #[derive(Debug, Clone, PartialEq)]
