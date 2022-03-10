@@ -2,3 +2,6 @@ target
 Cargo.lock
 
 __pycache__
+
+sparseglm.egg-info/
+*.so

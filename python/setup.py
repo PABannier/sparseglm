@@ -10,7 +10,6 @@ setup(
         RustExtension(
             "sparseglm._lib",
             rustc_flags=["--cfg=Py_3"],
-            features=["numpy/python3"],
             args=["--no-default-features"],
         )
     ],
