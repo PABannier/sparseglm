@@ -8,11 +8,11 @@ from sklearn.utils import check_array
 
 
 __all__ = [
-    "Lasso", 
-    "MultiTaskLasso", 
-    "MCPRegressor", 
+    "Lasso",
+    "MultiTaskLasso",
+    "MCPRegressor",
     "BlockMCPRegressor",
-    "ElasticNet", 
+    "ElasticNet",
     "MultiTaskElasticNet"
 ]
 
