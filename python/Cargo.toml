@@ -1,5 +1,5 @@
 [package]
-name = "sparseglm_solver"
+name = "sparseglmpy"
 version = "0.1.0"
 edition = "2021"
 
@@ -19,4 +19,7 @@ version = "0.15.0"
 
 [dependencies.pyo3]
 version = "0.15.1"
-features = ["extension-module"]
+
+[features]
+extension-module = ["pyo3/extension-module"]
+default = ["extension-module"]
