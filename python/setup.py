@@ -14,7 +14,7 @@ setup(
         )
     ],
     long_description_content_type="text/markdown",
-    url="https://github.com/PABannier/rust-sparseglm",
+    url="https://github.com/PABannier/sparseglm",
     python_requires=">=3.6",
     install_requires=install_requires,
     packages=find_packages(),

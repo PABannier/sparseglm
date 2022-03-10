@@ -205,7 +205,7 @@ pub fn anderson_accel<F, DM, T, DF, P>(
     }
 }
 
-/// This is the backbone function for the [`rust-sparseglm`] crate. It implements
+/// This is the backbone function for the [`sparseglm`] crate. It implements
 /// the usual coordinate descent optimization routine using working sets. This
 /// routine is composed is composed of two nested loops.
 ///

@@ -1,6 +1,6 @@
 //! Fast and modular coordinate descent solver for sparse generalized linear models
 //!
-//! [`rust-sparseglm`]'s philosophy consists in offering a highly flexible API. Any
+//! [`sparseglm`]'s philosophy consists in offering a highly flexible API. Any
 //! sparse GLM can be implemented in under 50 lines of code by providing its datafit
 //! term and its penalty term, which makes it very easy to support new estimators.
 //!
@@ -24,7 +24,7 @@
 //! let coefficients = solver.solve(dataset, &mut datafit, &penalty).unwrap();
 //! ```
 //!
-//! For widely-used models like Lasso, [`rust-sparseglm`] already implements
+//! For widely-used models like Lasso, [`sparseglm`] already implements
 //! those models.
 //!
 //! ```ignore

@@ -23,4 +23,4 @@ pip install sparseglm
 
 ## License
 
-`sparseglm` is released under the [MIT License](https://github.com/PABannier/rust-sparseglm/blob/main/LICENSE).
+`sparseglm` is released under the [MIT License](https://github.com/PABannier/sparseglm/blob/main/LICENSE).
