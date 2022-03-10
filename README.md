@@ -1,4 +1,4 @@
-# rust-sparseglm
+# sparseglm
 
 ![build](https://github.com/PABannier/rust-sparseglm/actions/workflows/cargo.yml/badge.svg)
 ![build](https://github.com/PABannier/rust-sparseglm/actions/workflows/pytest.yml/badge.svg)
