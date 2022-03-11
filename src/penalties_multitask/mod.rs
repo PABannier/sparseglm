@@ -79,7 +79,7 @@ impl<F: 'static + Float> MultiTaskPenalty<F> for L21<F> {
 
                 match W_j.iter().any(|&w_ij| w_ij != F::zero()) {
                     true => {
-                        let norm_W_j = W_j.map(|&wj| wj.powi(2)).sum().sqrt();
+                        let norm_W_j = W_j.dot(&W_j).sqrt();
                         grad_idx
                             .iter()
                             .zip(W_j)
@@ -89,7 +89,7 @@ impl<F: 'static + Float> MultiTaskPenalty<F> for L21<F> {
                             .sqrt()
                     }
                     false => {
-                        let norm_grad_j = grad_idx.map(|&grad_ij| grad_ij.powi(2)).sum().sqrt();
+                        let norm_grad_j = grad_idx.dot(&grad_idx).sqrt();
                         F::max(F::zero(), norm_grad_j - self.alpha)
                     }
                 }
@@ -128,9 +128,7 @@ impl<F: Float> MultiTaskPenalty<F> for BlockL1PlusL2<F> {
         let norm_W_j = W.map_axis(Axis(1), |Wj| Wj.dot(&Wj).sqrt());
         self.alpha
             * (self.l21_ratio * norm_W_j.sum()
-                + (F::one() - self.l21_ratio)
-                    * F::cast(0.5)
-                    * norm_W_j.iter().map(|&norm_w_j| norm_w_j.powi(2)).sum())
+                + (F::one() - self.l21_ratio) * F::cast(0.5) * norm_W_j.dot(&norm_W_j))
     }
 
     /// Computes the proximal operator the Block L1 + L2 penalty for a weight vector
@@ -157,7 +155,7 @@ impl<F: Float> MultiTaskPenalty<F> for BlockL1PlusL2<F> {
 
                 match W_j.iter().any(|&w_ij| w_ij != F::zero()) {
                     true => {
-                        let norm_W_j = W_j.map(|&wj| wj.powi(2)).sum().sqrt();
+                        let norm_W_j = W_j.dot(&W_j).sqrt();
                         grad_idx
                             .iter()
                             .zip(W_j)
@@ -171,7 +169,7 @@ impl<F: Float> MultiTaskPenalty<F> for BlockL1PlusL2<F> {
                             .sqrt()
                     }
                     false => {
-                        let norm_grad_j = grad_idx.map(|&grad_ij| grad_ij.powi(2)).sum().sqrt();
+                        let norm_grad_j = grad_idx.dot(&grad_idx);
                         F::max(F::zero(), norm_grad_j - self.alpha * self.l21_ratio)
                     }
                 }
@@ -231,7 +229,7 @@ impl<F: Float> MultiTaskPenalty<F> for BlockMCP<F> {
         let cast1 = F::cast(1.);
         let tau = self.alpha * stepsize;
         let g = self.gamma / stepsize;
-        let norm_value = value.map(|wj| wj.powi(2)).sum().sqrt();
+        let norm_value = value.dot(&value).sqrt();
         if norm_value <= tau {
             Array1::<F>::zeros(value.len())
         } else if norm_value > g * tau {
@@ -260,12 +258,12 @@ impl<F: Float> MultiTaskPenalty<F> for BlockMCP<F> {
         let subdiff_dist =
             Array1::from_iter(grad.axis_iter(Axis(0)).zip(ws).map(|(grad_idx, &j)| {
                 let W_j = W.slice(s![j, ..]);
-                let norm_W_j = W_j.map(|wj| wj.powi(2)).sum().sqrt();
+                let norm_W_j = W_j.dot(&W_j).sqrt();
 
                 match W_j.iter().any(|&w_ij| w_ij != F::zero()) {
                     false => {
                         // distance of -grad_j to alpha * unit_ball
-                        let norm_grad_j = grad_idx.map(|&grad_ij| grad_ij.powi(2)).sum().sqrt();
+                        let norm_grad_j = grad_idx.dot(&grad_idx).sqrt();
                         F::max(F::zero(), norm_grad_j - self.alpha)
                     }
                     _ => {
@@ -275,7 +273,7 @@ impl<F: Float> MultiTaskPenalty<F> for BlockMCP<F> {
                             W_j.map(|&W_ij| (W_ij * scale).powi(2)).sum().sqrt()
                         } else {
                             // distance of -grad_j to 0
-                            grad_idx.map(|&grad_ij| grad_ij.powi(2)).sum().sqrt()
+                            grad_idx.dot(&grad_idx).sqrt()
                         }
                     }
                 }

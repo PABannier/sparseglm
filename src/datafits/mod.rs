@@ -71,6 +71,14 @@ impl<F: Float, D: Data<Elem = F>, T: AsSingleTargets<Elem = F>> Datafit<F, Array
         self.lipschitz = X.map_axis(Axis(0), |Xj| Xj.dot(&Xj) / n_samples);
     }
 
+    /// This method computes the value of the datafit given the model fit.
+    fn value(&self, dataset: &DatasetBase<ArrayBase<D, Ix2>, T>, Xw: ArrayView1<F>) -> F {
+        let n_samples = dataset.targets().n_samples();
+        let y = dataset.targets().try_single_target().unwrap();
+        let r = &y - &Xw;
+        r.dot(&r) / F::cast(2 * n_samples)
+    }
+
     /// This method computes the value of the gradient at some point w for
     /// coordinate j.
     fn gradient_j(
@@ -79,10 +87,10 @@ impl<F: Float, D: Data<Elem = F>, T: AsSingleTargets<Elem = F>> Datafit<F, Array
         Xw: ArrayView1<F>,
         j: usize,
     ) -> F {
-        let n_samples = dataset.targets().n_samples();
+        let n_samples = F::cast(dataset.targets().n_samples());
         let X = dataset.design_matrix();
         let _res = X.slice(s![.., j]).dot(&Xw);
-        (_res - self.Xty[j]) / F::cast(n_samples)
+        (_res - self.Xty[j]) / n_samples
     }
 
     /// This method computes the full gradient of the datafit with respect to
@@ -98,15 +106,6 @@ impl<F: Float, D: Data<Elem = F>, T: AsSingleTargets<Elem = F>> Datafit<F, Array
                 .map(|j| self.gradient_j(dataset, Xw, j))
                 .collect::<Vec<F>>(),
         )
-    }
-
-    /// This method computes the value of the datafit given the model fit.
-    fn value(&self, dataset: &DatasetBase<ArrayBase<D, Ix2>, T>, Xw: ArrayView1<F>) -> F {
-        let n_samples = dataset.targets().n_samples();
-        let y = dataset.targets().try_single_target().unwrap();
-        let r = &y - &Xw;
-        let val = r.dot(&r) / F::cast(2 * n_samples);
-        val
     }
 
     // A getter method for the Lipschitz constants.

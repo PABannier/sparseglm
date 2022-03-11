@@ -67,9 +67,8 @@ impl<F: Float, D: Data<Elem = F>, T: AsMultiTargets<Elem = F>>
         let n_samples = F::cast(dataset.targets().n_samples());
         let X = dataset.design_matrix();
         let Y = dataset.targets().as_multi_tasks();
-        let xty = X.t().dot(&Y);
+        self.XtY = X.t().dot(&Y);
         self.lipschitz = X.map_axis(Axis(0), |Xj| Xj.dot(&Xj) / n_samples);
-        self.XtY = xty;
     }
 
     /// This method computes the value of the datafit given the model fit.
@@ -77,7 +76,7 @@ impl<F: Float, D: Data<Elem = F>, T: AsMultiTargets<Elem = F>>
         let n_samples = dataset.targets().n_samples();
         let Y = dataset.targets().as_multi_tasks();
         let R = &Y - &XW;
-        let frob = R.map(|&x| x.powi(2)).sum();
+        let frob: F = R.iter().map(|&x| x.powi(2)).sum();
         frob / F::cast(2 * n_samples)
     }
 
@@ -92,8 +91,7 @@ impl<F: Float, D: Data<Elem = F>, T: AsMultiTargets<Elem = F>>
         let n_samples = F::cast(dataset.targets().n_samples());
         let X = dataset.design_matrix();
         let Xj: ArrayView1<F> = X.slice(s![.., j]);
-        let grad = Xj.dot(&XW) - self.XtY.slice(s![j, ..]);
-        grad / n_samples
+        (Xj.dot(&XW) - self.XtY.slice(s![j, ..])) / n_samples
     }
 
     /// This method computes the full gradient of the datafit with respect to
@@ -168,7 +166,7 @@ impl<F: Float, T: AsMultiTargets<Elem = F>> MultiTaskDatafit<F, CSCArray<'_, F>,
         let n_samples = dataset.targets().n_samples();
         let Y = dataset.targets().as_multi_tasks();
         let R = &Y - &XW;
-        let frob = R.map(|&x| x.powi(2)).sum();
+        let frob: F = R.iter().map(|&x| x.powi(2)).sum();
         frob / F::cast(2 * n_samples)
     }
 
