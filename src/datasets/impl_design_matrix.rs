@@ -68,7 +68,7 @@ impl<F: Float, S: Data<Elem = F>> DesignMatrix for ArrayBase<S, Ix2> {
         let n_tasks = XW.shape()[1];
         for i in 0..n_samples {
             for t in 0..n_tasks {
-                XW[[i, t]] += diff[t] * self.slice(s![.., j])[i];
+                XW[[i, t]] += diff[t] * self[[i, j]];
             }
         }
     }

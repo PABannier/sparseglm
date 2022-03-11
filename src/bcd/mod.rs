@@ -244,7 +244,6 @@ where
     // Pre-computes the Lipschitz constants and the matrix-matrix XTY product
     // that is later used in the optimization procedure.
     datafit.initialize(dataset);
-    let lipschitz = datafit.lipschitz();
 
     let all_feats = Array1::from_shape_vec(n_features, (0..n_features).collect()).unwrap();
 
@@ -284,17 +283,24 @@ where
 
         // Inner loop that implements the actual block coordinate descent routine
         for epoch in 0..max_epochs {
+            let lipschitz = datafit.lipschitz();
+
             // Cycle through the features in the working set
             for &j in ws.iter() {
                 match lipschitz[j] == F::zero() {
                     true => continue,
                     false => {
-                        let old_W_j = W.slice(s![j, ..]).to_owned();
+                        let old_W_j = W.slice(s![j, ..]).to_owned(); // Idea: pre-slice W and store columns
                         let grad_j = datafit.gradient_j(dataset, XW.view(), j);
 
                         let step = &old_W_j - grad_j / lipschitz[j];
                         let upd = penalty.prox_op(step.view(), F::one() / lipschitz[j]);
-                        W.slice_mut(s![j, ..]).assign(&upd);
+
+                        // W.slice_mut(s![j, ..]).assign(&upd);
+                        // For loops are way faster than chaining slice_mut and assign
+                        for t in 0..n_tasks {
+                            W[[j, t]] = upd[t];
+                        }
 
                         let diff = Array1::from_iter(
                             old_W_j
