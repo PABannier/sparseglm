@@ -26,7 +26,12 @@ impl<F: Float> Default for Solver<F> {
     }
 }
 
-impl<F> Solver<F> {
+impl<F: Float> Solver<F> {
+    /// Creates a Solver instance with default parameters.
+    pub fn new() -> Self {
+        Default::default()
+    }
+
     /// The starting working set size.
     /// Defaults to `10`.
     pub fn p0(mut self, p0: usize) -> Self {

@@ -19,7 +19,7 @@ macro_rules! estimator_test {
 
                 let mut datafit = $payload.datafit;
                 let penalty = $payload.penalty;
-                let solver = Solver::default();
+                let solver = Solver::new();
 
                 let coefficients = solver.solve(&dataset, &mut datafit, &penalty).unwrap();
                 assert_array_all_close(coefficients.view(), $payload.truth, 1e-5);
@@ -40,7 +40,7 @@ macro_rules! multi_task_estimator_test {
 
                 let mut datafit = $payload.datafit;
                 let penalty = $payload.penalty;
-                let solver = Solver::default();
+                let solver = Solver::new();
 
                 let coefficients = solver.solve_multi_task(&dataset, &mut datafit, &penalty).unwrap();
                 assert_array2d_all_close(coefficients.view(), $payload.truth, 1e-5);

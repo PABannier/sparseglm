@@ -33,7 +33,7 @@ let mut datafit = Quadratic::new();
 let penalty = L1::new(0.7);
 
 // Instantiate a Solver with default parameters
-let solver = Solver::default();
+let solver = Solver::new();
 
 // Solve the problem using coordinate descent
 let coefficients = solver.solve(&dataset, &mut datafit, &penalty).unwrap();
@@ -91,5 +91,5 @@ pip install -r requirements.txt
 
 # Compile and build Python wheel
 cd python
-python ./setup.py bdist_wheel
+python ./setup.py install
 ```

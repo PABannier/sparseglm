@@ -18,7 +18,7 @@
 //! let penalty = L1::new(0.7);
 //!
 //! // Instantiate a Solver with default parameters
-//! let solver = Solver::default();
+//! let solver = Solver::new();
 //!
 //! // Solve the problem using coordinate descent
 //! let coefficients = solver.solve(dataset, &mut datafit, &penalty).unwrap();

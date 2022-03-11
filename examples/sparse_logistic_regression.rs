@@ -18,7 +18,7 @@ fn main() {
     // Regularizing logistic regression with a non-convex MCP penalty
     let mut datafit = Logistic::new();
     let penalty = MCP::new(alpha, gamma);
-    let solver = Solver::default();
+    let solver = Solver::new();
 
     println!("#### Fitting sparse logistic regression (MCP penalty)");
     let _ = solver.solve(&dataset, &mut datafit, &penalty).unwrap();

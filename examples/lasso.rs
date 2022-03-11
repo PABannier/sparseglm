@@ -22,7 +22,7 @@ fn main() {
     // Penalty - Datafit - Solver API
     let mut datafit = Quadratic::new();
     let penalty = L1::new(alpha);
-    let solver = Solver::default();
+    let solver = Solver::new();
 
     println!("#### Fitting with Penalty - Datafit - Solver API...");
     let coefficients = solver.solve(&dataset, &mut datafit, &penalty).unwrap();
