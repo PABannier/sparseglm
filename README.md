@@ -56,6 +56,28 @@ let estimator = Lasso::params()
 let coefficients = estimator.coefficients();
 ```
 
+## Performance
+
+### Lasso
+
+We provide below a demonstration of `sparseglm` against other fast coordinate
+descent solvers using the optimization benchmarking tool [Benchopt](https://github.com/benchopt/benchopt).
+The benchmark below solves a Lasso optimization problem. We select three solvers:
+[scikit-learn](https://github.com/scikit-learn/scikit-learn), [celer](https://github.com/mathurinm/celer)
+and `sparseglm`. The solvers are tested at different level of regularization from high sparsity to low
+sparsity.
+
+![](./docs/benchmark_lasso.png)
+
+The simulations were made on two different datasets: one sparse and one dense.
+[rcv1](https://scikit-learn.org/0.18/datasets/rcv1.html) is a dataset made of more than 804,414 samples
+and 47,236 features. The data comes in the form of a sparse matrix.
+For the dense dataset, we simulated a dense design matrix of 1,000 samples and 10,000 features.
+
+### Multi-task Lasso
+
+[INSERT IMAGE]
+
 ## Roadmap
 
 Currently we support:
@@ -72,23 +94,7 @@ Currently we support:
 | Sparse logistic regression | :heavy_check_mark: |         -          |   Convex   |
 | Dual SVM with hinge loss   |         -          |         -          |   Convex   |
 
-## Performance
-
-We provide below a demonstration of `sparseglm` against other fast coordinate
-descent solvers using the optimization benchmarking tool [Benchopt](https://github.com/benchopt/benchopt).
-The benchmark below solves a Lasso optimization problem. We select three solvers:
-[scikit-learn](https://github.com/scikit-learn/scikit-learn), [celer](https://github.com/mathurinm/celer)
-and `sparseglm`. The solvers are tested at different level of regularization from high sparsity to low
-sparsity.
-
-![](./docs/benchmark_lasso.png)
-
-The simulations were made on two different datasets: one sparse and one dense.
-[rcv1](https://scikit-learn.org/0.18/datasets/rcv1.html) is a dataset made of more than 804,414 samples
-and 47,236 features. The data comes in the form of a sparse matrix.
-For the dense dataset, we simulated a dense design matrix of 1,000 samples and 10,000 features.
-
-## Building the Python package
+## Building and installing the Python package locally
 
 This repo includes Python bindings to run the existing estimators (in the `Estimators` crate)
 in a Python environment. To install it, run at the root of the repo:
