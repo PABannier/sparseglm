@@ -9,3 +9,5 @@ sparseglm.egg-info/
 build/
 dist/
 .pytest_cache/
+
+*.Rmd

@@ -74,9 +74,12 @@ The simulations were made on two different datasets: one sparse and one dense.
 and 47,236 features. The data comes in the form of a sparse matrix.
 For the dense dataset, we simulated a dense design matrix of 1,000 samples and 10,000 features.
 
-### Multi-task Lasso
+### Multi-Task Lasso
 
-[INSERT IMAGE]
+![](./docs/benchmark_multi_task_lasso.png)
+
+The simulations were made on two different datasets: one sparse and one dense.
+Both datasets contain 100 samples, 3,000 samples and 80 tasks.
 
 ## Roadmap
 
