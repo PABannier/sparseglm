@@ -24,9 +24,9 @@ macro_rules! prox_tests {
 
                     let penalty = $payload.penalty;
 
-                    let soft_a = penalty.prox_op(a, 1. / 0.5);
-                    let soft_b = penalty.prox_op(b, 1. / 0.5);
-                    let soft_c = penalty.prox_op(c, 1. / 0.5);
+                    let soft_a = penalty.prox(a, 1. / 0.5);
+                    let soft_b = penalty.prox(b, 1. / 0.5);
+                    let soft_c = penalty.prox(c, 1. / 0.5);
 
                     assert_eq!(soft_a, $payload.prox.0);
                     assert_eq!(soft_b, $payload.prox.1);

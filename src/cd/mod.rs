@@ -302,8 +302,8 @@ where
                     false => {
                         let old_w_j = w[j];
                         let grad_j = datafit.gradient_j(dataset, Xw.view(), j);
-                        w[j] = penalty
-                            .prox_op(old_w_j - grad_j / lipschitz[j], F::one() / lipschitz[j]);
+                        w[j] =
+                            penalty.prox(old_w_j - grad_j / lipschitz[j], F::one() / lipschitz[j]);
 
                         let diff = w[j] - old_w_j;
                         if diff != F::zero() {

@@ -294,7 +294,7 @@ where
                         let grad_j = datafit.gradient_j(dataset, XW.view(), j);
 
                         let step = &old_W_j - grad_j / lipschitz[j];
-                        let upd = penalty.prox_op(step.view(), F::one() / lipschitz[j]);
+                        let upd = penalty.prox(step.view(), F::one() / lipschitz[j]);
 
                         // W.slice_mut(s![j, ..]).assign(&upd);
                         // For loops are way faster than chaining slice_mut and assign

@@ -17,7 +17,7 @@ pub trait MultiTaskPenalty<F: Float> {
 
     /// This method computes the proximal gradient step during the update of the weights.
     /// For a given penalty, it implements its proximal operator.
-    fn prox_op(&self, value: ArrayView1<F>, stepsize: F) -> Array1<F>;
+    fn prox(&self, value: ArrayView1<F>, stepsize: F) -> Array1<F>;
 
     /// This method is used when ranking the features to build the working set.
     /// It allows to compute the distance between the gradient of the datafit
@@ -58,7 +58,7 @@ impl<F: 'static + Float> MultiTaskPenalty<F> for L21<F> {
     }
 
     /// Applies the block soft-thresholding operator to a weight vector
-    fn prox_op(&self, value: ArrayView1<F>, stepsize: F) -> Array1<F> {
+    fn prox(&self, value: ArrayView1<F>, stepsize: F) -> Array1<F> {
         block_soft_thresholding(value, self.alpha * stepsize)
     }
 
@@ -132,7 +132,7 @@ impl<F: Float> MultiTaskPenalty<F> for BlockL1PlusL2<F> {
     }
 
     /// Computes the proximal operator the Block L1 + L2 penalty for a weight vector
-    fn prox_op(&self, value: ArrayView1<F>, stepsize: F) -> Array1<F> {
+    fn prox(&self, value: ArrayView1<F>, stepsize: F) -> Array1<F> {
         let prox = block_soft_thresholding(value, self.alpha * stepsize * self.l21_ratio);
         prox / (F::one() + stepsize * (F::one() - self.l21_ratio) * self.alpha)
     }
@@ -225,7 +225,7 @@ impl<F: Float> MultiTaskPenalty<F> for BlockMCP<F> {
     ///                       x                                     ||x|| > alpha * gamma
     ///                       (1 - alpha * threshold / ||x||) * x   otherwise
     ///                       / (1 - threshold / gamma)
-    fn prox_op(&self, value: ArrayView1<F>, stepsize: F) -> Array1<F> {
+    fn prox(&self, value: ArrayView1<F>, stepsize: F) -> Array1<F> {
         let cast1 = F::cast(1.);
         let tau = self.alpha * stepsize;
         let g = self.gamma / stepsize;

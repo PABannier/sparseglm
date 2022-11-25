@@ -17,7 +17,7 @@ pub trait Penalty<F: Float> {
 
     /// This method computes the proximal gradient step during the update of the
     /// weights. For a given penalty, it implements its proximal operator.
-    fn prox_op(&self, value: F, step_size: F) -> F;
+    fn prox(&self, value: F, step_size: F) -> F;
 
     /// This method is used when ranking the features to build the working set.
     /// It allows to compute the distance between the gradient of the datafit
@@ -57,7 +57,7 @@ impl<F: Float> Penalty<F> for L1<F> {
     }
 
     /// Applies the soft-thresholding operator to a weight scalar
-    fn prox_op(&self, value: F, stepsize: F) -> F {
+    fn prox(&self, value: F, stepsize: F) -> F {
         soft_thresholding(value, self.alpha * stepsize)
     }
 
@@ -117,7 +117,7 @@ impl<F: Float> Penalty<F> for L1PlusL2<F> {
     }
 
     /// Computes the proximal operator of the L1 + L2 penalty for a weight scalar
-    fn prox_op(&self, value: F, stepsize: F) -> F {
+    fn prox(&self, value: F, stepsize: F) -> F {
         let prox = soft_thresholding(value, self.l1_ratio * self.alpha * stepsize);
         prox / (F::one() + stepsize * (F::one() - self.l1_ratio) * self.alpha)
     }
@@ -192,7 +192,7 @@ impl<F: Float> Penalty<F> for MCP<F> {
     ///                      x                                      if |x| > alpha * gamma
     ///                      sign(x) * (|x| - alpha * threshold)
     ///                      / (1 - threshold / gamma)              otherwise
-    fn prox_op(&self, value: F, stepsize: F) -> F {
+    fn prox(&self, value: F, stepsize: F) -> F {
         let tau = self.alpha * stepsize;
         let g = self.gamma / stepsize;
         if value.abs() <= tau {
@@ -259,7 +259,7 @@ impl<F: Float> Penalty<F> for L05<F> {
     }
 
     /// Computes the proximal operator of the L0.5 norm for a weight scalar
-    fn prox_op(&self, value: F, stepsize: F) -> F {
+    fn prox(&self, value: F, stepsize: F) -> F {
         prox_05(value, stepsize * self.alpha)
     }
 
@@ -328,7 +328,7 @@ impl<F: Float> Penalty<F> for L05<F> {
 //     }
 
 //     /// Proximal operator
-//     fn prox_op(&self, value: F, stepsize: F) -> F {
+//     fn prox(&self, value: F, stepsize: F) -> F {
 //         let tau = self.alpha * stepsize;
 //         let g = self.gamma / stepsize;
 //         if value.abs() <= F::cast(2) * tau {
