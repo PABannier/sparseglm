@@ -4,8 +4,8 @@ use ndarray::{Array1, Array2};
 use crate::bcd::*;
 use crate::datafits::multi_task::*;
 use crate::datasets::csc_array::CSCArray;
-use crate::helpers::test_helpers::*;
 use crate::penalties::block_separable::*;
+use crate::utils::test_helpers::*;
 
 #[test]
 fn test_kkt_violation() {

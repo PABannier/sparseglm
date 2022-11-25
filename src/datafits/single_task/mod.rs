@@ -4,7 +4,7 @@ use ndarray::{s, Array1, ArrayBase, ArrayView1, Axis, Data, Ix2};
 
 use super::Float;
 use crate::datasets::{csc_array::CSCArray, AsSingleTargets, DatasetBase, DesignMatrix};
-use crate::helpers::helpers::sigmoid;
+use crate::utils::helpers::sigmoid;
 
 #[cfg(test)]
 mod tests;

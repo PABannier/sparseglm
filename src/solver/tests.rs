@@ -1,7 +1,7 @@
 use crate::datafits::multi_task::*;
 use crate::datasets::{DatasetBase, DesignMatrix};
-use crate::helpers::test_helpers::assert_array2d_all_close;
 use crate::penalties::block_separable::*;
+use crate::utils::test_helpers::assert_array2d_all_close;
 
 use super::{BCDSolver, Solver};
 use ndarray::{array, Array2, ArrayBase, ArrayView2, Ix2, OwnedRepr};

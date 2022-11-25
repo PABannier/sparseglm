@@ -2,7 +2,7 @@ use ndarray::{array, Array1};
 
 use crate::datafits::single_task::*;
 use crate::datasets::*;
-use crate::helpers::test_helpers::*;
+use crate::utils::test_helpers::*;
 
 macro_rules! datafit_tests {
     ($($datafit_name:ident: $payload:expr,)*) => {

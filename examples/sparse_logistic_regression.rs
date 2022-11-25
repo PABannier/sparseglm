@@ -3,9 +3,9 @@ extern crate sparseglm;
 use sparseglm::{
     datafits::single_task::Logistic,
     datasets::DatasetBase,
-    helpers::test_helpers::generate_random_data,
     penalties::separable::MCP,
     solver::{CDSolver, Solver},
+    utils::test_helpers::generate_random_data,
 };
 
 fn main() {

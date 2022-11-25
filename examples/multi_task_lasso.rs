@@ -4,12 +4,12 @@ use sparseglm::{
     datafits::multi_task::QuadraticMultiTask,
     datasets::DatasetBase,
     estimators::{estimators::MultiTaskLasso, traits::Fit},
-    helpers::{
+    penalties::block_separable::L21,
+    solver::{BCDSolver, Solver},
+    utils::{
         helpers::compute_alpha_max_mtl,
         test_helpers::{assert_array2d_all_close, generate_random_data_mtl},
     },
-    penalties::block_separable::L21,
-    solver::{BCDSolver, Solver},
 };
 
 fn main() {

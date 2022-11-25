@@ -2,7 +2,7 @@ use ndarray::{Array1, Array2};
 
 use crate::datafits::multi_task::*;
 use crate::datasets::{DatasetBase, DenseDataset, SparseDataset};
-use crate::helpers::test_helpers::*;
+use crate::utils::test_helpers::*;
 
 #[test]
 fn test_initialization_quadratic_mtl() {

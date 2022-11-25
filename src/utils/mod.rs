@@ -2,7 +2,7 @@
 mod tests;
 
 /// This module implements the proximal operator of some penalties.
-pub mod prox {
+pub mod prox_funcs {
     use crate::Float;
     use ndarray::{Array1, ArrayView1};
 

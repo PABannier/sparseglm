@@ -2,8 +2,8 @@ use ndarray::{Array1, Array2};
 
 use crate::datasets::*;
 use crate::estimators::{estimators::*, traits::*};
-use crate::helpers::helpers::*;
-use crate::helpers::test_helpers::*;
+use crate::utils::helpers::*;
+use crate::utils::test_helpers::*;
 
 macro_rules! kkt_check_tests {
     ($($name:ident: $value:expr,)*) => {
