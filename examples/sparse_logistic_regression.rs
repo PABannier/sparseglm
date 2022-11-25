@@ -4,7 +4,7 @@ use sparseglm::{
     datafits::single_task::Logistic,
     datasets::DatasetBase,
     penalties::separable::MCP,
-    solver::{CDSolver, Solver},
+    solvers::{CDSolver, Solver},
     utils::test_helpers::generate_random_data,
 };
 
