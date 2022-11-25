@@ -1,10 +1,10 @@
 use ndarray::linalg::general_mat_mul;
 use ndarray::{Array1, Array2};
 
-use crate::bcd::*;
 use crate::datafits::multi_task::*;
 use crate::datasets::csc_array::CSCArray;
 use crate::penalties::block_separable::*;
+use crate::solvers::anderson_bcd::*;
 use crate::utils::test_helpers::*;
 
 #[test]

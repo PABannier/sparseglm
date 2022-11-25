@@ -13,6 +13,8 @@ use crate::penalties::separable::Penalty;
 #[cfg(test)]
 pub mod tests;
 
+pub mod anderson_bcd;
+pub mod anderson_cd;
 pub mod impl_solver;
 
 /// [`sparseglm`] offers two ways to solve optimization problems. Either

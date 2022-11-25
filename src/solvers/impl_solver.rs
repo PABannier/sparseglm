@@ -3,13 +3,13 @@ use std::fmt::Error;
 
 use super::{BCDSolver, CDSolver, Solver};
 
-use crate::bcd::block_coordinate_descent;
-use crate::cd::coordinate_descent;
 use crate::datafits::multi_task::MultiTaskDatafit;
 use crate::datafits::single_task::Datafit;
 use crate::datasets::{AsMultiTargets, AsSingleTargets, DatasetBase, DesignMatrix};
 use crate::penalties::block_separable::MultiTaskPenalty;
 use crate::penalties::separable::Penalty;
+use crate::solvers::anderson_bcd::block_coordinate_descent;
+use crate::solvers::anderson_cd::coordinate_descent;
 use crate::Float;
 
 impl<F: Float> Default for Solver<F> {

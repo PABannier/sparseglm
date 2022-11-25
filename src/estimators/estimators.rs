@@ -8,13 +8,13 @@ use super::hyperparams::{
 };
 use super::traits::Fit;
 
-use crate::bcd::block_coordinate_descent;
-use crate::cd::coordinate_descent;
 use crate::datafits::multi_task::QuadraticMultiTask;
 use crate::datafits::single_task::Quadratic;
 use crate::datasets::{csc_array::CSCArray, AsMultiTargets, AsSingleTargets, DatasetBase};
 use crate::penalties::block_separable::{BlockL1PlusL2, BlockMCP, L21};
 use crate::penalties::separable::{L1PlusL2, L1, MCP};
+use crate::solvers::anderson_bcd::block_coordinate_descent;
+use crate::solvers::anderson_cd::coordinate_descent;
 use crate::Float;
 
 /// The Lasso estimator

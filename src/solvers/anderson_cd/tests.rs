@@ -1,10 +1,10 @@
 use ndarray::{Array1, Array2};
 
-use crate::cd::*;
 use crate::datafits::single_task::*;
 use crate::datasets::csc_array::CSCArray;
-use crate::utils::test_helpers::*;
 use crate::penalties::separable::*;
+use crate::solvers::anderson_cd::*;
+use crate::utils::test_helpers::*;
 
 #[test]
 fn test_kkt_violation() {
