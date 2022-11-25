@@ -1,6 +1,6 @@
 use ndarray::array;
 
-use crate::penalties_multitask::*;
+use crate::penalties::block_separable::*;
 
 macro_rules! prox_tests {
     ($($penalty_name:ident: $payload:expr,)*) => {
@@ -26,9 +26,9 @@ macro_rules! prox_tests {
                     let b = array![0.3, 0.1, 3.2];
                     let c = array![-83., -0.8, -39.];
 
-                    let soft_a = penalty.prox_op(a.view(), 1. / 0.5);
-                    let soft_b = penalty.prox_op(b.view(), 1. / 0.5);
-                    let soft_c = penalty.prox_op(c.view(), 1. / 0.5);
+                    let soft_a = penalty.prox(a.view(), 1. / 0.5);
+                    let soft_b = penalty.prox(b.view(), 1. / 0.5);
+                    let soft_c = penalty.prox(c.view(), 1. / 0.5);
 
                     assert_eq!(soft_a, $payload.prox.0);
                     assert_eq!(soft_b, $payload.prox.1);

@@ -4,7 +4,7 @@ use crate::cd::*;
 use crate::datafits::single_task::*;
 use crate::datasets::csc_array::CSCArray;
 use crate::helpers::test_helpers::*;
-use crate::penalties::*;
+use crate::penalties::separable::*;
 
 #[test]
 fn test_kkt_violation() {

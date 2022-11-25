@@ -111,5 +111,4 @@ pub mod datasets;
 pub mod estimators;
 pub mod helpers;
 pub mod penalties;
-pub mod penalties_multitask;
 pub mod solver;
