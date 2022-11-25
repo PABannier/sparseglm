@@ -1,7 +1,7 @@
 use ndarray::{Array1, ArrayBase, ArrayView1, Ix1, OwnedRepr};
 
 use super::Float;
-use crate::utils::prox::{prox_05, soft_thresholding};
+use crate::utils::prox_funcs::{prox_05, soft_thresholding};
 
 #[cfg(test)]
 mod tests;
