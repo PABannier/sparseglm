@@ -7,19 +7,20 @@
 A fast and modular coordinate descent solver for sparse generalized linear models
 with **convex** and **non-convex** penalties.
 
-The details of the `sparseglm` solver are explored in [CITE PAPER]. It provides
-theoretical guarantees of convergence and extensively demonstrates the superiority
-of this solver over existing ones. A similar package written in pure Python can be found
-here: [FlashCD](https://github.com/mathurinm/flashcd).
+The algorithm behind `sparseglm` is explained [here](https://arxiv.org/abs/2204.07826).
+This work has been accepted at NeurIPS 2022.
+It provides theoretical guarantees of convergence and extensively demonstrates the superiority
+of this solver over existing ones. The original package written in pure Python can be found
+here: [skglm](https://github.com/scikit-learn-contrib/skglm).
 
 `sparseglm` leverages [Anderson acceleration](https://github.com/mathurinm/andersoncd)
-and [working sets](https://github.com/mathurinm/celer) to propose a **fast** and
+and [working sets](https://github.com/scikit-learn-contrib/skglm) to propose a **fast** and
 **memory-efficient** solver on a wide variety of algorithms. It can solve problems
 with millions of samples and features in seconds. It supports **dense** and
 **sparse** matrices via CSC arrays.
 
 The philosophy of `sparseglm` consists in offering a highly flexible API.
-Any sparse GLM can be implemented in under 50 lines of code by providing its datafit
+Any sparse GLM can be implemented in under 30 lines of code by providing its datafit
 term and its penalty term, which makes it very easy to support new estimators.
 
 ```rust
@@ -39,8 +40,8 @@ let solver = Solver::new();
 let coefficients = solver.solve(&dataset, &mut datafit, &penalty).unwrap();
 ```
 
-For widely-known models like Lasso, `sparseglm` already implements
-these estimators and offers an API à la `Scikit-Learn`.
+For the most well-known models like `Lasso` or `ElasticNet`, `sparseglm` already have off-the-shelf
+implementations.
 
 ```rust
 // Load some data and wrap them in a Dataset
