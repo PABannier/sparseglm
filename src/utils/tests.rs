@@ -1,4 +1,4 @@
-use crate::helpers::*;
+use crate::utils::*;
 use ndarray::{Array1, Array2};
 
 #[test]

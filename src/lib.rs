@@ -109,6 +109,6 @@ pub mod cd;
 pub mod datafits;
 pub mod datasets;
 pub mod estimators;
-pub mod helpers;
 pub mod penalties;
 pub mod solver;
+pub mod utils;

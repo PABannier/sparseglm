@@ -3,7 +3,7 @@ use ndarray::{Array1, Array2, ArrayView1};
 use super::Float;
 use crate::datafits::single_task::Datafit;
 use crate::datasets::{AsSingleTargets, DatasetBase, DesignMatrix};
-use crate::helpers::helpers::{argsort_by, solve_lin_sys};
+use crate::utils::helpers::{argsort_by, solve_lin_sys};
 use crate::penalties::separable::Penalty;
 
 #[cfg(test)]

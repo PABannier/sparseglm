@@ -4,8 +4,8 @@ use super::Float;
 use crate::datafits::multi_task::MultiTaskDatafit;
 use crate::datasets::DesignMatrix;
 use crate::datasets::{AsMultiTargets, DatasetBase};
-use crate::helpers::helpers::{argsort_by, solve_lin_sys};
 use crate::penalties::block_separable::MultiTaskPenalty;
+use crate::utils::helpers::{argsort_by, solve_lin_sys};
 
 #[cfg(test)]
 mod tests;

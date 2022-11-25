@@ -4,12 +4,12 @@ use sparseglm::{
     datafits::single_task::Quadratic,
     datasets::DatasetBase,
     estimators::{estimators::Lasso, traits::Fit},
-    helpers::{
+    penalties::separable::L1,
+    solver::{CDSolver, Solver},
+    utils::{
         helpers::compute_alpha_max,
         test_helpers::{assert_array_all_close, generate_random_data},
     },
-    penalties::separable::L1,
-    solver::{CDSolver, Solver},
 };
 
 fn main() {
