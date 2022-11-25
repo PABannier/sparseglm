@@ -28,12 +28,6 @@ pub trait MultiTaskDatafit<F: Float, DM: DesignMatrix<Elem = F>, T: AsMultiTarge
     /// This method computes the full gradient by calling
     /// [`MultiTaskDatafit::gradient_j`].
     fn full_grad(&self, dataset: &DatasetBase<DM, T>, XW: ArrayView2<F>) -> Array2<F>;
-
-    /// A getter method for the pre-computed Lipschitz constants.
-    fn lipschitz(&self) -> ArrayView1<F>;
-
-    /// A getter method for the matrix-matrix product XTy.
-    fn XtY(&self) -> ArrayView2<F>;
 }
 
 /// Multi-Task Quadratic datafit
@@ -55,6 +49,14 @@ impl<F: Float> QuadraticMultiTask<F> {
             lipschitz: Array1::zeros(1),
             XtY: Array2::zeros((1, 1)),
         }
+    }
+
+    pub fn XtY(&self) -> ArrayView2<F> {
+        self.XtY.view()
+    }
+
+    pub fn lipschitz(&self) -> ArrayView1<F> {
+        self.lipschitz.view()
     }
 }
 
@@ -114,16 +116,6 @@ impl<F: Float, D: Data<Elem = F>, T: AsMultiTargets<Elem = F>>
                 .collect(),
         )
         .unwrap()
-    }
-
-    // A getter method for the Lipschitz constants.
-    fn lipschitz(&self) -> ArrayView1<F> {
-        self.lipschitz.view()
-    }
-
-    // A getter method for XTY.
-    fn XtY(&self) -> ArrayView2<F> {
-        self.XtY.view()
     }
 }
 
@@ -206,15 +198,5 @@ impl<F: Float, T: AsMultiTargets<Elem = F>> MultiTaskDatafit<F, CSCArray<'_, F>,
                 .collect(),
         )
         .unwrap()
-    }
-
-    /// A getter method for Lipschitz constants.
-    fn lipschitz(&self) -> ArrayView1<F> {
-        self.lipschitz.view()
-    }
-
-    /// A getter method for the matrix-matrix product XTY.
-    fn XtY(&self) -> ArrayView2<F> {
-        self.XtY.view()
     }
 }
