@@ -5,7 +5,7 @@ use crate::datafits::multi_task::MultiTaskDatafit;
 use crate::datasets::DesignMatrix;
 use crate::datasets::{AsMultiTargets, DatasetBase};
 use crate::helpers::helpers::{argsort_by, solve_lin_sys};
-use crate::penalties_multitask::MultiTaskPenalty;
+use crate::penalties::block_separable::MultiTaskPenalty;
 
 #[cfg(test)]
 mod tests;

@@ -8,7 +8,7 @@ use sparseglm::{
         helpers::compute_alpha_max_mtl,
         test_helpers::{assert_array2d_all_close, generate_random_data_mtl},
     },
-    penalties_multitask::L21,
+    penalties::block_separable::L21,
     solver::{BCDSolver, Solver},
 };
 

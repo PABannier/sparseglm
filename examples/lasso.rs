@@ -8,7 +8,7 @@ use sparseglm::{
         helpers::compute_alpha_max,
         test_helpers::{assert_array_all_close, generate_random_data},
     },
-    penalties::L1,
+    penalties::separable::L1,
     solver::{CDSolver, Solver},
 };
 

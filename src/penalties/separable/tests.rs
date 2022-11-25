@@ -1,6 +1,6 @@
 use ndarray::{array, Array1};
 
-use crate::penalties::*;
+use crate::penalties::separable::*;
 
 macro_rules! prox_tests {
     ($($penalty_name:ident: $payload:expr,)*) => {

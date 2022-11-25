@@ -13,8 +13,8 @@ use crate::cd::coordinate_descent;
 use crate::datafits::multi_task::QuadraticMultiTask;
 use crate::datafits::single_task::Quadratic;
 use crate::datasets::{csc_array::CSCArray, AsMultiTargets, AsSingleTargets, DatasetBase};
-use crate::penalties::{L1PlusL2, L1, MCP};
-use crate::penalties_multitask::{BlockL1PlusL2, BlockMCP, L21};
+use crate::penalties::block_separable::{BlockL1PlusL2, BlockMCP, L21};
+use crate::penalties::separable::{L1PlusL2, L1, MCP};
 use crate::Float;
 
 /// The Lasso estimator

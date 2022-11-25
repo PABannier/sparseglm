@@ -8,8 +8,8 @@ use crate::cd::coordinate_descent;
 use crate::datafits::multi_task::MultiTaskDatafit;
 use crate::datafits::single_task::Datafit;
 use crate::datasets::{AsMultiTargets, AsSingleTargets, DatasetBase, DesignMatrix};
-use crate::penalties::Penalty;
-use crate::penalties_multitask::MultiTaskPenalty;
+use crate::penalties::block_separable::MultiTaskPenalty;
+use crate::penalties::separable::Penalty;
 use crate::Float;
 
 impl<F: Float> Default for Solver<F> {

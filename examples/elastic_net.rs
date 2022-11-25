@@ -5,7 +5,7 @@ use sparseglm::{
     datasets::DatasetBase,
     estimators::{estimators::ElasticNet, traits::Fit},
     helpers::test_helpers::{assert_array_all_close, generate_random_data},
-    penalties::L1PlusL2,
+    penalties::separable::L1PlusL2,
     solver::{CDSolver, Solver},
 };
 

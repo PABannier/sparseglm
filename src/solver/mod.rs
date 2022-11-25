@@ -7,8 +7,8 @@ use crate::datafits::multi_task::MultiTaskDatafit;
 use crate::datafits::single_task::Datafit;
 use crate::datasets::{AsMultiTargets, AsSingleTargets};
 use crate::datasets::{DatasetBase, DesignMatrix};
-use crate::penalties::Penalty;
-use crate::penalties_multitask::MultiTaskPenalty;
+use crate::penalties::block_separable::MultiTaskPenalty;
+use crate::penalties::separable::Penalty;
 
 #[cfg(test)]
 pub mod tests;

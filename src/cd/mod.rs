@@ -4,7 +4,7 @@ use super::Float;
 use crate::datafits::single_task::Datafit;
 use crate::datasets::{AsSingleTargets, DatasetBase, DesignMatrix};
 use crate::helpers::helpers::{argsort_by, solve_lin_sys};
-use crate::penalties::Penalty;
+use crate::penalties::separable::Penalty;
 
 #[cfg(test)]
 mod tests;
