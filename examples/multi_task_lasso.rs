@@ -1,7 +1,7 @@
 extern crate sparseglm;
 
 use sparseglm::{
-    datafits_multitask::QuadraticMultiTask,
+    datafits::multi_task::QuadraticMultiTask,
     datasets::DatasetBase,
     estimators::{estimators::MultiTaskLasso, traits::Fit},
     helpers::{

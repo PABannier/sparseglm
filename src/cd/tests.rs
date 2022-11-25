@@ -1,7 +1,7 @@
 use ndarray::{Array1, Array2};
 
 use crate::cd::*;
-use crate::datafits::*;
+use crate::datafits::single_task::*;
 use crate::datasets::csc_array::CSCArray;
 use crate::helpers::test_helpers::*;
 use crate::penalties::*;

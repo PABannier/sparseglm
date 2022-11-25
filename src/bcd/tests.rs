@@ -2,7 +2,7 @@ use ndarray::linalg::general_mat_mul;
 use ndarray::{Array1, Array2};
 
 use crate::bcd::*;
-use crate::datafits_multitask::*;
+use crate::datafits::multi_task::*;
 use crate::datasets::csc_array::CSCArray;
 use crate::helpers::test_helpers::*;
 use crate::penalties_multitask::*;

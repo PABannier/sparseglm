@@ -3,8 +3,8 @@ use std::fmt::Error;
 use ndarray::{Array1, Array2};
 
 use super::Float;
-use crate::datafits::Datafit;
-use crate::datafits_multitask::MultiTaskDatafit;
+use crate::datafits::multi_task::MultiTaskDatafit;
+use crate::datafits::single_task::Datafit;
 use crate::datasets::{AsMultiTargets, AsSingleTargets};
 use crate::datasets::{DatasetBase, DesignMatrix};
 use crate::penalties::Penalty;

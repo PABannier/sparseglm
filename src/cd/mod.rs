@@ -1,7 +1,7 @@
 use ndarray::{Array1, Array2, ArrayView1};
 
 use super::Float;
-use crate::datafits::Datafit;
+use crate::datafits::single_task::Datafit;
 use crate::datasets::{AsSingleTargets, DatasetBase, DesignMatrix};
 use crate::helpers::helpers::{argsort_by, solve_lin_sys};
 use crate::penalties::Penalty;
@@ -293,7 +293,7 @@ where
 
         // Inner loop that implements the actual coordinate descent routine
         for epoch in 0..max_epochs {
-            let lipschitz = datafit.lipschitz();
+            let lipschitz = datafit.step_size();
 
             // Cycle through the features in the working set
             for &j in ws.iter() {

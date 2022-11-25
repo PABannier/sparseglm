@@ -10,8 +10,8 @@ use super::traits::Fit;
 
 use crate::bcd::block_coordinate_descent;
 use crate::cd::coordinate_descent;
-use crate::datafits::Quadratic;
-use crate::datafits_multitask::QuadraticMultiTask;
+use crate::datafits::multi_task::QuadraticMultiTask;
+use crate::datafits::single_task::Quadratic;
 use crate::datasets::{csc_array::CSCArray, AsMultiTargets, AsSingleTargets, DatasetBase};
 use crate::penalties::{L1PlusL2, L1, MCP};
 use crate::penalties_multitask::{BlockL1PlusL2, BlockMCP, L21};

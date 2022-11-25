@@ -1,12 +1,10 @@
-use crate::datafits::*;
-use crate::datafits_multitask::*;
+use crate::datafits::multi_task::*;
 use crate::datasets::{DatasetBase, DesignMatrix};
-use crate::helpers::test_helpers::{assert_array2d_all_close, assert_array_all_close};
-use crate::penalties::*;
+use crate::helpers::test_helpers::assert_array2d_all_close;
 use crate::penalties_multitask::*;
 
-use super::{BCDSolver, CDSolver, Solver};
-use ndarray::{array, Array1, Array2, ArrayBase, ArrayView1, ArrayView2, Ix1, Ix2, OwnedRepr};
+use super::{BCDSolver, Solver};
+use ndarray::{array, Array2, ArrayBase, ArrayView2, Ix2, OwnedRepr};
 
 macro_rules! estimator_test {
     ($($penalty_name:ident: $payload:expr,)*) => {
@@ -50,18 +48,18 @@ macro_rules! multi_task_estimator_test {
     }
 }
 
-struct Payload<
-    'a,
-    DM: DesignMatrix<Elem = f64>,
-    P: Penalty<f64>,
-    DF: Datafit<f64, DM, ArrayBase<OwnedRepr<f64>, Ix1>>,
-> {
-    design_matrix: DM,
-    target: Array1<f64>,
-    penalty: P,
-    datafit: DF,
-    truth: ArrayView1<'a, f64>,
-}
+// struct Payload<
+//     'a,
+//     DM: DesignMatrix<Elem = f64>,
+//     P: Penalty<f64>,
+//     DF: Datafit<f64, DM, ArrayBase<OwnedRepr<f64>, Ix1>>,
+// > {
+//     design_matrix: DM,
+//     target: Array1<f64>,
+//     penalty: P,
+//     datafit: DF,
+//     truth: ArrayView1<'a, f64>,
+// }
 
 estimator_test! {
     // lasso_dense: Payload {

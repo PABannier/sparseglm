@@ -1,7 +1,7 @@
 use ndarray::{s, Array1, Array2, ArrayView1, ArrayView2};
 
 use super::Float;
-use crate::datafits_multitask::MultiTaskDatafit;
+use crate::datafits::multi_task::MultiTaskDatafit;
 use crate::datasets::DesignMatrix;
 use crate::datasets::{AsMultiTargets, DatasetBase};
 use crate::helpers::helpers::{argsort_by, solve_lin_sys};
@@ -283,7 +283,7 @@ where
 
         // Inner loop that implements the actual block coordinate descent routine
         for epoch in 0..max_epochs {
-            let lipschitz = datafit.lipschitz();
+            let lipschitz = datafit.step_size();
 
             // Cycle through the features in the working set
             for &j in ws.iter() {

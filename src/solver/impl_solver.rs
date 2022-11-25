@@ -5,8 +5,8 @@ use super::{BCDSolver, CDSolver, Solver};
 
 use crate::bcd::block_coordinate_descent;
 use crate::cd::coordinate_descent;
-use crate::datafits::Datafit;
-use crate::datafits_multitask::MultiTaskDatafit;
+use crate::datafits::multi_task::MultiTaskDatafit;
+use crate::datafits::single_task::Datafit;
 use crate::datasets::{AsMultiTargets, AsSingleTargets, DatasetBase, DesignMatrix};
 use crate::penalties::Penalty;
 use crate::penalties_multitask::MultiTaskPenalty;

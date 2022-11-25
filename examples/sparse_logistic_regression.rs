@@ -1,7 +1,7 @@
 extern crate sparseglm;
 
 use sparseglm::{
-    datafits::Logistic,
+    datafits::single_task::Logistic,
     datasets::DatasetBase,
     helpers::test_helpers::generate_random_data,
     penalties::MCP,
