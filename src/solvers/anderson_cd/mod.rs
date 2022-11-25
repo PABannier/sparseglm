@@ -3,8 +3,8 @@ use ndarray::{Array1, Array2, ArrayView1};
 use super::Float;
 use crate::datafits::single_task::Datafit;
 use crate::datasets::{AsSingleTargets, DatasetBase, DesignMatrix};
-use crate::utils::helpers::{argsort_by, solve_lin_sys};
 use crate::penalties::separable::Penalty;
+use crate::utils::helpers::{argsort_by, solve_lin_sys};
 
 #[cfg(test)]
 mod tests;
@@ -62,7 +62,7 @@ where
 pub fn construct_ws_from_kkt<F: 'static + Float>(
     kkt: &mut Array1<F>,
     w: ArrayView1<F>,
-    p0: usize,
+    ws_start_size: usize,
 ) -> (Array1<usize>, usize) {
     let n_features = w.len();
     let mut nnz_features: usize = 0;
@@ -77,7 +77,7 @@ pub fn construct_ws_from_kkt<F: 'static + Float>(
     }
 
     // Geometric growth of the working set size
-    let ws_size = usize::max(p0, usize::min(2 * nnz_features, n_features));
+    let ws_size = usize::max(ws_start_size, usize::min(2 * nnz_features, n_features));
 
     // Sort indices by descending order (argmin)
     let mut sorted_indices = argsort_by(&kkt, |a, b| {
@@ -233,7 +233,7 @@ pub fn coordinate_descent<F, DM, T, DF, P>(
     dataset: &DatasetBase<DM, T>,
     datafit: &mut DF,
     penalty: &P,
-    p0: usize,
+    ws_start_size: usize,
     max_iterations: usize,
     max_epochs: usize,
     tolerance: F,
@@ -258,7 +258,11 @@ where
     let all_feats = Array1::from_shape_vec(n_features, (0..n_features).collect()).unwrap();
 
     // The starting working set can't be greater than the number of features
-    let p0 = if p0 > n_features { n_features } else { p0 };
+    let ws_start_size = if ws_start_size > n_features {
+        n_features
+    } else {
+        ws_start_size
+    };
 
     let mut w = Array1::<F>::zeros(n_features);
     let mut Xw = Array1::<F>::zeros(n_samples);
@@ -282,7 +286,7 @@ where
         }
 
         // Construct the working set based on previously computed KKT violation
-        let (ws, ws_size) = construct_ws_from_kkt(&mut kkt, w.view(), p0);
+        let (ws, ws_size) = construct_ws_from_kkt(&mut kkt, w.view(), ws_start_size);
 
         let mut last_K_w = Array2::<F>::zeros((K + 1, ws_size));
         let mut U = Array2::<F>::zeros((K, ws_size));

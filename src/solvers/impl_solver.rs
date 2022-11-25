@@ -15,7 +15,7 @@ use crate::Float;
 impl<F: Float> Default for Solver<F> {
     fn default() -> Self {
         Solver {
-            p0: 10,
+            ws_start_size: 10,
             max_iterations: 50,
             max_epochs: 1000,
             tolerance: F::cast(1e-8),
@@ -34,8 +34,8 @@ impl<F: Float> Solver<F> {
 
     /// The starting working set size.
     /// Defaults to `10`.
-    pub fn p0(mut self, p0: usize) -> Self {
-        self.p0 = p0;
+    pub fn ws_start_size(mut self, ws_start_size: usize) -> Self {
+        self.ws_start_size = ws_start_size;
         self
     }
 
@@ -108,7 +108,7 @@ where
             dataset,
             datafit,
             penalty,
-            self.p0,
+            self.ws_start_size,
             self.max_iterations,
             self.max_epochs,
             self.tolerance,
@@ -141,7 +141,7 @@ where
             dataset,
             datafit,
             penalty,
-            self.p0,
+            self.ws_start_size,
             self.max_iterations,
             self.max_epochs,
             self.tolerance,

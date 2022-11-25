@@ -8,7 +8,7 @@ pub struct LassoValidParams<F> {
     alpha: F,
     max_iterations: usize,
     max_epochs: usize,
-    p0: usize,
+    ws_start_size: usize,
     tolerance: F,
     K: usize,
     use_acceleration: bool,
@@ -28,8 +28,8 @@ impl<F: Float> LassoValidParams<F> {
         self.max_epochs
     }
 
-    pub fn p0(&self) -> usize {
-        self.p0
+    pub fn ws_start_size(&self) -> usize {
+        self.ws_start_size
     }
 
     pub fn tolerance(&self) -> F {
@@ -75,7 +75,7 @@ impl<F: Float> LassoParams<F> {
             alpha: F::one(),
             max_iterations: 50,
             max_epochs: 1000,
-            p0: 10,
+            ws_start_size: 10,
             tolerance: F::cast(1e-6),
             K: 5,
             use_acceleration: true,
@@ -110,8 +110,8 @@ impl<F: Float> LassoParams<F> {
     /// Set the initial working set size.
     ///
     /// Defaults to `10` if not set.
-    pub fn p0(mut self, p0: usize) -> Self {
-        self.0.p0 = p0;
+    pub fn ws_start_size(mut self, ws_start_size: usize) -> Self {
+        self.0.ws_start_size = ws_start_size;
         self
     }
 
@@ -164,7 +164,7 @@ impl<F: Float> ParamGuard for LassoParams<F> {
             ))
         } else if self.0.K <= 0 {
             Err(EstimatorError::InvalidK(self.0.K))
-        } else if self.0.p0 <= 0 {
+        } else if self.0.ws_start_size <= 0 {
             Err(EstimatorError::InvalidP0(self.0.p0))
         } else {
             Ok(&self.0)
@@ -183,7 +183,7 @@ pub struct MultiTaskLassoValidParams<F> {
     alpha: F,
     max_iterations: usize,
     max_epochs: usize,
-    p0: usize,
+    ws_start_size: usize,
     tolerance: F,
     K: usize,
     use_acceleration: bool,
@@ -203,8 +203,8 @@ impl<F: Float> MultiTaskLassoValidParams<F> {
         self.max_epochs
     }
 
-    pub fn p0(&self) -> usize {
-        self.p0
+    pub fn ws_start_size(&self) -> usize {
+        self.ws_start_size
     }
 
     pub fn tolerance(&self) -> F {
@@ -250,7 +250,7 @@ impl<F: Float> MultiTaskLassoParams<F> {
             alpha: F::one(),
             max_iterations: 50,
             max_epochs: 1000,
-            p0: 10,
+            ws_start_size: 10,
             tolerance: F::cast(1e-6),
             K: 5,
             use_acceleration: true,
@@ -285,8 +285,8 @@ impl<F: Float> MultiTaskLassoParams<F> {
     /// Set the initial working set size.
     ///
     /// Defaults to `10` if not set.
-    pub fn p0(mut self, p0: usize) -> Self {
-        self.0.p0 = p0;
+    pub fn ws_start_size(mut self, ws_start_size: usize) -> Self {
+        self.0.ws_start_size = ws_start_size;
         self
     }
 
@@ -339,7 +339,7 @@ impl<F: Float> ParamGuard for MultiTaskLassoParams<F> {
             ))
         } else if self.0.K <= 0 {
             Err(EstimatorError::InvalidK(self.0.K))
-        } else if self.0.p0 <= 0 {
+        } else if self.0.ws_start_size <= 0 {
             Err(EstimatorError::InvalidP0(self.0.p0))
         } else {
             Ok(&self.0)
@@ -359,7 +359,7 @@ pub struct MCPValidParams<F> {
     gamma: F,
     max_iterations: usize,
     max_epochs: usize,
-    p0: usize,
+    ws_start_size: usize,
     tolerance: F,
     K: usize,
     use_acceleration: bool,
@@ -383,8 +383,8 @@ impl<F: Float> MCPValidParams<F> {
         self.max_epochs
     }
 
-    pub fn p0(&self) -> usize {
-        self.p0
+    pub fn ws_start_size(&self) -> usize {
+        self.ws_start_size
     }
 
     pub fn tolerance(&self) -> F {
@@ -430,7 +430,7 @@ impl<F: Float> MCParams<F> {
             gamma: F::cast(3.),
             max_iterations: 50,
             max_epochs: 1000,
-            p0: 10,
+            ws_start_size: 10,
             tolerance: F::cast(1e-6),
             K: 5,
             use_acceleration: true,
@@ -472,8 +472,8 @@ impl<F: Float> MCParams<F> {
     /// Set the initial working set size.
     ///
     /// Defaults to `10` if not set.
-    pub fn p0(mut self, p0: usize) -> Self {
-        self.0.p0 = p0;
+    pub fn ws_start_size(mut self, ws_start_size: usize) -> Self {
+        self.0.ws_start_size = ws_start_size;
         self
     }
 
@@ -528,7 +528,7 @@ impl<F: Float> ParamGuard for MCParams<F> {
             ))
         } else if self.0.K <= 0 {
             Err(EstimatorError::InvalidK(self.0.K))
-        } else if self.0.p0 <= 0 {
+        } else if self.0.ws_start_size <= 0 {
             Err(EstimatorError::InvalidP0(self.0.p0))
         } else {
             Ok(&self.0)
@@ -549,7 +549,7 @@ pub struct BlockMCPValidParams<F> {
     gamma: F,
     max_iterations: usize,
     max_epochs: usize,
-    p0: usize,
+    ws_start_size: usize,
     tolerance: F,
     K: usize,
     use_acceleration: bool,
@@ -573,8 +573,8 @@ impl<F: Float> BlockMCPValidParams<F> {
         self.max_epochs
     }
 
-    pub fn p0(&self) -> usize {
-        self.p0
+    pub fn ws_start_size(&self) -> usize {
+        self.ws_start_size
     }
 
     pub fn tolerance(&self) -> F {
@@ -621,7 +621,7 @@ impl<F: Float> BlockMCParams<F> {
             gamma: F::cast(3),
             max_iterations: 50,
             max_epochs: 1000,
-            p0: 10,
+            ws_start_size: 10,
             tolerance: F::cast(1e-6),
             K: 5,
             use_acceleration: true,
@@ -663,8 +663,8 @@ impl<F: Float> BlockMCParams<F> {
     /// Set the initial working set size.
     ///
     /// Defaults to `10` if not set.
-    pub fn p0(mut self, p0: usize) -> Self {
-        self.0.p0 = p0;
+    pub fn ws_start_size(mut self, ws_start_size: usize) -> Self {
+        self.0.ws_start_size = ws_start_size;
         self
     }
 
@@ -738,7 +738,7 @@ pub struct ElasticNetValidParams<F> {
     l1_ratio: F,
     max_iterations: usize,
     max_epochs: usize,
-    p0: usize,
+    ws_start_size: usize,
     tolerance: F,
     K: usize,
     use_acceleration: bool,
@@ -762,8 +762,8 @@ impl<F: Float> ElasticNetValidParams<F> {
         self.max_epochs
     }
 
-    pub fn p0(&self) -> usize {
-        self.p0
+    pub fn ws_start_size(&self) -> usize {
+        self.ws_start_size
     }
 
     pub fn tolerance(&self) -> F {
@@ -810,7 +810,7 @@ impl<F: Float> ElasticNetParams<F> {
             l1_ratio: F::cast(0.5),
             max_iterations: 50,
             max_epochs: 1000,
-            p0: 10,
+            ws_start_size: 10,
             tolerance: F::cast(1e-6),
             K: 5,
             use_acceleration: true,
@@ -852,8 +852,8 @@ impl<F: Float> ElasticNetParams<F> {
     /// Set the initial working set size.
     ///
     /// Defaults to `10` if not set.
-    pub fn p0(mut self, p0: usize) -> Self {
-        self.0.p0 = p0;
+    pub fn ws_start_size(mut self, ws_start_size: usize) -> Self {
+        self.0.ws_start_size = ws_start_size;
         self
     }
 
@@ -931,7 +931,7 @@ pub struct MultiTaskElasticNetValidParams<F> {
     l1_ratio: F,
     max_iterations: usize,
     max_epochs: usize,
-    p0: usize,
+    ws_start_size: usize,
     tolerance: F,
     K: usize,
     use_acceleration: bool,
@@ -955,8 +955,8 @@ impl<F: Float> MultiTaskElasticNetValidParams<F> {
         self.max_epochs
     }
 
-    pub fn p0(&self) -> usize {
-        self.p0
+    pub fn ws_start_size(&self) -> usize {
+        self.ws_start_size
     }
 
     pub fn tolerance(&self) -> F {
@@ -1003,7 +1003,7 @@ impl<F: Float> MultiTaskElasticNetParams<F> {
             l1_ratio: F::cast(0.5),
             max_iterations: 50,
             max_epochs: 1000,
-            p0: 10,
+            ws_start_size: 10,
             tolerance: F::cast(1e-6),
             K: 5,
             use_acceleration: true,
@@ -1045,8 +1045,8 @@ impl<F: Float> MultiTaskElasticNetParams<F> {
     /// Set the initial working set size.
     ///
     /// Defaults to `10` if not set.
-    pub fn p0(mut self, p0: usize) -> Self {
-        self.0.p0 = p0;
+    pub fn ws_start_size(mut self, ws_start_size: usize) -> Self {
+        self.0.ws_start_size = ws_start_size;
         self
     }
 

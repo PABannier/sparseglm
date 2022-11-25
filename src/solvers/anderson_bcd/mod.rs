@@ -68,7 +68,7 @@ where
 pub fn construct_ws_from_kkt<F>(
     kkt: &mut Array1<F>,
     W: ArrayView2<F>,
-    p0: usize,
+    ws_start_size: usize,
 ) -> (Array1<usize>, usize)
 where
     F: 'static + Float,
@@ -86,7 +86,7 @@ where
     }
 
     // Geometric growth of the working set size
-    let ws_size = usize::max(p0, usize::min(2 * nnz_features, n_features));
+    let ws_size = usize::max(ws_start_size, usize::min(2 * nnz_features, n_features));
 
     // Sort indices by descending order (argmin)
     let mut sorted_indices = argsort_by(&kkt, |a, b| {
@@ -222,7 +222,7 @@ pub fn block_coordinate_descent<F, DM, T, DF, P>(
     dataset: &DatasetBase<DM, T>,
     datafit: &mut DF,
     penalty: &P,
-    p0: usize,
+    ws_start_size: usize,
     max_iterations: usize,
     max_epochs: usize,
     tolerance: F,
@@ -248,7 +248,11 @@ where
     let all_feats = Array1::from_shape_vec(n_features, (0..n_features).collect()).unwrap();
 
     // The starting working set can't be greater than the number of features
-    let p0 = if p0 > n_features { n_features } else { p0 };
+    let ws_start_size = if ws_start_size > n_features {
+        n_features
+    } else {
+        ws_start_size
+    };
 
     let mut W = Array2::<F>::zeros((n_features, n_tasks));
     let mut XW = Array2::<F>::zeros((n_samples, n_tasks));
@@ -272,7 +276,7 @@ where
         }
 
         // Construct the working set based on previously computed KKT violation
-        let (ws, ws_size) = construct_ws_from_kkt(&mut kkt, W.view(), p0);
+        let (ws, ws_size) = construct_ws_from_kkt(&mut kkt, W.view(), ws_start_size);
 
         let mut last_K_W = Array2::<F>::zeros((K + 1, ws_size * n_tasks));
         let mut U = Array2::<F>::zeros((K, ws_size * n_tasks));
