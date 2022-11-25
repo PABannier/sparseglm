@@ -1,7 +1,7 @@
 extern crate sparseglm;
 
 use sparseglm::{
-    datafits::Quadratic,
+    datafits::single_task::Quadratic,
     datasets::DatasetBase,
     estimators::{estimators::ElasticNet, traits::Fit},
     helpers::test_helpers::{assert_array_all_close, generate_random_data},

@@ -28,6 +28,10 @@ pub trait MultiTaskDatafit<F: Float, DM: DesignMatrix<Elem = F>, T: AsMultiTarge
     /// This method computes the full gradient by calling
     /// [`MultiTaskDatafit::gradient_j`].
     fn full_grad(&self, dataset: &DatasetBase<DM, T>, XW: ArrayView2<F>) -> Array2<F>;
+
+    /// This method computes a step size used during the descent step. If the datafit is Lipschitz
+    /// continuous, the optimal step sizes are the Lipschitz constants.
+    fn step_size(&self) -> ArrayView1<F>;
 }
 
 /// Multi-Task Quadratic datafit
@@ -53,10 +57,6 @@ impl<F: Float> QuadraticMultiTask<F> {
 
     pub fn XtY(&self) -> ArrayView2<F> {
         self.XtY.view()
-    }
-
-    pub fn lipschitz(&self) -> ArrayView1<F> {
-        self.lipschitz.view()
     }
 }
 
@@ -116,6 +116,10 @@ impl<F: Float, D: Data<Elem = F>, T: AsMultiTargets<Elem = F>>
                 .collect(),
         )
         .unwrap()
+    }
+
+    fn step_size(&self) -> ArrayView1<F> {
+        self.lipschitz.view()
     }
 }
 
@@ -198,5 +202,9 @@ impl<F: Float, T: AsMultiTargets<Elem = F>> MultiTaskDatafit<F, CSCArray<'_, F>,
                 .collect(),
         )
         .unwrap()
+    }
+
+    fn step_size(&self) -> ArrayView1<F> {
+        self.lipschitz.view()
     }
 }

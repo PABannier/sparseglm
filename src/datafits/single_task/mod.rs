@@ -31,6 +31,11 @@ pub trait Datafit<F: Float, DM: DesignMatrix<Elem = F>, T: AsSingleTargets<Elem 
     /// This method computes the full gradient by calling
     /// [`Datafit::gradient_j`].
     fn full_grad(&self, dataset: &DatasetBase<DM, T>, Xw: ArrayView1<F>) -> Array1<F>;
+
+    /// This method computes the optimal step size during coordinate descent. If the datafit
+    /// is Lipschitz-continuous, this corresponds to the inverse of the Lipschitz constant of
+    /// the datafit. Otherwise, a line search is performed.
+    fn step_size(&self) -> ArrayView1<F>;
 }
 
 /// Quadratic datafit
@@ -52,11 +57,6 @@ impl<F: Float> Quadratic<F> {
             lipschitz: Array1::<F>::zeros(1),
             Xty: Array1::<F>::zeros(1),
         }
-    }
-
-    // A getter method for the Lipschitz constants.
-    pub fn lipschitz(&self) -> ArrayView1<F> {
-        self.lipschitz.view()
     }
 }
 
@@ -108,6 +108,10 @@ impl<F: Float, D: Data<Elem = F>, T: AsSingleTargets<Elem = F>> Datafit<F, Array
                 .map(|j| self.gradient_j(dataset, Xw, j))
                 .collect::<Vec<F>>(),
         )
+    }
+
+    fn step_size(&self) -> ArrayView1<F> {
+        self.lipschitz.view()
     }
 }
 
@@ -171,6 +175,12 @@ impl<F: Float, T: AsSingleTargets<Elem = F>> Datafit<F, CSCArray<'_, F>, T> for 
         let val = r.dot(&r) / F::cast(2 * n_samples);
         val
     }
+
+    /// The Quadratic datafit is Lipschitz-continuous, hence the optimal step size is the
+    /// Lipschitz constant.
+    fn step_size(&self) -> ArrayView1<F> {
+        self.lipschitz.view()
+    }
 }
 
 /// Logistic datafit
@@ -190,11 +200,6 @@ impl<F: Float> Logistic<F> {
         Logistic {
             lipschitz: Array1::<F>::zeros(1),
         }
-    }
-
-    // A getter method for the Lipschitz constants.
-    pub fn lipschitz(&self) -> ArrayView1<F> {
-        self.lipschitz.view()
     }
 }
 
@@ -251,6 +256,10 @@ impl<F: Float, D: Data<Elem = F>, T: AsSingleTargets<Elem = F>> Datafit<F, Array
                 .map(|j| self.gradient_j(dataset, Xw, j))
                 .collect::<Vec<F>>(),
         )
+    }
+
+    fn step_size(&self) -> ArrayView1<F> {
+        self.lipschitz.view()
     }
 }
 
@@ -309,5 +318,9 @@ impl<F: Float, T: AsSingleTargets<Elem = F>> Datafit<F, CSCArray<'_, F>, T> for 
                 .map(|j| self.gradient_j(dataset, Xw, j))
                 .collect::<Vec<F>>(),
         )
+    }
+
+    fn step_size(&self) -> ArrayView1<F> {
+        self.lipschitz.view()
     }
 }

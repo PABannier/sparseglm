@@ -293,7 +293,7 @@ where
 
         // Inner loop that implements the actual coordinate descent routine
         for epoch in 0..max_epochs {
-            let lipschitz = datafit.lipschitz();
+            let lipschitz = datafit.step_size();
 
             // Cycle through the features in the working set
             for &j in ws.iter() {
