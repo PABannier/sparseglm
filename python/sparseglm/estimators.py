@@ -309,7 +309,7 @@ class MCPRegressor(Estimator):
 
 
 class BlockMCPRegressor(Estimator):
-    r"""Solves a BlockMCP-regularized least square multi-task linear regression.
+    r"""Solves a BlockMCP-regularized least square multitask linear regression.
 
     The solver uses Anderson acceleration combined with a working set strategy
     for faster convergence.
@@ -366,7 +366,7 @@ class BlockMCPRegressor(Estimator):
             self.gamma = gamma
 
     def fit(self, X, Y):
-        r"""Solves the BlockMCP-regularized linear regression to the data (X, Y).
+        r"""Solve a BlockMCP-regularized linear regression.
 
         Parameters
         ----------
