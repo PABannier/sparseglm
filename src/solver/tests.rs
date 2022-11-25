@@ -1,5 +1,5 @@
-use crate::datafits::*;
-use crate::datafits_multitask::*;
+use crate::datafits::multi_task::*;
+use crate::datafits::single_task::*;
 use crate::datasets::{DatasetBase, DesignMatrix};
 use crate::helpers::test_helpers::{assert_array2d_all_close, assert_array_all_close};
 use crate::penalties::*;

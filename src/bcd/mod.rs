@@ -1,7 +1,7 @@
 use ndarray::{s, Array1, Array2, ArrayView1, ArrayView2};
 
 use super::Float;
-use crate::datafits_multitask::MultiTaskDatafit;
+use crate::datafits::multi_task::MultiTaskDatafit;
 use crate::datasets::DesignMatrix;
 use crate::datasets::{AsMultiTargets, DatasetBase};
 use crate::helpers::helpers::{argsort_by, solve_lin_sys};
