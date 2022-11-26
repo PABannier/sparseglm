@@ -217,7 +217,7 @@ pub fn anderson_accel<F, DM, T, DF, P>(
 }
 
 /// This is the backbone function to solve multi-task optimization problems. For a
-/// detailed description, see [`coordinate_descent`] function.
+/// detailed description, see [`solvers::anderson_cd::coordinate_descent`] function.
 pub fn block_coordinate_descent<F, DM, T, DF, P>(
     dataset: &DatasetBase<DM, T>,
     datafit: &mut DF,
