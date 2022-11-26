@@ -165,7 +165,7 @@ impl<F: Float> ParamGuard for LassoParams<F> {
         } else if self.0.K <= 0 {
             Err(EstimatorError::InvalidK(self.0.K))
         } else if self.0.ws_start_size <= 0 {
-            Err(EstimatorError::InvalidP0(self.0.p0))
+            Err(EstimatorError::InvalidWSSize(self.0.ws_start_size))
         } else {
             Ok(&self.0)
         }
@@ -340,7 +340,7 @@ impl<F: Float> ParamGuard for MultiTaskLassoParams<F> {
         } else if self.0.K <= 0 {
             Err(EstimatorError::InvalidK(self.0.K))
         } else if self.0.ws_start_size <= 0 {
-            Err(EstimatorError::InvalidP0(self.0.p0))
+            Err(EstimatorError::InvalidWSSize(self.0.ws_start_size))
         } else {
             Ok(&self.0)
         }
@@ -529,7 +529,7 @@ impl<F: Float> ParamGuard for MCParams<F> {
         } else if self.0.K <= 0 {
             Err(EstimatorError::InvalidK(self.0.K))
         } else if self.0.ws_start_size <= 0 {
-            Err(EstimatorError::InvalidP0(self.0.p0))
+            Err(EstimatorError::InvalidWSSize(self.0.ws_start_size))
         } else {
             Ok(&self.0)
         }
@@ -717,8 +717,8 @@ impl<F: Float> ParamGuard for BlockMCParams<F> {
             ))
         } else if self.0.K <= 0 {
             Err(EstimatorError::InvalidK(self.0.K))
-        } else if self.0.p0 <= 0 {
-            Err(EstimatorError::InvalidP0(self.0.p0))
+        } else if self.0.ws_start_size <= 0 {
+            Err(EstimatorError::InvalidWSSize(self.0.ws_start_size))
         } else {
             Ok(&self.0)
         }
@@ -910,8 +910,8 @@ impl<F: Float> ParamGuard for ElasticNetParams<F> {
             ))
         } else if self.0.K <= 0 {
             Err(EstimatorError::InvalidK(self.0.K))
-        } else if self.0.p0 <= 0 {
-            Err(EstimatorError::InvalidP0(self.0.p0))
+        } else if self.0.ws_start_size <= 0 {
+            Err(EstimatorError::InvalidWSSize(self.0.ws_start_size))
         } else {
             Ok(&self.0)
         }
@@ -1103,8 +1103,8 @@ impl<F: Float> ParamGuard for MultiTaskElasticNetParams<F> {
             ))
         } else if self.0.K <= 0 {
             Err(EstimatorError::InvalidK(self.0.K))
-        } else if self.0.p0 <= 0 {
-            Err(EstimatorError::InvalidP0(self.0.p0))
+        } else if self.0.ws_start_size <= 0 {
+            Err(EstimatorError::InvalidWSSize(self.0.ws_start_size))
         } else {
             Ok(&self.0)
         }
