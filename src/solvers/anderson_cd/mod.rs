@@ -10,7 +10,7 @@ use crate::utils::helpers::{argsort_by, solve_lin_sys};
 mod tests;
 
 /// This function allows to construct the gradient of a datafit restricted to
-/// the features present in the working set. It is used in [`kkt_violation`] to
+/// the features present in the working set. It is used in [`opt_cond_violation`] to
 /// rank features included in the working set.
 pub fn construct_grad<F, DF, DM, T>(
     dataset: &DatasetBase<DM, T>,
@@ -35,7 +35,7 @@ where
 /// subdifferential of the penalty restricted to the working set. It returns
 /// an array containing the distances for each feature in the working set as well
 /// as the maximum distance.
-pub fn kkt_violation<F, DF, P, DM, T>(
+pub fn opt_cond_violation<F, DF, P, DM, T>(
     dataset: &DatasetBase<DM, T>,
     w: ArrayView1<F>,
     Xw: ArrayView1<F>,
@@ -213,7 +213,7 @@ pub fn anderson_accel<F, DM, T, DF, P>(
 /// set until a specific suboptimality threshold is reached. This outer loop
 /// makes the working set size grow in a geometric fashion and selects the
 /// features in the design matrix whose gradient is the closest from the
-/// subdifferential of the penalty by calling [`kkt_violation`] and
+/// subdifferential of the penalty by calling [`opt_cond_violation`] and
 /// [`construct_ws_from_kkt`] functions. This loop runs for a fixed number of
 /// iterations.
 ///
@@ -269,7 +269,7 @@ where
 
     // Outer loop in charge of constructing the working set
     for t in 0..max_iterations {
-        let (mut kkt, kkt_max) = kkt_violation(
+        let (mut kkt, kkt_max) = opt_cond_violation(
             dataset,
             w.view(),
             Xw.view(),
@@ -340,7 +340,7 @@ where
                 let p_obj = datafit.value(dataset, Xw.view()) + penalty.value(w.view());
 
                 let (_, kkt_ws_max) =
-                    kkt_violation(dataset, w.view(), Xw.view(), ws.view(), datafit, penalty);
+                    opt_cond_violation(dataset, w.view(), Xw.view(), ws.view(), datafit, penalty);
 
                 if verbose {
                     println!(
