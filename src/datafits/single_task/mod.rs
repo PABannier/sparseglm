@@ -14,8 +14,7 @@ mod tests;
 /// during the optimization routine.
 pub trait Datafit<F: Float, DM: DesignMatrix<Elem = F>, T: AsSingleTargets<Elem = F>> {
     /// This method is called before looping onto the features, to precompute
-    /// the Lipschitz constants (used as stepsizes) and the matrix-vector
-    /// product XTy.
+    /// reusable quantities during the optimization process.
     fn initialize(&mut self, dataset: &DatasetBase<DM, T>);
 
     /// This method is called when evaluating the objective value.
@@ -32,9 +31,9 @@ pub trait Datafit<F: Float, DM: DesignMatrix<Elem = F>, T: AsSingleTargets<Elem 
     /// [`Datafit::gradient_j`].
     fn full_grad(&self, dataset: &DatasetBase<DM, T>, Xw: ArrayView1<F>) -> Array1<F>;
 
-    /// This method computes the optimal step size during coordinate descent. If the datafit
-    /// is Lipschitz-continuous, this corresponds to the inverse of the Lipschitz constant of
-    /// the datafit. Otherwise, a line search is performed.
+    /// This method computes the optimal step size during coordinate descent. If the
+    /// datafit is Lipschitz-continuous, this corresponds to the inverse of the
+    /// Lipschitz constant of the datafit. Otherwise, a line search is performed.
     fn step_size(&self) -> ArrayView1<F>;
 }
 

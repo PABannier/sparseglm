@@ -11,7 +11,7 @@ mod tests;
 pub trait MultiTaskPenalty<F: Float> {
     /// This method is called when evaluating the objective value.
     ///
-    /// It is jointly used with ['DatafitMultiTask::value`] in order to compute the value
+    /// It is jointly used with [`DatafitMultiTask::value`] in order to compute the value
     /// of the objective.
     fn value(&self, W: ArrayView2<F>) -> F;
 

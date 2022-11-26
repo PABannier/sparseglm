@@ -61,6 +61,11 @@ where
     ) -> Result<Array1<F>, Error>;
 }
 
+/// This trait calls the [`block_coordinate_descent`] backbone function to solve an
+/// optimization problem given a [`MultiTaskPenalty`], a [`MultiTaskDatafit`] and a
+/// [`Solver`].
+/// They contain all the hyperparameters needed by the coordinate descent
+/// solver function.
 pub trait BCDSolver<F, DM, T, DF, P>
 where
     F: Float,

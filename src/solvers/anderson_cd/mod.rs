@@ -9,9 +9,9 @@ use crate::utils::helpers::{argsort_by, solve_lin_sys};
 #[cfg(test)]
 mod tests;
 
-/// This function allows to construct the gradient of a datafit restricted to
-/// the features present in the working set. It is used in [`opt_cond_violation`] to
-/// rank features included in the working set.
+/// This function constructs the gradient of a datafit restricted to the features
+/// in the working set. It is used in [`opt_cond_violation`] to rank features included
+/// in the working set.
 pub fn construct_grad<F, DF, DM, T>(
     dataset: &DatasetBase<DM, T>,
     Xw: ArrayView1<F>,
@@ -31,7 +31,7 @@ where
     )
 }
 
-/// This function computes the distance of the gradient of the datafit to the
+/// This function computes the distance of the negative gradient of the datafit to the
 /// subdifferential of the penalty restricted to the working set. It returns
 /// an array containing the distances for each feature in the working set as well
 /// as the maximum distance.
@@ -56,9 +56,9 @@ where
 }
 
 /// This function is used to construct a working set by sorting the indices
-/// of the features having the smallest distance between their gradient and
-/// the subdifferential of the penalty. The inner coordinate descent solver then
-/// cycles through the working set (a subset of the features in the design matrix).
+/// in descending order of the features having the largest violation to the optimality
+/// conditions. The inner coordinate descent solver then cycles through the working set
+/// (a subset of the features in the design matrix).
 pub fn construct_ws_from_kkt<F: 'static + Float>(
     kkt: &mut Array1<F>,
     w: ArrayView1<F>,
@@ -67,8 +67,8 @@ pub fn construct_ws_from_kkt<F: 'static + Float>(
     let n_features = w.len();
     let mut nnz_features: usize = 0;
 
-    // Counts number of feature whose weights are non null and initializes their
-    // distance to be infinity
+    // Count features whose weights are non null and initializes their distance to be
+    // infinity
     for j in 0..n_features {
         if w[j] != F::zero() {
             nnz_features += 1;
@@ -98,7 +98,6 @@ pub fn construct_ws_from_kkt<F: 'static + Float>(
 /// point is selected if and only if the value of the objective at this extrapolated
 /// point has decreased compared to the previous non-extrapolated point.
 ///
-/// Reference: `https://arxiv.org/pdf/2011.10065.pdf`
 pub fn anderson_accel<F, DM, T, DF, P>(
     dataset: &DatasetBase<DM, T>,
     datafit: &DF,
@@ -207,15 +206,14 @@ pub fn anderson_accel<F, DM, T, DF, P>(
 
 /// This is the backbone function for the [`sparseglm`] crate. It implements
 /// the usual coordinate descent optimization routine using working sets. This
-/// routine is composed is composed of two nested loops.
+/// routine is composed of two nested loops.
 ///
 /// The outer loop is used to progressively increase the size of the working
-/// set until a specific suboptimality threshold is reached. This outer loop
+/// set until a specific suboptimality condition is reached. This outer loop
 /// makes the working set size grow in a geometric fashion and selects the
 /// features in the design matrix whose gradient is the closest from the
 /// subdifferential of the penalty by calling [`opt_cond_violation`] and
-/// [`construct_ws_from_kkt`] functions. This loop runs for a fixed number of
-/// iterations.
+/// [`construct_ws_from_kkt`] functions. This loop runs for `max_iterations`.
 ///
 /// The inner loop is to solve the optimization problem restricted to the working set.
 /// Inside this loop, regular calls are made to [`anderson_accel`] to try to find an
@@ -224,11 +222,7 @@ pub fn anderson_accel<F, DM, T, DF, P>(
 /// the actual coordinate descent, by cycling through the features in the
 /// working set.
 ///
-/// Note that combining working set and Anderson acceleration is a powerful
-/// technique as once the support has been identified (for a given level of
-/// regularization, the support is the set of features whose weights are non-
-/// null), Anderson acceleration kicks in and allows to find extrapolated points
-/// thus dramatically speeding the convergence speed.
+/// Reference: `https://arxiv.org/abs/2204.07826`
 pub fn coordinate_descent<F, DM, T, DF, P>(
     dataset: &DatasetBase<DM, T>,
     datafit: &mut DF,
