@@ -13,6 +13,8 @@ use crate::penalties::separable::Penalty;
 #[cfg(test)]
 pub mod tests;
 
+pub mod anderson_bcd;
+pub mod anderson_cd;
 pub mod impl_solver;
 
 /// [`sparseglm`] offers two ways to solve optimization problems. Either
@@ -23,7 +25,7 @@ pub mod impl_solver;
 #[derive(Debug, PartialEq, Clone)]
 pub struct Solver<F> {
     /// The start size of the working set
-    pub p0: usize,
+    pub ws_start_size: usize,
     /// The maximum number of iterations in the outer loop
     pub max_iterations: usize,
     /// The maximum number of epochs in the inner loop

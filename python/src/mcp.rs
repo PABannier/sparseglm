@@ -20,7 +20,7 @@ impl MCPWrapper {
         max_iterations: usize,
         max_epochs: usize,
         tolerance: f64,
-        p0: usize,
+        ws_start_size: usize,
         use_acceleration: bool,
         k: usize,
         verbose: bool,
@@ -31,7 +31,7 @@ impl MCPWrapper {
             .max_iterations(max_iterations)
             .max_epochs(max_epochs)
             .tolerance(tolerance)
-            .p0(p0)
+            .ws_start_size(ws_start_size)
             .use_acceleration(use_acceleration)
             .K(k)
             .verbose(verbose);

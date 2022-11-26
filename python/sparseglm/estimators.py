@@ -115,7 +115,7 @@ class Lasso(Estimator):
                         ensure_2d=False)
 
         self._inner = _lib.LassoWrapper(
-            alpha=self.alpha, max_iterations=self.max_iter, p0=self.p0,
+            alpha=self.alpha, max_iterations=self.max_iter, ws_start_size=self.p0,
             k=self.K, max_epochs=self.max_epochs, tolerance=self.tol,
             use_acceleration=self.use_accel, verbose=self.verbose)
 
@@ -206,7 +206,7 @@ class MultiTaskLasso(Estimator):
                              % (n_samples, Y.shape[0]))
 
         self._inner = _lib.MultiTaskLassoWrapper(
-            alpha=self.alpha, max_iterations=self.max_iter, p0=self.p0,
+            alpha=self.alpha, max_iterations=self.max_iter, ws_start_size=self.p0,
             k=self.K, max_epochs=self.max_epochs, tolerance=self.tol,
             use_acceleration=self.use_accel, verbose=self.verbose)
 
@@ -295,7 +295,7 @@ class MCPRegressor(Estimator):
 
         self._inner = _lib.MCPWrapper(
             alpha=self.alpha, gamma=self.gamma, max_iterations=self.max_iter,
-            p0=self.p0, k=self.K, max_epochs=self.max_epochs,
+            ws_start_size=self.p0, k=self.K, max_epochs=self.max_epochs,
             tolerance=self.tol, use_acceleration=self.use_accel,
             verbose=self.verbose)
 
@@ -395,7 +395,7 @@ class BlockMCPRegressor(Estimator):
 
         self._inner = _lib.BlockMCPWrapper(
             alpha=self.alpha, gamma=self.gamma, max_iterations=self.max_iter,
-            p0=self.p0, k=self.K, max_epochs=self.max_epochs,
+            ws_start_size=self.p0, k=self.K, max_epochs=self.max_epochs,
             tolerance=self.tol, use_acceleration=self.use_accel,
             verbose=self.verbose)
 
@@ -484,7 +484,7 @@ class ElasticNet(Estimator):
 
         self._inner = _lib.ElasticNetWrapper(
             alpha=self.alpha, l1_ratio=self.l1_ratio,
-            max_iterations=self.max_iter, p0=self.p0, k=self.K,
+            max_iterations=self.max_iter, ws_start_size=self.p0, k=self.K,
             max_epochs=self.max_epochs, tolerance=self.tol,
             use_acceleration=self.use_accel, verbose=self.verbose)
 
@@ -584,7 +584,7 @@ class MultiTaskElasticNet(Estimator):
 
         self._inner = _lib.MultiTaskElasticNetWrapper(
             alpha=self.alpha, l1_ratio=self.l1_ratio,
-            max_iterations=self.max_iter, p0=self.p0, k=self.K,
+            max_iterations=self.max_iter, ws_start_size=self.p0, k=self.K,
             max_epochs=self.max_epochs, tolerance=self.tol,
             use_acceleration=self.use_accel, verbose=self.verbose)
 

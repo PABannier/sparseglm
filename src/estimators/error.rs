@@ -14,8 +14,8 @@ pub enum EstimatorError {
     InvalidTolerance(f32),
     #[error("invalid K {0}")]
     InvalidK(usize),
-    #[error("invalid p0 {0}")]
-    InvalidP0(usize),
+    #[error("invalid working set size {0}")]
+    InvalidWSSize(usize),
     #[error("invalid l1 ratio {0}")]
     InvalidL1Ratio(f32),
 }

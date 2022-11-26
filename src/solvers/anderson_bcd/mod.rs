@@ -11,7 +11,7 @@ use crate::utils::helpers::{argsort_by, solve_lin_sys};
 mod tests;
 
 /// This function allows to construct the gradient of a datafit restricted to
-/// the features present in the working set. It is used in [`kkt_violation`] to
+/// the features present in the working set. It is used in [`opt_cond_violation`] to
 /// rank features included in the working set.
 pub fn construct_grad<F, DF, DM, T>(
     dataset: &DatasetBase<DM, T>,
@@ -41,7 +41,7 @@ where
 /// subdifferential of the penalty restricted to the working set. It returns
 /// an array containing the distances for each feature in the working set as well
 /// as the maximum distance.
-pub fn kkt_violation<F, DF, P, DM, T>(
+pub fn opt_cond_violation<F, DF, P, DM, T>(
     dataset: &DatasetBase<DM, T>,
     W: ArrayView2<F>,
     XW: ArrayView2<F>,
@@ -68,7 +68,7 @@ where
 pub fn construct_ws_from_kkt<F>(
     kkt: &mut Array1<F>,
     W: ArrayView2<F>,
-    p0: usize,
+    ws_start_size: usize,
 ) -> (Array1<usize>, usize)
 where
     F: 'static + Float,
@@ -86,7 +86,7 @@ where
     }
 
     // Geometric growth of the working set size
-    let ws_size = usize::max(p0, usize::min(2 * nnz_features, n_features));
+    let ws_size = usize::max(ws_start_size, usize::min(2 * nnz_features, n_features));
 
     // Sort indices by descending order (argmin)
     let mut sorted_indices = argsort_by(&kkt, |a, b| {
@@ -222,7 +222,7 @@ pub fn block_coordinate_descent<F, DM, T, DF, P>(
     dataset: &DatasetBase<DM, T>,
     datafit: &mut DF,
     penalty: &P,
-    p0: usize,
+    ws_start_size: usize,
     max_iterations: usize,
     max_epochs: usize,
     tolerance: F,
@@ -248,14 +248,18 @@ where
     let all_feats = Array1::from_shape_vec(n_features, (0..n_features).collect()).unwrap();
 
     // The starting working set can't be greater than the number of features
-    let p0 = if p0 > n_features { n_features } else { p0 };
+    let ws_start_size = if ws_start_size > n_features {
+        n_features
+    } else {
+        ws_start_size
+    };
 
     let mut W = Array2::<F>::zeros((n_features, n_tasks));
     let mut XW = Array2::<F>::zeros((n_samples, n_tasks));
 
     // Outer loop in charge of constructing the working set
     for t in 0..max_iterations {
-        let (mut kkt, kkt_max) = kkt_violation(
+        let (mut kkt, kkt_max) = opt_cond_violation(
             dataset,
             W.view(),
             XW.view(),
@@ -272,7 +276,7 @@ where
         }
 
         // Construct the working set based on previously computed KKT violation
-        let (ws, ws_size) = construct_ws_from_kkt(&mut kkt, W.view(), p0);
+        let (ws, ws_size) = construct_ws_from_kkt(&mut kkt, W.view(), ws_start_size);
 
         let mut last_K_W = Array2::<F>::zeros((K + 1, ws_size * n_tasks));
         let mut U = Array2::<F>::zeros((K, ws_size * n_tasks));
@@ -344,7 +348,7 @@ where
                 let p_obj = datafit.value(dataset, XW.view()) + penalty.value(W.view());
 
                 let (_, kkt_ws_max) =
-                    kkt_violation(dataset, W.view(), XW.view(), ws.view(), datafit, penalty);
+                    opt_cond_violation(dataset, W.view(), XW.view(), ws.view(), datafit, penalty);
 
                 if verbose {
                     println!(

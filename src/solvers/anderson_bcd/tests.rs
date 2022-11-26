@@ -1,10 +1,10 @@
 use ndarray::linalg::general_mat_mul;
 use ndarray::{Array1, Array2};
 
-use crate::bcd::*;
 use crate::datafits::multi_task::*;
 use crate::datasets::csc_array::CSCArray;
 use crate::penalties::block_separable::*;
+use crate::solvers::anderson_bcd::*;
 use crate::utils::test_helpers::*;
 
 #[test]
@@ -25,7 +25,7 @@ fn test_kkt_violation() {
     let penalty = L21::new(0.3);
 
     let (kkt, kkt_max) =
-        kkt_violation(&dataset, W.view(), XW.view(), ws.view(), &datafit, &penalty);
+        opt_cond_violation(&dataset, W.view(), XW.view(), ws.view(), &datafit, &penalty);
     let true_kkt = Array1::from_shape_vec(3, vec![60.66759347, 22.63130826, 6.6374834]).unwrap();
 
     assert_array_all_close(kkt.view(), true_kkt.view(), 1e-6);
@@ -70,7 +70,7 @@ fn test_kkt_violation_sparse() {
     let penalty = L21::new(0.3);
 
     let (kkt, kkt_max) =
-        kkt_violation(&dataset, W.view(), XW.view(), ws.view(), &datafit, &penalty);
+        opt_cond_violation(&dataset, W.view(), XW.view(), ws.view(), &datafit, &penalty);
     let true_kkt =
         Array1::from_shape_vec(5, vec![1.0795966, 1.54808192, 0.3, 1.54213716, 0.5701502]).unwrap();
 

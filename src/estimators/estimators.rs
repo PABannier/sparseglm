@@ -8,13 +8,13 @@ use super::hyperparams::{
 };
 use super::traits::Fit;
 
-use crate::bcd::block_coordinate_descent;
-use crate::cd::coordinate_descent;
 use crate::datafits::multi_task::QuadraticMultiTask;
 use crate::datafits::single_task::Quadratic;
 use crate::datasets::{csc_array::CSCArray, AsMultiTargets, AsSingleTargets, DatasetBase};
 use crate::penalties::block_separable::{BlockL1PlusL2, BlockMCP, L21};
 use crate::penalties::separable::{L1PlusL2, L1, MCP};
+use crate::solvers::anderson_bcd::block_coordinate_descent;
+use crate::solvers::anderson_cd::coordinate_descent;
 use crate::Float;
 
 /// The Lasso estimator
@@ -58,7 +58,7 @@ impl<F: Float, S: Data<Elem = F>, T: AsSingleTargets<Elem = F>>
             dataset,
             &mut datafit,
             &penalty,
-            self.p0(),
+            self.ws_start_size(),
             self.max_iterations(),
             self.max_epochs(),
             self.tolerance(),
@@ -89,7 +89,7 @@ impl<F: Float, T: AsSingleTargets<Elem = F>> Fit<CSCArray<'_, F>, T, EstimatorEr
             dataset,
             &mut datafit,
             &penalty,
-            self.p0(),
+            self.ws_start_size(),
             self.max_iterations(),
             self.max_epochs(),
             self.tolerance(),
@@ -141,7 +141,7 @@ impl<F: Float, S: Data<Elem = F>, T: AsMultiTargets<Elem = F>>
             dataset,
             &mut datafit,
             &penalty,
-            self.p0(),
+            self.ws_start_size(),
             self.max_iterations(),
             self.max_epochs(),
             self.tolerance(),
@@ -172,7 +172,7 @@ impl<F: Float, T: AsMultiTargets<Elem = F>> Fit<CSCArray<'_, F>, T, EstimatorErr
             dataset,
             &mut datafit,
             &penalty,
-            self.p0(),
+            self.ws_start_size(),
             self.max_iterations(),
             self.max_epochs(),
             self.tolerance(),
@@ -226,7 +226,7 @@ impl<F: Float, S: Data<Elem = F>, T: AsSingleTargets<Elem = F>>
             dataset,
             &mut datafit,
             &penalty,
-            self.p0(),
+            self.ws_start_size(),
             self.max_iterations(),
             self.max_epochs(),
             self.tolerance(),
@@ -257,7 +257,7 @@ impl<F: Float, T: AsSingleTargets<Elem = F>> Fit<CSCArray<'_, F>, T, EstimatorEr
             dataset,
             &mut datafit,
             &penalty,
-            self.p0(),
+            self.ws_start_size(),
             self.max_iterations(),
             self.max_epochs(),
             self.tolerance(),
@@ -312,7 +312,7 @@ impl<F: Float, S: Data<Elem = F>, T: AsMultiTargets<Elem = F>>
             dataset,
             &mut datafit,
             &penalty,
-            self.p0(),
+            self.ws_start_size(),
             self.max_iterations(),
             self.max_epochs(),
             self.tolerance(),
@@ -343,7 +343,7 @@ impl<F: Float, T: AsMultiTargets<Elem = F>> Fit<CSCArray<'_, F>, T, EstimatorErr
             dataset,
             &mut datafit,
             &penalty,
-            self.p0(),
+            self.ws_start_size(),
             self.max_iterations(),
             self.max_epochs(),
             self.tolerance(),
@@ -395,7 +395,7 @@ impl<F: Float, S: Data<Elem = F>, T: AsSingleTargets<Elem = F>>
             dataset,
             &mut datafit,
             &penalty,
-            self.p0(),
+            self.ws_start_size(),
             self.max_iterations(),
             self.max_epochs(),
             self.tolerance(),
@@ -426,7 +426,7 @@ impl<F: Float, T: AsSingleTargets<Elem = F>> Fit<CSCArray<'_, F>, T, EstimatorEr
             dataset,
             &mut datafit,
             &penalty,
-            self.p0(),
+            self.ws_start_size(),
             self.max_iterations(),
             self.max_epochs(),
             self.tolerance(),
@@ -479,7 +479,7 @@ impl<F: Float, S: Data<Elem = F>, T: AsMultiTargets<Elem = F>>
             dataset,
             &mut datafit,
             &penalty,
-            self.p0(),
+            self.ws_start_size(),
             self.max_iterations(),
             self.max_epochs(),
             self.tolerance(),
@@ -510,7 +510,7 @@ impl<F: Float, T: AsMultiTargets<Elem = F>> Fit<CSCArray<'_, F>, T, EstimatorErr
             dataset,
             &mut datafit,
             &penalty,
-            self.p0(),
+            self.ws_start_size(),
             self.max_iterations(),
             self.max_epochs(),
             self.tolerance(),
