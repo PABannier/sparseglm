@@ -10,9 +10,9 @@ use crate::utils::helpers::{argsort_by, solve_lin_sys};
 #[cfg(test)]
 mod tests;
 
-/// This function allows to construct the gradient of a datafit restricted to
-/// the features present in the working set. It is used in [`opt_cond_violation`] to
-/// rank features included in the working set.
+/// This function constructs the gradient of a datafit restricted to the features in
+/// the working set. It is used in [`opt_cond_violation`] to rank features included in
+/// the working set.
 pub fn construct_grad<F, DF, DM, T>(
     dataset: &DatasetBase<DM, T>,
     XW: ArrayView2<F>,
@@ -37,7 +37,7 @@ where
     .unwrap()
 }
 
-/// This function computes the distance of the gradient of the datafit to the
+/// This function computes the distance of the negative gradient of the datafit to the
 /// subdifferential of the penalty restricted to the working set. It returns
 /// an array containing the distances for each feature in the working set as well
 /// as the maximum distance.
@@ -62,9 +62,8 @@ where
 }
 
 /// This function is used to construct a working set by sorting the indices
-/// of the features having the smallest distance between their gradient and
-/// the subdifferential of the penalty. The inner block coordinate descent solver then
-/// cycles through the working set (a subset of the features in the design matrix).
+/// in descending order of the features having the largest violation to the optimality
+/// conditions.
 pub fn construct_ws_from_kkt<F>(
     kkt: &mut Array1<F>,
     W: ArrayView2<F>,
@@ -76,8 +75,8 @@ where
     let n_features = W.shape()[0];
     let mut nnz_features: usize = 0;
 
-    // Counts number of feature whose weights have a non-null norm and initializes
-    // the distance to be infinity
+    // Count features whose weights have a non-zero norm and initialize distance to
+    // infinity
     for j in 0..n_features {
         if W.slice(s![j, ..]).iter().any(|&x| x != F::zero()) {
             nnz_features += 1;
@@ -99,8 +98,9 @@ where
     (ws, ws_size)
 }
 
-/// This function is a multi-task variant of the [`anderson_accel`] function in
-/// the single-task case.
+/// This function builds an extrapolated point from previous iterates during the
+/// coordinate descent iterations. Using the `K` previous iterates, it builds an
+/// extrapolated point by solving a quadratic program.
 pub fn anderson_accel<F, DM, T, DF, P>(
     dataset: &DatasetBase<DM, T>,
     W: &mut Array2<F>,
@@ -216,7 +216,7 @@ pub fn anderson_accel<F, DM, T, DF, P>(
     }
 }
 
-/// This is the backbone function for the crate, in the multi-task case. For a
+/// This is the backbone function to solve multi-task optimization problems. For a
 /// detailed description, see [`coordinate_descent`] function.
 pub fn block_coordinate_descent<F, DM, T, DF, P>(
     dataset: &DatasetBase<DM, T>,
