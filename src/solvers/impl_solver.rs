@@ -27,7 +27,7 @@ impl<F: Float> Default for Solver<F> {
 }
 
 impl<F: Float> Solver<F> {
-    /// Creates a Solver instance with default parameters.
+    /// Create a Solver instance with default parameters.
     pub fn new() -> Self {
         Default::default()
     }
