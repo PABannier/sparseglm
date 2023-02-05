@@ -16,5 +16,13 @@ rand_distr = "0.4.2"
 
 thiserror = "1.0"
 
+[dev-dependencies]
+criterion = "0.3"
+linfa = "0.6.0"
+
 [workspace]
 members = ["python/"]
+
+[[bench]]
+name = "bench_lasso"
+harness = false
