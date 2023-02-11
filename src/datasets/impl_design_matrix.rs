@@ -1,6 +1,7 @@
-use super::{csc_array::CSCArray, DesignMatrix, DesignMatrixType};
+use super::{DesignMatrix, DesignMatrixType};
 use crate::Float;
 use ndarray::{s, Array1, Array2, ArrayBase, ArrayView1, Axis, Data, Ix2};
+use sprs::CsMat;
 
 /// This implements the [`DesignMatrix`] trait for dense matrices.
 impl<F: Float, S: Data<Elem = F>> DesignMatrix for ArrayBase<S, Ix2> {

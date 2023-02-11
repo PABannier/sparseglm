@@ -49,6 +49,7 @@ extern crate ndarray_stats;
 extern crate num_traits;
 extern crate rand;
 extern crate rand_distr;
+extern crate sprs;
 extern crate thiserror;
 
 use ndarray::ScalarOperand;

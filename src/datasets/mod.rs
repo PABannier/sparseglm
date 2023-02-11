@@ -3,7 +3,6 @@ use thiserror::Error;
 
 use self::csc_array::CSCArray;
 
-pub mod csc_array;
 mod impl_datasets;
 mod impl_design_matrix;
 mod impl_targets;

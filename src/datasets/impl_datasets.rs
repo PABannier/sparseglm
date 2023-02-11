@@ -1,6 +1,7 @@
-use super::{csc_array::CSCArray, AsMultiTargets, DatasetBase, DesignMatrix};
+use super::{AsMultiTargets, DatasetBase, DesignMatrix};
 use crate::Float;
 use ndarray::{ArrayBase, Data, Ix2};
+use sprs::{CsMat, CsMatView};
 
 /// This implementation block provides a method for the creation of datasets
 /// from dense matrices.
@@ -17,10 +18,8 @@ impl<F: Float, D: Data<Elem = F>, T: AsMultiTargets> From<(ArrayBase<D, Ix2>, T)
 
 /// This implementation block provides a method for the creation of datasets
 /// from sparse matrices.
-impl<'a, F: Float, T: AsMultiTargets> From<(CSCArray<'a, F>, T)>
-    for DatasetBase<CSCArray<'a, F>, T>
-{
-    fn from(data: (CSCArray<'a, F>, T)) -> Self {
+impl<F: Float, T: AsMultiTargets> From<(CsMat<F>, T)> for DatasetBase<CSMat<F>, T> {
+    fn from(data: (CSMat<F>, T)) -> Self {
         DatasetBase {
             design_matrix: data.0,
             targets: data.1,
