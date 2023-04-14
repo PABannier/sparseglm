@@ -10,12 +10,15 @@ use crate::datasets::{DatasetBase, DesignMatrix};
 use crate::penalties::block_separable::MultiTaskPenalty;
 use crate::penalties::separable::Penalty;
 
+mod utils;
+
 #[cfg(test)]
 pub mod tests;
 
 pub mod anderson_bcd;
 pub mod anderson_cd;
 pub mod impl_solver;
+pub mod prox_newton;
 
 /// [`sparseglm`] offers two ways to solve optimization problems. Either
 /// using a pre-defined estimator and using an API à la Scikit-Learn, or using
@@ -53,6 +56,25 @@ where
     P: Penalty<F>,
 {
     /// This method calls the [`coordinate_descent`] backbone function.
+    fn solve(
+        &self,
+        dataset: &DatasetBase<DM, T>,
+        datafit: &mut DF,
+        penalty: &P,
+    ) -> Result<Array1<F>, Error>;
+}
+
+/// This trait calls the [`prox_newton`] backbone function to solve an optimization
+/// problem defined by a [`Penalty`] and a [`Datafit`] instance.
+pub trait PNSolver<F, DM, T, DF, P>
+where
+    F: Float,
+    DM: DesignMatrix<Elem = F>,
+    T: AsSingleTargets<Elem = F>,
+    DF: Datafit<F, DM, T>,
+    P: Penalty<F>,
+{
+    /// This method calls the [`prox_newton`] backbone function.
     fn solve(
         &self,
         dataset: &DatasetBase<DM, T>,
