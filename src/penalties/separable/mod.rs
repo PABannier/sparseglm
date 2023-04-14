@@ -198,7 +198,7 @@ impl<F: Float> Penalty<F> for IndicatorBox<F> {
     ) -> (Array1<F>, F) {
         Array1::from_vec(grad.iter().zip(ws).map(|(&grad_idx, &j)| match w[j] {
             0 => F::max(F::zero(), -grad_idx),
-            self.alpha => F::max(F::zero(), grad_idx),
+            self::alpha => F::max(F::zero(), grad_idx),
             _ => grad_idx.abs(),
         }))
     }
