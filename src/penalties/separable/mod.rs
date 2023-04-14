@@ -1,7 +1,7 @@
 use ndarray::{Array1, ArrayBase, ArrayView1, Ix1, OwnedRepr};
 
 use super::Float;
-use crate::utils::prox_funcs::{prox_05, soft_thresholding};
+use crate::utils::prox_funcs::{box_projection, prox_05, soft_thresholding};
 
 #[cfg(test)]
 mod tests;
@@ -148,6 +148,61 @@ impl<F: Float> Penalty<F> for L1PlusL2<F> {
         );
         let max_dist = subdiff_dist.fold(F::neg_infinity(), |max_val, &dist| F::max(max_val, dist));
         (subdiff_dist, max_dist)
+    }
+}
+
+/// The Indicator box penalty
+///
+/// A box-constraint penalty used in the dual formulation of the SVM prolem.
+#[derive(Debug, Clone, PartialEq)]
+pub struct IndicatorBox<F: Float> {
+    alpha: F,
+}
+
+impl<F: Float> IndicatorBox<F> {
+    /// Instantiates an Indicator Box penalty with a given positive
+    /// regularization and a shaping hyperparameter
+    pub fn new(alpha: F) -> Self {
+        IndicatorBox { alpha }
+    }
+}
+
+impl<F: Float> Penalty<F> for IndicatorBox<F> {
+    fn value(&self, w: ArrayView1<F>) -> F {
+        let max_val = w.fold(F::neg_infinity(), |max_val, &w_i| F::max(max_val, w_i));
+        let min_val = w.fold(F::infinity(), |min_val, &w_i| F::min(min_val, w_i));
+        // let mut max_val = -F::infinity();
+        // let mut min_val = F::infinity();
+        // w.for_each(|&w_i| {
+        //     max_val = F::max(max_val, w_i);
+        //     min_val = F::min(min_val, w_i);
+        // });
+        if max_val > self.alpha {
+            F::infinity()
+        } else if min_val < 0 {
+            F::infinity()
+        } else {
+            F::zero()
+        }
+    }
+
+    fn prox(&self, value: F, step_size: F) -> F {
+        box_projection(value, 0, self.alpha)
+    }
+
+    fn subdiff_distance(
+        &self,
+        w: ArrayView1<F>,
+        grad: ArrayView1<F>,
+        ws: ArrayView1<usize>,
+    ) -> (Array1<F>, F) {
+        let sudiff_dist = Array1::from_vec(grad.iter().zip(ws).map(|(&grad_idx, &j)| match w[j] {
+            0 => F::max(F::zero(), -grad_idx),
+            self::alpha => F::max(F::zero(), grad_idx),
+            _ => grad_idx.abs(),
+        }));
+        let max_dist = sudiff_dist.fold(F::neg_infinity(), |max_val, &dist| F::max(dist, max_val));
+        (sudiff_dist, max_dist)
     }
 }
 
