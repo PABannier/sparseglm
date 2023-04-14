@@ -196,11 +196,13 @@ impl<F: Float> Penalty<F> for IndicatorBox<F> {
         grad: ArrayView1<F>,
         ws: ArrayView1<usize>,
     ) -> (Array1<F>, F) {
-        Array1::from_vec(grad.iter().zip(ws).map(|(&grad_idx, &j)| match w[j] {
+        let sudiff_dist = Array1::from_vec(grad.iter().zip(ws).map(|(&grad_idx, &j)| match w[j] {
             0 => F::max(F::zero(), -grad_idx),
             self::alpha => F::max(F::zero(), grad_idx),
             _ => grad_idx.abs(),
-        }))
+        }));
+        let max_dist = sudiff_dist.fold(F::neg_infinity(), |max_val, &dist| F::max(dist, max_val));
+        (sudiff_dist, max_dist)
     }
 }
 
