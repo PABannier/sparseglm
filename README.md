@@ -7,10 +7,10 @@
 A fast and modular coordinate descent solver for sparse generalized linear models
 with **convex** and **non-convex** penalties.
 
-The algorithm behind `sparseglm` is explained [here](https://arxiv.org/abs/2204.07826).
+The optimization algorithm is explained [here](https://arxiv.org/abs/2204.07826).
 This work has been accepted at NeurIPS 2022.
-It provides theoretical guarantees of convergence and extensively demonstrates the superiority
-of this solver over existing ones. The original package written in pure Python can be found
+It offers theoretical guarantees of convergence and demonstrates the superiority
+of this solver over existing alternatives. The original package written in pure Python can be found
 here: [skglm](https://github.com/scikit-learn-contrib/skglm).
 
 `sparseglm` leverages [Anderson acceleration](https://github.com/mathurinm/andersoncd)
@@ -19,12 +19,11 @@ and [working sets](https://github.com/scikit-learn-contrib/skglm) to propose a *
 with millions of samples and features in seconds. It supports **dense** and
 **sparse** matrices via CSC arrays.
 
-The philosophy of `sparseglm` consists in offering a highly flexible API.
-Any sparse GLM can be implemented in under 30 lines of code by providing its datafit
-term and its penalty term, which makes it very easy to support new estimators.
+The philosophy of `sparseglm` lies in providing a highly flexible API.
+By supplying the datafit term and penalty term, one can implement any sparse Generalized Linear Model (GLM) in under 30 lines of code, making it effortless to introduce new estimators.
 
 ```rust
-// Load some data and wrap them in a Dataset
+// Load data and wrap them in a Dataset
 let dataset = DatasetBase::from((x, y));
 
 // Define a datafit (here a quadratic datafit for regression)
@@ -44,7 +43,7 @@ For the most well-known models like `Lasso` or `ElasticNet`, `sparseglm` already
 implementations.
 
 ```rust
-// Load some data and wrap them in a Dataset
+// Load data and wrap them in a Dataset
 let dataset = DatasetBase::from((x, y));
 
 // Instantiate and fit the estimator
@@ -92,8 +91,6 @@ Currently we support:
 | MCP                        | :heavy_check_mark: | :heavy_check_mark: | Non-convex |
 | Elastic-Net                | :heavy_check_mark: | :heavy_check_mark: |   Convex   |
 | L0.5                       | :heavy_check_mark: | :heavy_check_mark: | Non-convex |
-| L2/3                       |         -          |         -          | Non-convex |
-| SCAD                       |         -          |         -          | Non-convex |
 | Indicator box              |         -          |         -          |   Convex   |
 | Sparse logistic regression | :heavy_check_mark: |         -          |   Convex   |
 | Dual SVM with hinge loss   |         -          |         -          |   Convex   |
@@ -111,4 +108,22 @@ pip install -r requirements.txt
 # Compile and build Python wheel
 cd python
 python ./setup.py install
+```
+
+## Contributing
+
+### Testing
+
+To run the tests, run:
+
+```shell
+cargo test
+```
+
+### Benchmarking
+
+The crates also features benchmarks. To run them, run:
+
+```shell
+cargo bench
 ```
