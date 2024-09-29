@@ -1,8 +1,10 @@
-name: 'pytest'
+name: "pytest"
 
 on:
+  pull_request:
   push:
-    branches: '*'
+    branches:
+      - main
 
 jobs:
   test:
