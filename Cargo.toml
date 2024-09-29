@@ -1,7 +1,15 @@
 [package]
 name = "sparseglm"
 version = "0.1.0"
+authors = ["Pierre-Antoine Bannier <pierreantoine.bannier@gmail.com>"]
 edition = "2021"
+license-file = "LICENSE"
+description = "Fast memory-efficient solver for sparse generalized linear models"
+repository = "https://github.com/PABannier/sparseglm"
+readme = "README.md"
+keywords = ["machine", "learning", "data", "linear"]
+categories = ["science"]
+exclude = ["/.github"]
 
 [dependencies]
 ndarray = { version = "0.15", default-features = false, features = ["approx"] }
