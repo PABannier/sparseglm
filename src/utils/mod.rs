@@ -46,6 +46,17 @@ pub mod prox_funcs {
                         ),
                 ))
     }
+
+    /// This function implements the proximal operator of [`Penalty::IndicatorBox`].
+    pub fn box_projection<F: Float>(x: F, low: F, up: F) -> F {
+        if x > up {
+            up
+        } else if x < low {
+            low
+        } else {
+            x
+        }
+    }
 }
 
 /// This module contains helper functions to compute the maximum regularization
