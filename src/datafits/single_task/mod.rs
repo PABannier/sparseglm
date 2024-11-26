@@ -323,3 +323,48 @@ impl<F: Float, T: AsSingleTargets<Elem = F>> Datafit<F, CSCArray<'_, F>, T> for 
         self.lipschitz.view()
     }
 }
+
+/// QuadraticSVC datafit
+///
+/// TBD
+#[derive(Debug, Clone, PartialEq)]
+pub struct QuadraticSVC<F: Float> {
+    lipschitz: Array1<F>,
+}
+
+impl<F: Float> QuadraticSVC<F> {
+    pub fn new() -> Self {
+        QuadraticSVC {
+            lipschitz: Array1::<F>::zeros(1),
+        }
+    }
+}
+
+impl<F: Float, D: Data<Elem = F>, T: AsSingleTargets<Elem = F>> Datafit<F, ArrayBase<D, Ix2>, T>
+    for QuadraticSVC<F>
+{
+    fn initialize(&mut self, dataset: &DatasetBase<ArrayBase<D, Ix2>, T>) {
+        // Compute yXT
+        // Take norms of columns of yXT
+        let n_features = dataset.design_matrix().n_features();
+    }
+
+    fn value(&self, dataset: &DatasetBase<ArrayBase<D, Ix2>, T>, Xw: ArrayView1<F>) -> F {}
+
+    fn gradient_j(
+        &self,
+        dataset: &DatasetBase<ArrayBase<D, Ix2>, T>,
+        Xw: ArrayView1<F>,
+        j: usize,
+    ) -> F {
+    }
+
+    fn full_grad(
+        &self,
+        dataset: &DatasetBase<ArrayBase<D, Ix2>, T>,
+        Xw: ArrayView1<F>,
+    ) -> Array1<F> {
+    }
+
+    fn step_size(&self) -> ArrayView1<F> {}
+}
